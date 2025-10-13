@@ -1,0 +1,2 @@
+[console_scripts]
+tofui = tofui.cli:main

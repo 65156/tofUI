@@ -1,0 +1,95 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tofui"
+description = "Beautiful Terraform Plan Reports"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "tofUI"},
+]
+maintainers = [
+    {name = "tofUI"},
+]
+keywords = ["terraform", "plan", "html", "report", "visualization", "infrastructure", "tofui"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9", 
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Build Tools",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Utilities",
+]
+dependencies = [
+    # Core dependencies (no external dependencies!)
+]
+dynamic = ["version"]
+
+[project.optional-dependencies]
+s3 = ["boto3>=1.26.0"]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=22.0.0",
+    "flake8>=5.0.0",
+    "mypy>=1.0.0",
+]
+
+[project.scripts]
+tofui = "tofui.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/65156/tofUI"
+Documentation = "https://github.com/65156/tofUI#readme"
+Repository = "https://github.com/65156/tofUI"
+"Bug Reports" = "https://github.com/65156/tofUI/issues"
+
+[tool.setuptools]
+packages = ["tofui"]
+
+[tool.setuptools.dynamic]
+version = {attr = "tofui.__version__"}
+
+[tool.setuptools.package-data]
+tofui = ["*.py", "py.typed"]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terraplan Report - Test Infrastructure Report</title>
+    <title>Terraplan Report - test-modernized</title>
     <style>
         
         * {
@@ -421,8 +421,8 @@
     <div class="container">
         
         <div class="header">
-            <div class="plan-name"><strong>Plan:</strong> Test Infrastructure Report</div>
-            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-13 12:23:09 UTC</div>
+            <div class="plan-name"><strong>Plan:</strong> test-modernized</div>
+            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-13 14:25:16 UTC</div>
         </div>
         
         
@@ -506,12 +506,6 @@
                 </thead>
                 <tbody>
                     
-        <tr class="property-change addition" data-property="most_recent">
-            <td class="property-name">most_recent</td>
-            <td class="before-value"><pre></pre></td>
-            <td class="after-value"><pre>true</pre></td>
-        </tr>
-        
         <tr class="property-change addition" data-property="filters">
             <td class="property-name">filters</td>
             <td class="before-value"><pre></pre></td>
@@ -531,6 +525,12 @@
             <td class="after-value"><pre>[
   &quot;amazon&quot;
 ]</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="most_recent">
+            <td class="property-name">most_recent</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>true</pre></td>
         </tr>
         
                 </tbody>
@@ -643,12 +643,6 @@
                 </thead>
                 <tbody>
                     
-        <tr class="property-change removal" data-property="id">
-            <td class="property-name">id</td>
-            <td class="before-value"><pre>i-abcdef1234567890</pre></td>
-            <td class="after-value"><pre></pre></td>
-        </tr>
-        
         <tr class="property-change modification" data-property="tags">
             <td class="property-name">tags.Environment</td>
             <td class="before-value"><pre>staging</pre></td>
@@ -665,6 +659,12 @@
             <td class="property-name">instance_type</td>
             <td class="before-value"><pre>t2.micro</pre></td>
             <td class="after-value"><pre>t3.micro</pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="id">
+            <td class="property-name">id</td>
+            <td class="before-value"><pre>i-abcdef1234567890</pre></td>
+            <td class="after-value"><pre></pre></td>
         </tr>
         
         <tr class="property-change modification" data-property="ami">
@@ -830,7 +830,7 @@
                     Better OpenTofu & Terraform Plans
                 </div>
                 <div class="footer-buttons">
-                    <a href="https://buildserver.example.com/job/123" class="footer-btn" target="_blank">🔗 View Build</a><a href="Test Infrastructure Report.json" class="footer-btn" target="_blank">📄 View Raw JSON</a>
+                    <a href="test-modernized.json" class="footer-btn" target="_blank">📄 View Raw JSON</a>
                 </div>
             </div>
         </div>
@@ -839,7 +839,7 @@
     
     <script>
         // Embedded plan data
-        const planData = {"summary": {"create": 2, "update": 1, "delete": 2, "has_changes": true}, "actions": ["delete", "recreate", "update", "create", "read"], "properties": ["most_recent", "filters", "owners", "associate_public_ip_address", "tags", "id", "versioning", "arn", "instance_type", "availability_zone", "ami"]};
+        const planData = {"summary": {"create": 2, "update": 1, "delete": 2, "has_changes": true}, "actions": ["delete", "recreate", "update", "create", "read"], "properties": ["tags", "arn", "instance_type", "id", "filters", "ami", "most_recent", "owners", "versioning", "associate_public_ip_address", "availability_zone"]};
         
         
         // Initialize the application

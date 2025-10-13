@@ -1,0 +1,399 @@
+Metadata-Version: 2.4
+Name: tofui
+Version: 1.0.0
+Summary: Beautiful Terraform Plan Reports
+Home-page: https://github.com/65156/tofUI
+Author: tofUI
+Author-email: frankie@ibm.com
+Maintainer: tofUI
+License: MIT
+Project-URL: Homepage, https://github.com/65156/tofUI
+Project-URL: Documentation, https://github.com/65156/tofUI#readme
+Project-URL: Repository, https://github.com/65156/tofUI
+Project-URL: Bug Reports, https://github.com/65156/tofUI/issues
+Keywords: terraform,plan,html,report,visualization,infrastructure,tofui
+Classifier: Development Status :: 4 - Beta
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: System Administrators
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Programming Language :: Python :: 3.13
+Classifier: Topic :: Software Development :: Build Tools
+Classifier: Topic :: System :: Systems Administration
+Classifier: Topic :: Utilities
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Provides-Extra: s3
+Requires-Dist: boto3>=1.26.0; extra == "s3"
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Requires-Dist: black>=22.0.0; extra == "dev"
+Requires-Dist: flake8>=5.0.0; extra == "dev"
+Requires-Dist: mypy>=1.0.0; extra == "dev"
+Dynamic: author-email
+Dynamic: home-page
+Dynamic: requires-python
+
+# tofUI �
+
+**Beautiful Terraform Plan Reports**
+
+Generate stunning, interactive HTML reports from your terraform JSON plans. No dependencies, no external tools required - just pure Python power.
+
+## Features ✨
+
+- **🎨 Beautiful HTML Reports** - Professional, responsive design with modern grey styling
+- **🔍 Interactive Analysis** - Expandable/collapsible sections, action filtering, property hiding
+- **📊 Smart Grouping** - Resources organized by action priority with visual indicators  
+- **🚀 Zero Dependencies** - No external tools or dependencies required
+- **☁️ S3 Integration** - Optional direct upload to S3 buckets
+- **💻 CLI Ready** - Simple command-line interface
+- **📱 Mobile Friendly** - Works perfectly on all device sizes
+- **⚡ Fast & Lightweight** - Pure Python with embedded CSS/JS
+
+## Installation
+
+```bash
+# Basic installation
+pip install tofui
+
+# With S3 support
+pip install tofui[s3]
+
+# Development version
+pip install git+https://github.com/65156/tofUI.git
+```
+
+## Quick Start
+
+1. **Generate terraform plan JSON:**
+```bash
+terraform plan -out=plan.tfplan
+terraform show -json plan.tfplan > plan.json
+```
+
+2. **Create beautiful report:**
+```bash
+tofui plan.json
+```
+
+3. **Open in browser:**
+```bash
+# Opens plan.html
+open plan.html
+```
+
+## Usage Examples
+
+### Basic Usage
+```bash
+# Generate report with default settings
+tofui plan.json
+
+# Custom plan name and output
+tofui plan.json --name "Production Deploy"
+
+# With configuration file
+tofui plan.json --name "Staging" --config tofui-config.json
+
+# Verbose output
+tofui plan.json --verbose
+```
+
+### S3 Integration
+```bash
+# Upload to S3 bucket  
+tofui plan.json --s3-bucket my-terraform-reports
+
+# With custom prefix and region
+tofui plan.json \
+  --s3-bucket my-terraform-reports \
+  --s3-prefix reports/production/ \
+  --s3-region us-west-2
+```
+
+### CI/CD Pipeline Integration
+```bash
+# Complete CI/CD example
+BUILD_URL="https://jenkins.company.com/job/123" \
+AWS_DEFAULT_REGION="us-east-1" \
+tofui plan.json \
+  --name "Build ${BUILD_NUMBER}" \
+  --s3-bucket company-terraform-reports \
+  --s3-prefix builds/ \
+  --verbose
+```
+
+### Advanced Examples
+```bash
+# Process multiple environments
+for env in dev staging prod; do
+  tofui ${env}-plan.json \
+    --name "${env} Environment" \
+    --config configs/${env}-config.json
+done
+
+# Automated testing pipeline
+tofui plan.json \
+  --name "PR-${PR_NUMBER} Preview" \
+  --s3-bucket pr-previews \
+  --s3-prefix terraform-plans/
+```
+
+## Programmatic Usage
+
+```python
+from tofui import TerraformPlanParser, PlanAnalyzer, HTMLGenerator
+
+# Parse terraform plan
+parser = TerraformPlanParser()
+plan = parser.parse_file('plan.json')
+
+# Analyze changes
+analyzer = PlanAnalyzer()
+analysis = analyzer.analyze(plan)
+
+# Generate HTML report
+generator = HTMLGenerator()
+html_content = generator.generate_report(
+    analysis, 
+    plan_name="My Infrastructure",
+    output_file="report.html"
+)
+
+print(f"Generated report with {analysis.total_resources} resources")
+print(f"Changes: {analysis.plan.summary.create} create, {analysis.plan.summary.update} update, {analysis.plan.summary.delete} delete")
+```
+
+## Configuration
+
+Create a `tofui-config.json` file for customization:
+
+```json
+{
+  "actions": {
+    "default_selected": ["create", "update", "delete"]
+  },
+  "properties": {
+    "available_to_hide": ["tags", "tags_all", "timeouts"],
+    "hidden_by_default": ["tags_all"]
+  },
+  "display": {
+    "show_resource_counts": true,
+    "compact_mode": false
+  },
+  "build_url": "https://your-build-server.com/job/123"
+}
+```
+
+## Report Features
+
+### 📊 Executive Summary Dashboard
+- **Plan Overview** - Total creates, updates, deletes with color coding
+- **Resource Counts** - Breakdown by resource type
+- **Action Priority** - DELETE → RECREATE → UPDATE → CREATE → READ
+- **Visual Safety Indicators** - ⚠️ for dangerous operations
+
+### 🔍 Interactive Controls
+- **Action Filtering** - Show/hide specific actions
+- **Property Filtering** - Hide common properties like tags
+- **Expand/Collapse** - Control detail level display
+- **Right-aligned Controls** - Clean, professional layout
+
+### 📋 Detailed Resource Views
+- **Action-based Grouping** - Resources organized by operation type
+- **Property Changes** - Side-by-side before/after comparison
+- **Sensitive Data Protection** - Automatic masking of sensitive values
+- **JSON Formatting** - Pretty-printed complex objects
+- **RECREATE Safety** - Red highlighting for resource destruction
+
+### 🎨 Modern Design
+- **Professional Grey Theme** - Clean, modern interface
+- **Responsive Layout** - Works on desktop, tablet, mobile
+- **Safety-focused Color Coding** - Visual differentiation of action types
+- **Optimized Typography** - Enhanced readability
+
+## CLI Reference
+
+```
+usage: tofui [-h] [--name NAME] [--config CONFIG] [--s3-bucket S3_BUCKET]
+             [--s3-prefix S3_PREFIX] [--s3-region S3_REGION] [--verbose]
+             [--debug] [--version]
+             [plan_file]
+
+Generate beautiful, interactive HTML reports from terraform JSON plans
+
+positional arguments:
+  plan_file             Path to terraform plan JSON file
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --name NAME, -n NAME  Name for the plan report and output file
+  --config CONFIG, -c CONFIG
+                        Path to configuration JSON file
+  --verbose, -v         Show verbose output
+  --debug               Show debug information
+  --version             Show version information
+
+S3 Upload Options:
+  --s3-bucket S3_BUCKET
+                        S3 bucket name to upload the report to
+  --s3-prefix S3_PREFIX
+                        S3 key prefix (default: root of bucket)
+  --s3-region S3_REGION
+                        AWS region (default: uses AWS_DEFAULT_REGION or us-east-1)
+```
+
+## Testing
+
+### Basic Testing
+```bash
+# Test with sample plan
+tofui example_plan.json --name "Test Report" --verbose
+
+# Test with configuration
+tofui example_plan.json --config tofui-config.json --verbose
+
+# Test S3 integration (requires AWS credentials)
+tofui example_plan.json --s3-bucket test-bucket --verbose
+```
+
+### Comprehensive Test Suite
+```bash
+# Clone and run tests
+git clone https://github.com/65156/tofUI.git
+cd tofUI
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install with dev dependencies  
+pip install -e .[dev,s3]
+
+# Run test suite
+python test_tofui.py
+```
+
+## Requirements
+
+- **Python 3.8+** - Modern Python version
+- **No core dependencies** - Everything included out of the box
+- **Optional: boto3** - Only for S3 upload functionality
+
+## Supported Terraform Versions
+
+tofUI supports terraform plan JSON format versions:
+- **1.0** - Terraform 0.12+
+- **1.1** - Terraform 1.0+  
+- **1.2** - Terraform 1.5+
+- **2.0** - Terraform 1.8+ (latest)
+
+## Architecture
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│  Terraform      │    │  tofUI           │    │  Beautiful      │
+│  JSON Plan      │───▶│  Processor       │───▶│  HTML Report    │
+│                 │    │                  │    │                 │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+                              │
+                              ▼
+                       ┌──────────────────┐
+                       │  Optional S3     │
+                       │  Upload          │
+                       └──────────────────┘
+```
+
+### Core Components
+
+- **🔍 Parser** - Extracts data from terraform JSON plans
+- **📊 Analyzer** - Processes changes and groups resources by action priority
+- **🎨 Generator** - Creates interactive HTML with embedded CSS/JS  
+- **💻 CLI** - Command-line interface with S3 integration
+- **⚙️ Config** - Flexible JSON-based configuration
+
+## Comparison with Alternatives
+
+| Feature | tofUI | prettyplan-cli | terraplan-cli | cloudandthings |
+|---------|-------|----------------|---------------|----------------|
+| **Dependencies** | None | Go binary | Python deps | Node.js/Vue.js |
+| **Input Format** | JSON only | Text plans | JSON plans | JSON plans |
+| **Output** | Static HTML | Text/HTML | Static HTML | Web app |
+| **Interactivity** | Full | Limited | Full | Full |
+| **S3 Integration** | Built-in | None | None | None |
+| **Installation** | `pip install` | Binary download | `pip install` | `npm install` |
+| **CI/CD Ready** | ✅ | ✅ | ✅ | ❌ |
+| **Modern UI** | ✅ Grey Theme | ❌ | ✅ Purple | ✅ |
+| **Safety Focus** | ✅ Priority Sort | ❌ | ❌ | ❌ |
+
+## Development
+
+```bash
+# Clone repository
+git clone https://github.com/65156/tofUI.git
+cd tofUI
+
+# Create virtual environment
+python -m venv venv
+source venv/bin/activate
+
+# Install in development mode
+pip install -e .[dev,s3]
+
+# Run tests
+python test_tofui.py
+
+# Format code
+black tofui/
+
+# Type checking
+mypy tofui/
+```
+
+## Environment Variables
+
+tofUI supports these environment variables:
+
+```bash
+# AWS Configuration (for S3 integration)
+AWS_ACCESS_KEY_ID=your_access_key
+AWS_SECRET_ACCESS_KEY=your_secret_key
+AWS_DEFAULT_REGION=us-east-1
+
+# Build Integration
+BUILD_URL=https://your-ci-server.com/job/123
+```
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+1. **Fork the repository**
+2. **Create feature branch** (`git checkout -b feature/amazing-feature`)
+3. **Commit changes** (`git commit -m 'Add amazing feature'`)
+4. **Push to branch** (`git push origin feature/amazing-feature`)
+5. **Open Pull Request**
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- **Terraform** - For the excellent JSON plan format
+- **Original prettyplan/terraplan projects** - Inspiration for terraform plan visualization
+- **Modern web design principles** - For the clean, professional UI approach
+
+---
+
+**Made with ❤️ by the tofUI team**
+
+*Transform your terraform plans into beautiful, professional reports*

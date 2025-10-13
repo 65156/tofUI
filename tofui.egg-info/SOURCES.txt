@@ -1,0 +1,16 @@
+README.md
+pyproject.toml
+setup.py
+tofui/__init__.py
+tofui/__main__.py
+tofui/analyzer.py
+tofui/cli.py
+tofui/generator.py
+tofui/parser.py
+tofui.egg-info/PKG-INFO
+tofui.egg-info/SOURCES.txt
+tofui.egg-info/dependency_links.txt
+tofui.egg-info/entry_points.txt
+tofui.egg-info/not-zip-safe
+tofui.egg-info/requires.txt
+tofui.egg-info/top_level.txt

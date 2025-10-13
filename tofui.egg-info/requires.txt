@@ -1,0 +1,10 @@
+
+[dev]
+pytest>=7.0.0
+pytest-cov>=4.0.0
+black>=22.0.0
+flake8>=5.0.0
+mypy>=1.0.0
+
+[s3]
+boto3>=1.26.0
