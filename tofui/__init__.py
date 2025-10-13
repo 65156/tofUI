@@ -4,7 +4,7 @@ tofUI - Beautiful Terraform Plan Reports
 A Python package for generating beautiful, interactive HTML reports from terraform JSON plans.
 """
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 __author__ = "tofUI"
 __description__ = "Beautiful Terraform Plan Reports"
 
