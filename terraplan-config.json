@@ -1,0 +1,9 @@
+{
+  "properties": {
+    "available_to_hide": ["tags"],
+    "hidden_by_default": ["tags"]
+  },
+  "display": {
+    "expand_all_default": false
+  }
+}
