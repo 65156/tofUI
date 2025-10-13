@@ -52,6 +52,10 @@ def main():
                 print(f"Error: Failed to load config file: {e}", file=sys.stderr)
                 return 1
         
+        # Add build_url from CLI if provided
+        if args.build_url:
+            config['build_url'] = args.build_url
+        
         # Generate display name and output filename
         file_name = args.name or Path(args.plan_file).stem
         display_name = args.display_name or file_name
@@ -145,6 +149,11 @@ Examples:
     parser.add_argument(
         "--config", "-c",
         help="Path to configuration JSON file"
+    )
+    
+    parser.add_argument(
+        "--build-url", 
+        help="Build URL to display in report footer"
     )
     
     # S3 options

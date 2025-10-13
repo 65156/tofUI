@@ -1,7 +1,7 @@
 {
   "properties": {
-    "available_to_hide": ["tags"],
-    "hidden_by_default": ["tags"]
+    "available_to_hide": ["tags", "tags_all", "timeouts"],
+    "hidden_by_default": ["tags_all"]
   },
   "display": {
     "expand_all_default": false
