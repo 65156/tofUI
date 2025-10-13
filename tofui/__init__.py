@@ -1,11 +1,11 @@
 """
-Terraplan - Beautiful Terraform Plan Reports
+tofUI - Beautiful Terraform Plan Reports
 
 A Python package for generating beautiful, interactive HTML reports from terraform JSON plans.
 """
 
 __version__ = "0.1.0"
-__author__ = "terraplan"
+__author__ = "tofUI"
 __description__ = "Beautiful Terraform Plan Reports"
 
 from .parser import TerraformPlanParser

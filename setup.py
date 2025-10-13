@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Terraplan - Beautiful Terraform Plan Reports
+tofUI - Beautiful Terraform Plan Reports
 
 A Python package for generating beautiful, interactive HTML reports from terraform JSON plans.
 """
@@ -14,19 +14,19 @@ readme_path = Path(__file__).parent / "README.md"
 long_description = readme_path.read_text(encoding="utf-8") if readme_path.exists() else ""
 
 # Read version from package
-version_file = Path(__file__).parent / "terraplan" / "__init__.py"
+version_file = Path(__file__).parent / "tofui" / "__init__.py"
 version_line = [line for line in version_file.read_text().split('\n') if line.startswith('__version__')][0]
 version = version_line.split('=')[1].strip().strip('"').strip("'")
 
 setup(
-    name="terraplan",
+    name="tofui",
     version=version,
-    author="terraplan",
+    author="tofUI",
     author_email="",
     description="Beautiful Terraform Plan Reports",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/terraplan/terraplan",
+    url="https://github.com/65156/tofUI",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -60,15 +60,15 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "terraplan=terraplan.cli:main",
+            "tofui=tofui.cli:main",
         ],
     },
     include_package_data=True,
     zip_safe=False,
-    keywords="terraform plan html report visualization infrastructure",
+    keywords="terraform plan html report visualization infrastructure tofui",
     project_urls={
-        "Bug Reports": "https://github.com/terraplan/terraplan/issues",
-        "Source": "https://github.com/terraplan/terraplan",
-        "Documentation": "https://github.com/terraplan/terraplan#readme",
+        "Bug Reports": "https://github.com/65156/tofUI/issues",
+        "Source": "https://github.com/65156/tofUI",
+        "Documentation": "https://github.com/65156/tofUI#readme",
     },
 )

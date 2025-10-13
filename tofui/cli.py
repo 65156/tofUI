@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Terraplan CLI
+tofUI CLI
 
 Command-line interface for generating beautiful terraform plan reports.
 """
@@ -25,7 +25,7 @@ def main():
     try:
         # Handle version flag
         if args.version:
-            print(f"terraplan {__version__}")
+            print(f"tofui {__version__}")
             return 0
         
         # Validate input file
@@ -52,9 +52,10 @@ def main():
                 print(f"Error: Failed to load config file: {e}", file=sys.stderr)
                 return 1
         
-        # Generate plan name and output filename
-        plan_name = args.name or Path(args.plan_file).stem
-        output_file = f"{plan_name}.html"
+        # Generate display name and output filename
+        file_name = args.name or Path(args.plan_file).stem
+        display_name = args.display_name or file_name
+        output_file = f"{file_name}.html"
         
         # Process the plan
         print(f"🏗️ Processing terraform plan: {args.plan_file}")
@@ -75,7 +76,7 @@ def main():
         
         html_content = generator.generate_report(
             analysis, 
-            plan_name=plan_name,
+            plan_name=display_name,
             output_file=output_file,
             config=config
         )
@@ -85,7 +86,7 @@ def main():
         
         # Handle S3 upload if requested
         if args.s3_bucket:
-            upload_to_s3(html_content, args, output_file)
+            upload_to_s3(html_content, args, output_file, args.plan_file)
         
         return 0
         
@@ -103,7 +104,7 @@ def main():
 def create_argument_parser() -> argparse.ArgumentParser:
     """Create and configure the argument parser"""
     parser = argparse.ArgumentParser(
-        prog="terraplan",
+        prog="tofui",
         description="Generate beautiful, interactive HTML reports from terraform JSON plans",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
@@ -111,16 +112,16 @@ Examples:
   # Basic usage
   terraform plan -out=plan.tfplan
   terraform show -json plan.tfplan > plan.json
-  terraplan plan.json
+  tofui plan.json
 
-  # Custom output and name
-  terraplan plan.json --output my-report.html --name "Production Deploy"
+  # Custom filename and display name
+  tofui plan.json --name "prod-deploy-2024" --display-name "Production Deployment"
 
-  # Upload to S3
-  terraplan plan.json --s3-bucket my-reports --s3-prefix reports/
+  # Upload to S3 (uploads both HTML report and JSON plan)
+  tofui plan.json --name "staging" --s3-bucket my-reports --s3-prefix reports/
 
-  # Show detailed output
-  terraplan plan.json --verbose
+  # With configuration and verbose output
+  tofui plan.json --display-name "Dev Environment" --config tofui-config.json --verbose
         """
     )
     
@@ -133,7 +134,12 @@ Examples:
     
     parser.add_argument(
         "--name", "-n",
-        help="Name for the plan report and output file (creates <name>.html)"
+        help="Name for the output file (creates <name>.html)"
+    )
+    
+    parser.add_argument(
+        "--display-name", "-d",
+        help="Display name shown in the report title (defaults to --name if not provided)"
     )
     
     parser.add_argument(
@@ -207,8 +213,8 @@ def print_summary(analysis, output_file: str, args):
     print(f"\n🌐 Open in browser: file://{os.path.abspath(output_file)}")
 
 
-def upload_to_s3(html_content: str, args, local_file: str):
-    """Upload the HTML report to S3"""
+def upload_to_s3(html_content: str, args, local_file: str, plan_file: str):
+    """Upload the HTML report and JSON plan to S3"""
     try:
         import boto3
         from botocore.exceptions import NoCredentialsError, ClientError
@@ -222,28 +228,43 @@ def upload_to_s3(html_content: str, args, local_file: str):
         # Create S3 client
         s3_client = boto3.client('s3', region_name=args.s3_region)
         
-        # Build S3 key
-        filename = os.path.basename(local_file)
-        s3_key = f"{args.s3_prefix.rstrip('/')}/{filename}" if args.s3_prefix else filename
+        # Get the base name from the HTML file (without .html extension)
+        base_name = os.path.splitext(os.path.basename(local_file))[0]
         
-        # Upload file
+        # Build S3 keys for both files
+        html_key = f"{args.s3_prefix.rstrip('/')}/{base_name}.html" if args.s3_prefix else f"{base_name}.html"
+        json_key = f"{args.s3_prefix.rstrip('/')}/{base_name}.json" if args.s3_prefix else f"{base_name}.json"
+        
+        # Upload HTML report
         s3_client.put_object(
             Bucket=args.s3_bucket,
-            Key=s3_key,
+            Key=html_key,
             Body=html_content.encode('utf-8'),
             ContentType='text/html',
             CacheControl='max-age=3600'
         )
         
-        # Construct URL
-        s3_url = f"https://{args.s3_bucket}.s3.{args.s3_region}.amazonaws.com/{s3_key}"
+        # Upload JSON plan file
+        with open(plan_file, 'rb') as f:
+            s3_client.put_object(
+                Bucket=args.s3_bucket,
+                Key=json_key,
+                Body=f.read(),
+                ContentType='application/json',
+                CacheControl='max-age=3600'
+            )
         
-        print(f"✅ Uploaded to S3: {s3_url}")
+        # Construct URLs
+        html_s3_url = f"https://{args.s3_bucket}.s3.{args.s3_region}.amazonaws.com/{html_key}"
+        json_s3_url = f"https://{args.s3_bucket}.s3.{args.s3_region}.amazonaws.com/{json_key}"
         
-        # If bucket has website hosting, also show website URL
+        print(f"✅ HTML report uploaded to S3: {html_s3_url}")
+        print(f"✅ JSON plan uploaded to S3: {json_s3_url}")
+        
+        # If bucket has website hosting, also show website URL for HTML
         try:
             s3_client.get_bucket_website(Bucket=args.s3_bucket)
-            website_url = f"http://{args.s3_bucket}.s3-website-{args.s3_region}.amazonaws.com/{s3_key}"
+            website_url = f"http://{args.s3_bucket}.s3-website-{args.s3_region}.amazonaws.com/{html_key}"
             print(f"🌐 Website URL: {website_url}")
         except ClientError:
             # Website hosting not enabled, just show the regular S3 URL

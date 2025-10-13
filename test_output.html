@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terraplan Report - tofUI Transformation Test</title>
+    <style>
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        .plan-name {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 300;
+            margin-bottom: 0.3rem;
+        }
+        
+        .meta-info {
+            opacity: 0.9;
+            font-size: 0.85rem;
+            font-weight: 300;
+        }
+        
+        .summary {
+            padding: 0.8rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .summary h2 {
+            margin: 0 0 0.4rem 0;
+            color: #495057;
+        }
+        
+        .summary-stats {
+            display: flex;
+            gap: 0.8rem;
+            justify-content: center;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 0.4rem;
+            border-radius: 4px;
+            background: #f8f9fa;
+            min-width: 48px;
+        }
+        
+        .stat-item.create {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .stat-item.update {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .stat-item.delete {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .stat-number {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 0.54rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .no-changes {
+            text-align: center;
+            color: #28a745;
+        }
+        
+        .filters {
+            padding: 1.5rem 2rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            # gap: 2rem;
+            # flex-wrap: wrap;
+        }
+        
+        .filter-section h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem;
+            color: #495057;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        
+        .filter-checkbox input {
+            margin: 0;
+        }
+        
+        .btn {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .btn:hover {
+            background: #4b5563;
+        }
+        
+        .sort-dropdown {
+            padding: 0.5rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .resource-groups {
+            padding: 1.2rem;
+        }
+        
+        .resource-group {
+            margin-bottom: 0.4rem;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .group-header {
+            background: #f8f9fa;
+            padding: 0.6rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .group-header h3 {
+            margin: 0;
+            color: #495057;
+        }
+        
+        .group-summary {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        .group-resources {
+            padding: 1rem;
+        }
+        
+        .resource-change {
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        
+        .resource-change.create {
+            border-left: 16px solid #28a745;
+        }
+        
+        .resource-change.update {
+            border-left: 16px solid #ffc107;
+        }
+        
+        .resource-change.delete {
+            border-left: 16px solid #dc3545;
+        }
+        
+        .resource-change.recreate {
+            border-left: 16px solid #6f42c1;
+        }
+        
+        .resource-header {
+            padding: 1rem;
+            background: #f8f9fa;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            user-select: none;
+        }
+        
+        .resource-header:hover {
+            background: #e9ecef;
+        }
+        
+        .action-icon {
+            font-size: 1.2rem;
+        }
+        
+        .resource-address {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-weight: 500;
+            flex: 1;
+        }
+        
+        .toggle-indicator {
+            transition: transform 0.2s;
+        }
+        
+        .resource-change.collapsed .toggle-indicator {
+            transform: rotate(-90deg);
+        }
+        
+        .resource-details {
+            padding: 1rem;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .resource-change.collapsed .resource-details {
+            display: none;
+        }
+        
+        .properties-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        
+        .properties-table th {
+            background: #f8f9fa;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .properties-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #dee2e6;
+            vertical-align: top;
+        }
+        
+        .property-name {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-weight: 500;
+            color: #495057;
+            width: 25%;
+        }
+        
+        .before-value, .after-value {
+            width: 37.5%;
+        }
+        
+        .before-value pre, .after-value pre {
+            margin: 0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        .property-change.addition .after-value {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .property-change.removal .before-value {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .property-change.modification .before-value {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .property-change.modification .after-value {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .filter-divider {
+            width: 1px;
+            background: #dee2e6;
+            height: 4rem;
+            margin: 0 1rem;
+        }
+        
+        .control-section {
+            display: flex;
+            align-items: flex-start;
+            padding-top: 0.25rem;
+        }
+        
+        .resource-change.recreate .property-change .before-value {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 1.5rem 2rem;
+            color: #6c757d;
+            font-size: 0.9rem;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .footer-text {
+            text-align: left;
+        }
+        
+        .footer-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .footer-btn {
+            background: #6b7280;
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+        
+        .footer-btn:hover {
+            background: #4b5563;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                padding: 1.5rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .summary-stats {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .filters {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .resource-groups {
+                padding: 1rem;
+            }
+            
+            .properties-table {
+                font-size: 0.8rem;
+            }
+            
+            .property-name {
+                width: 30%;
+            }
+            
+            .before-value, .after-value {
+                width: 35%;
+            }
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="header">
+            <div class="plan-name"><strong>Plan:</strong> tofUI Transformation Test</div>
+            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-13 12:08:08 UTC</div>
+        </div>
+        
+        
+        <div class="summary">
+            <div class="summary-stats">
+                <div class="stat-item create">
+                    <span class="stat-number">2</span>
+                    <span class="stat-label">to create</span>
+                </div>
+                <div class="stat-item update">
+                    <span class="stat-number">1</span>
+                    <span class="stat-label">to update</span>
+                </div>
+                <div class="stat-item delete">
+                    <span class="stat-number">2</span>
+                    <span class="stat-label">to delete</span>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="filters">
+            <div class="filter-section">
+                <h3>Hide Properties</h3>
+                <div class="filter-group" id="property-filters">
+                    
+            <label class="filter-checkbox">
+                <input type="checkbox" value="ami" > ami
+            </label>
+            
+            <label class="filter-checkbox">
+                <input type="checkbox" value="arn" > arn
+            </label>
+            
+            <label class="filter-checkbox">
+                <input type="checkbox" value="associate_public_ip_address" > associate_public_ip_address
+            </label>
+            
+            <label class="filter-checkbox">
+                <input type="checkbox" value="availability_zone" > availability_zone
+            </label>
+            
+            <label class="filter-checkbox">
+                <input type="checkbox" value="filters" > filters
+            </label>
+            
+                </div>
+            </div>
+            <div class="filter-divider"></div>
+            <div class="control-section">
+                <button id="toggle-all" class="btn toggle-btn">Expand All</button>
+            </div>
+        </div>
+        
+        
+        <div class="resource-groups" id="resource-groups">
+            
+        <div class="resource-group" data-resource-type="aws_ami">
+            <div class="group-header">
+                <h3>aws_ami (1 resources)</h3>
+                <span class="group-summary">1 read</span>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change read" data-action="read" data-address="data.aws_ami.latest">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="action-icon"></span>
+                <span class="resource-address">data.aws_ami.latest</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change addition" data-property="owners">
+            <td class="property-name">owners</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>[
+  &quot;amazon&quot;
+]</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="filters">
+            <td class="property-name">filters</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>{
+  &quot;name&quot;: [
+    &quot;amzn2-ami-hvm-*-x86_64-gp2&quot;
+  ],
+  &quot;state&quot;: [
+    &quot;available&quot;
+  ]
+}</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="most_recent">
+            <td class="property-name">most_recent</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>true</pre></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-group" data-resource-type="aws_instance">
+            <div class="group-header">
+                <h3>aws_instance (3 resources)</h3>
+                <span class="group-summary">1 delete, 1 recreate, 1 create</span>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change delete" data-action="delete" data-address="aws_instance.old_server">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="action-icon">⚠️</span>
+                <span class="resource-address">aws_instance.old_server</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change removal" data-property="ami">
+            <td class="property-name">ami</td>
+            <td class="before-value"><pre>ami-0a887e401f7654935</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="instance_type">
+            <td class="property-name">instance_type</td>
+            <td class="before-value"><pre>t2.micro</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="availability_zone">
+            <td class="property-name">availability_zone</td>
+            <td class="before-value"><pre>us-west-2a</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="associate_public_ip_address">
+            <td class="property-name">associate_public_ip_address</td>
+            <td class="before-value"><pre>true</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Name</td>
+            <td class="before-value"><pre>OldServer</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value"><pre>staging</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="id">
+            <td class="property-name">id</td>
+            <td class="before-value"><pre>i-1234567890abcdef0</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="arn">
+            <td class="property-name">arn</td>
+            <td class="before-value"><pre>arn:aws:ec2:us-west-2:123456789012:instance/i-1234567890abcdef0</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-change recreate" data-action="recreate" data-address="aws_instance.web">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="action-icon">⚠️</span>
+                <span class="resource-address">aws_instance.web</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change modification" data-property="instance_type">
+            <td class="property-name">instance_type</td>
+            <td class="before-value"><pre>t2.micro</pre></td>
+            <td class="after-value"><pre>t3.micro</pre></td>
+        </tr>
+        
+        <tr class="property-change modification" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value"><pre>staging</pre></td>
+            <td class="after-value"><pre>production</pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="id">
+            <td class="property-name">id</td>
+            <td class="before-value"><pre>i-abcdef1234567890</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+        <tr class="property-change modification" data-property="ami">
+            <td class="property-name">ami</td>
+            <td class="before-value"><pre>ami-0a887e401f7654935</pre></td>
+            <td class="after-value"><pre>ami-0c55b159cbfafe1d0</pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="arn">
+            <td class="property-name">arn</td>
+            <td class="before-value"><pre>arn:aws:ec2:us-west-2:123456789012:instance/i-abcdef1234567890</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-change create" data-action="create" data-address="aws_instance.new_server">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="action-icon"></span>
+                <span class="resource-address">aws_instance.new_server</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change addition" data-property="ami">
+            <td class="property-name">ami</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>ami-0c55b159cbfafe1d0</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="instance_type">
+            <td class="property-name">instance_type</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>t3.micro</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="availability_zone">
+            <td class="property-name">availability_zone</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>us-west-2b</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="associate_public_ip_address">
+            <td class="property-name">associate_public_ip_address</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>true</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Name</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>NewServer</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>production</pre></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-group" data-resource-type="aws_s3_bucket">
+            <div class="group-header">
+                <h3>aws_s3_bucket (1 resources)</h3>
+                <span class="group-summary">1 update</span>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change update" data-action="update" data-address="aws_s3_bucket.data">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="action-icon"></span>
+                <span class="resource-address">aws_s3_bucket.data</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change modification" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value"><pre>staging</pre></td>
+            <td class="after-value"><pre>production</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Backup</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>daily</pre></td>
+        </tr>
+        
+        <tr class="property-change modification" data-property="versioning">
+            <td class="property-name">versioning.enabled</td>
+            <td class="before-value"><pre>false</pre></td>
+            <td class="after-value"><pre>true</pre></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-group" data-resource-type="aws_security_group">
+            <div class="group-header">
+                <h3>aws_security_group (1 resources)</h3>
+                <span class="group-summary">1 read</span>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change read" data-action="read" data-address="aws_security_group.web_sg">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="action-icon"></span>
+                <span class="resource-address">aws_security_group.web_sg</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        </div>
+        
+        
+        <div class="footer">
+            <div class="footer-content">
+                <div class="footer-text">
+                    Generated by <strong>tofUI</strong> • 
+                    Better OpenTofu & Terraform Plans
+                </div>
+                <div class="footer-buttons">
+                    <a href="https://buildserver.example.com/job/123" class="footer-btn" target="_blank">🔗 View Build</a><a href="tofUI Transformation Test.json" class="footer-btn" target="_blank">📄 View Raw JSON</a>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <script>
+        // Embedded plan data
+        const planData = {"summary": {"create": 2, "update": 1, "delete": 2, "has_changes": true}, "actions": ["delete", "recreate", "update", "create", "read"], "properties": ["owners", "instance_type", "tags", "filters", "most_recent", "ami", "id", "arn", "versioning", "availability_zone", "associate_public_ip_address"]};
+        
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeFilters();
+            initializeToggleButtons();
+            
+            // Initially collapse all resources
+            collapseAllResources();
+        });
+        
+        function initializeFilters() {
+            // Property filters (hide properties)
+            const propertyFilters = document.querySelectorAll('#property-filters input[type="checkbox"]');
+            propertyFilters.forEach(filter => {
+                filter.addEventListener('change', applyFilters);
+            });
+            
+            // Always sort by action priority
+            applySorting();
+        }
+        
+        function initializeToggleButtons() {
+            const toggleBtn = document.getElementById('toggle-all');
+            
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function() {
+                    const isCurrentlyExpanded = toggleBtn.textContent.trim() === 'Collapse All';
+                    
+                    if (isCurrentlyExpanded) {
+                        collapseAllResources();
+                        toggleBtn.textContent = 'Expand All';
+                    } else {
+                        expandAllResources();
+                        toggleBtn.textContent = 'Collapse All';
+                    }
+                });
+            }
+        }
+        
+        function toggleResource(header) {
+            const resourceChange = header.closest('.resource-change');
+            resourceChange.classList.toggle('collapsed');
+        }
+        
+        function expandAllResources() {
+            const resources = document.querySelectorAll('.resource-change');
+            resources.forEach(resource => {
+                resource.classList.remove('collapsed');
+            });
+        }
+        
+        function collapseAllResources() {
+            const resources = document.querySelectorAll('.resource-change');
+            resources.forEach(resource => {
+                resource.classList.add('collapsed');
+            });
+        }
+        
+        function applyFilters() {
+            // Get selected action filters
+            const selectedActions = Array.from(
+                document.querySelectorAll('#action-filters input[type="checkbox"]:checked')
+            ).map(input => input.value);
+            
+            // Get selected property filters (properties to hide)
+            const hiddenProperties = Array.from(
+                document.querySelectorAll('#property-filters input[type="checkbox"]:checked')
+            ).map(input => input.value);
+            
+            // Filter resources by action
+            const resources = document.querySelectorAll('.resource-change');
+            resources.forEach(resource => {
+                const action = resource.dataset.action;
+                if (selectedActions.length === 0 || selectedActions.includes(action)) {
+                    resource.style.display = 'block';
+                } else {
+                    resource.style.display = 'none';
+                }
+            });
+            
+            // Filter properties with smart matching
+            const propertyRows = document.querySelectorAll('.property-change');
+            propertyRows.forEach(row => {
+                const property = row.dataset.property;
+                const propertyPath = row.querySelector('.property-name').textContent.trim();
+                
+                let shouldHide = false;
+                for (const hiddenProp of hiddenProperties) {
+                    // Direct match
+                    if (property === hiddenProp) {
+                        shouldHide = true;
+                        break;
+                    }
+                    // Pattern matching for nested properties
+                    if (hiddenProp === 'tags_all' && (property === 'tags' || propertyPath.startsWith('tags.'))) {
+                        shouldHide = true;
+                        break;
+                    }
+                    // Generic pattern matching for other nested properties
+                    if (propertyPath.startsWith(hiddenProp + '.')) {
+                        shouldHide = true;
+                        break;
+                    }
+                }
+                
+                if (shouldHide) {
+                    row.style.display = 'none';
+                } else {
+                    row.style.display = 'table-row';
+                }
+            });
+            
+            // Hide resource groups that have no visible resources
+            const resourceGroups = document.querySelectorAll('.resource-group');
+            resourceGroups.forEach(group => {
+                const visibleResources = group.querySelectorAll('.resource-change:not([style*="display: none"])');
+                if (visibleResources.length === 0) {
+                    group.style.display = 'none';
+                } else {
+                    group.style.display = 'block';
+                }
+            });
+        }
+        
+        function applySorting() {
+            const resourceGroupsContainer = document.getElementById('resource-groups');
+            const resourceGroups = Array.from(resourceGroupsContainer.querySelectorAll('.resource-group'));
+            
+            // Always use priority-based sorting: delete → recreate → update → create → read
+            const actionPriority = {
+                'delete': 1,
+                'recreate': 2, 
+                'update': 3,
+                'create': 4,
+                'read': 5
+            };
+            
+            // Collect all resources from all groups
+            const allResources = [];
+            resourceGroups.forEach(group => {
+                const resources = Array.from(group.querySelectorAll('.resource-change'));
+                resources.forEach(resource => {
+                    allResources.push({
+                        element: resource,
+                        action: resource.dataset.action,
+                        address: resource.dataset.address
+                    });
+                });
+            });
+            
+            // Sort by action priority, then by address
+            allResources.sort((a, b) => {
+                const priorityA = actionPriority[a.action] || 999;
+                const priorityB = actionPriority[b.action] || 999;
+                
+                if (priorityA !== priorityB) {
+                    return priorityA - priorityB;
+                }
+                return a.address.localeCompare(b.address);
+            });
+            
+            // Clear existing groups and create new action-based groups
+            resourceGroupsContainer.innerHTML = '';
+            
+            const actionGroups = {};
+            allResources.forEach(resource => {
+                const action = resource.action;
+                if (!actionGroups[action]) {
+                    actionGroups[action] = [];
+                }
+                actionGroups[action].push(resource.element);
+            });
+            
+            // Create HTML for action groups in priority order
+            Object.keys(actionPriority).forEach(action => {
+                if (actionGroups[action] && actionGroups[action].length > 0) {
+                    const groupDiv = document.createElement('div');
+                    groupDiv.className = 'resource-group';
+                    groupDiv.dataset.resourceType = action;
+                    
+                    const count = actionGroups[action].length;
+                    const actionTitle = action.charAt(0).toUpperCase() + action.slice(1);
+                    
+                    groupDiv.innerHTML = `
+                        <div class="group-header">
+                            <h3>${actionTitle} (${count} resources)</h3>
+                            <span class="group-summary">${count} ${action}</span>
+                        </div>
+                        <div class="group-resources"></div>
+                    `;
+                    
+                    const resourcesContainer = groupDiv.querySelector('.group-resources');
+                    actionGroups[action].forEach(resourceElement => {
+                        resourcesContainer.appendChild(resourceElement);
+                    });
+                    
+                    resourceGroupsContainer.appendChild(groupDiv);
+                }
+            });
+            
+            // Re-apply filters after sorting
+            applyFilters();
+        }
+        
+    </script>
+</body>
+</html>
