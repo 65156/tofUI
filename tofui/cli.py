@@ -17,6 +17,17 @@ from .analyzer import PlanAnalyzer
 from .generator import HTMLGenerator
 
 
+def sanitize_build_name(name: str) -> str:
+    """Sanitize build name for URL and file system safety"""
+    import re
+    # Replace ALL non-alphanumeric chars (except hyphens/dots) with hyphens
+    sanitized = re.sub(r'[^a-zA-Z0-9\-.]', '-', name)
+    # Collapse multiple hyphens
+    sanitized = re.sub(r'-+', '-', sanitized)
+    # Remove leading/trailing hyphens
+    return sanitized.strip('-').lower()
+
+
 def main():
     """Main CLI entry point"""
     parser = create_argument_parser()
@@ -56,9 +67,17 @@ def main():
         if args.build_url:
             config['build_url'] = args.build_url
         
+        # Sanitize build name for URL and file system safety
+        original_build_name = args.build_name
+        sanitized_build_name = sanitize_build_name(args.build_name)
+        
+        # Show sanitization if it changed the name
+        if sanitized_build_name != original_build_name:
+            print(f"🔧 Sanitized build name: '{original_build_name}' → '{sanitized_build_name}'")
+        
         # Generate display name and output filename
-        file_name = args.build_name
-        display_name = args.display_name or args.build_name
+        file_name = sanitized_build_name
+        display_name = args.display_name or original_build_name  # Use original for display
         output_file = f"{file_name}.html"
         
         # Process the plan
@@ -133,6 +152,9 @@ Examples:
 
   # GitHub Pages upload with folder organization
   tofui plan.json --build-name "staging-$(date +%Y%m%d)" --github-pages "owner/repo" --folder "deployments"
+
+  # IBM GitHub Enterprise with custom Pages URL
+  tofui plan.json --build-name "prod-${BUILD_ID}" --github-pages "IBM-Sports/cicd-module-testing-01" --pages-base-url "https://pages.github.ibm.com"
 
   # Note: Use dynamic build names to prevent overwrites
 
@@ -210,6 +232,11 @@ Examples:
         "--github-branch",
         default="gh-pages",
         help="GitHub branch to upload reports to (default: gh-pages)"
+    )
+    
+    github_group.add_argument(
+        "--pages-base-url",
+        help="Custom GitHub Pages base URL (e.g., 'https://pages.github.ibm.com' for GitHub Enterprise)"
     )
     
     # Output options
@@ -359,8 +386,8 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
             
         owner, repo = args.github_pages.split('/', 1)
         
-        # Determine build name
-        build_name = args.build_name or display_name
+        # Use sanitized build name from local file name
+        sanitized_build_name = os.path.splitext(os.path.basename(local_file))[0]
         
         # GitHub API headers
         headers = {
@@ -371,7 +398,7 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
         
         # Upload the build files
         success = upload_build_to_github(
-            owner, repo, headers, args.folder, build_name,
+            owner, repo, headers, args.folder, sanitized_build_name,
             html_content, plan_file, display_name, args.github_branch
         )
         
@@ -379,15 +406,27 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
             # Update the index page
             update_github_index(owner, repo, headers, args, args.github_branch)
             
-            # Show URLs with new organized structure
-            pages_url = f"https://{owner}.github.io/{repo}"
-            if args.folder:
-                build_url = f"{pages_url}/{args.folder}/html_report/{build_name}.html"
+            # Construct URLs using custom base URL if provided
+            if args.pages_base_url:
+                pages_url = f"{args.pages_base_url.rstrip('/')}/{owner}/{repo}"
             else:
-                build_url = f"{pages_url}/html_report/{build_name}.html"
+                pages_url = f"https://{owner}.github.io/{repo}"
             
-            print(f"✅ Report uploaded to GitHub Pages: {build_url}")
+            if args.folder:
+                html_url = f"{pages_url}/{args.folder}/html_report/{sanitized_build_name}.html"
+                json_url = f"{pages_url}/{args.folder}/json_plan/{sanitized_build_name}.json"
+            else:
+                html_url = f"{pages_url}/html_report/{sanitized_build_name}.html"
+                json_url = f"{pages_url}/json_plan/{sanitized_build_name}.json"
+            
+            print(f"✅ HTML Report: {html_url}")
+            print(f"✅ JSON Plan: {json_url}")
             print(f"📋 Index page: {pages_url}")
+            
+            # Export URLs as environment variables for CI/CD integration
+            print(f"\n📝 Environment Variables:")
+            print(f"export TOFUI_HTML_URL='{html_url}'")
+            print(f"export TOFUI_JSON_URL='{json_url}'")
             
     except Exception as e:
         print(f"❌ Error uploading to GitHub Pages: {e}", file=sys.stderr)
