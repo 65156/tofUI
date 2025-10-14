@@ -1,346 +1,11 @@
-"""
-HTML Report Generator
-
-Generates beautiful, interactive HTML reports from analyzed terraform plan data.
-"""
-
-from typing import Dict, List, Any, Optional
-from datetime import datetime
-import json
-import html
-
-from .analyzer import PlanAnalysis, AnalyzedResourceChange, PropertyChange, ActionType
-
-
-class HTMLGenerator:
-    """Generates interactive HTML reports from terraform plan analysis"""
-    
-    def __init__(self):
-        self.plan_name = "Terraform Plan"
-        self.timestamp = datetime.utcnow()
-    
-    def generate_report(
-        self, 
-        analysis: PlanAnalysis, 
-        plan_name: Optional[str] = None,
-        output_file: Optional[str] = None,
-        config: Optional[Dict[str, Any]] = None
-    ) -> str:
-        """Generate a complete HTML report from plan analysis"""
-        
-        self.plan_name = plan_name or "Terraform Plan"
-        self.config = config or {}
-        
-        # Generate the complete HTML content
-        html_content = self._generate_complete_html(analysis)
-        
-        # Write to file if specified
-        if output_file:
-            with open(output_file, 'w', encoding='utf-8') as f:
-                f.write(html_content)
-        
-        return html_content
-    
-    def _generate_complete_html(self, analysis: PlanAnalysis) -> str:
-        """Generate the complete HTML document"""
-        
-        # Generate data for JavaScript
-        js_data = self._generate_javascript_data(analysis)
-        
-        return f"""<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terraplan Report - {html.escape(self.plan_name)}</title>
+    <title>Terraplan Report - github-pages-test</title>
     <style>
-        {self._get_embedded_css()}
-    </style>
-</head>
-<body>
-    <div class="container">
-        {self._generate_header(analysis)}
-        {self._generate_summary(analysis)}
-        {self._generate_filters(analysis)}
-        {self._generate_resource_groups(analysis)}
-        {self._generate_footer()}
-    </div>
-    
-    <script>
-        // Embedded plan data
-        const planData = {js_data};
         
-        {self._get_embedded_javascript()}
-    </script>
-</body>
-</html>"""
-    
-    def _generate_header(self, analysis: PlanAnalysis) -> str:
-        """Generate the report header"""
-        formatted_time = self.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC")
-        
-        return f"""
-        <div class="header">
-            <div class="plan-name"><strong>Plan:</strong> {html.escape(self.plan_name)}</div>
-            <div class="meta-info"><strong>Terraform Version:</strong> {html.escape(analysis.plan.terraform_version)} • <strong>Generated:</strong> {formatted_time}</div>
-        </div>
-        """
-    
-    def _generate_summary(self, analysis: PlanAnalysis) -> str:
-        """Generate the plan summary section"""
-        summary = analysis.plan.summary
-        
-        if not summary.has_changes:
-            return """
-            <div class="summary no-changes">
-                <h2>✅ No Changes</h2>
-                <p>This plan contains no changes to your infrastructure.</p>
-            </div>
-            """
-        
-        return f"""
-        <div class="summary">
-            <div class="summary-stats">
-                <div class="stat-item create">
-                    <span class="stat-number">{summary.create}</span>
-                    <span class="stat-label">to create</span>
-                </div>
-                <div class="stat-item update">
-                    <span class="stat-number">{summary.update}</span>
-                    <span class="stat-label">to update</span>
-                </div>
-                <div class="stat-item delete">
-                    <span class="stat-number">{summary.delete}</span>
-                    <span class="stat-label">to delete</span>
-                </div>
-            </div>
-        </div>
-        """
-    
-    def _generate_filters(self, analysis: PlanAnalysis) -> str:
-        """Generate the filter controls"""
-        if not analysis.has_changes:
-            return ""
-        
-        # Get configuration settings
-        config_properties = self.config.get("properties", {})
-        config_display = self.config.get("display", {})
-        
-        available_properties = config_properties.get("available_to_hide", sorted(analysis.all_property_names))[:5]
-        hidden_by_default = config_properties.get("hidden_by_default", [])
-        
-        properties_html = ""
-        for prop in available_properties:
-            checked = "checked" if prop in hidden_by_default else ""
-            properties_html += f"""
-            <label class="filter-checkbox">
-                <input type="checkbox" value="{html.escape(prop)}" {checked}> {html.escape(prop)}
-            </label>
-            """
-        
-        return f"""
-        <div class="filters">
-            <div class="filter-section">
-                <h3>Hide Properties</h3>
-                <div class="filter-group" id="property-filters">
-                    {properties_html}
-                </div>
-            </div>
-            <div class="filter-divider"></div>
-            <div class="control-section">
-                <button id="toggle-all" class="btn toggle-btn">Expand All</button>
-            </div>
-        </div>
-        """
-    
-    def _generate_resource_groups(self, analysis: PlanAnalysis) -> str:
-        """Generate the resource groups section"""
-        if not analysis.has_changes:
-            return ""
-        
-        groups_html = ""
-        for group in analysis.resource_groups:
-            groups_html += self._generate_resource_group(group)
-        
-        return f"""
-        <div class="resource-groups" id="resource-groups">
-            {groups_html}
-        </div>
-        """
-    
-    def _generate_resource_group(self, group) -> str:
-        """Generate HTML for a single resource group"""
-        action_counts = group.action_counts
-        counts_text = ", ".join([
-            f"{count} {action.value}" 
-            for action, count in action_counts.items()
-        ])
-        
-        resources_html = ""
-        for change in group.changes:
-            resources_html += self._generate_resource_change(change)
-        
-        return f"""
-        <div class="resource-group" data-resource-type="{html.escape(group.resource_type)}">
-            <div class="group-header">
-                <h3>{html.escape(group.resource_type)} ({group.count} resources)</h3>
-                <span class="group-summary">{counts_text}</span>
-            </div>
-            <div class="group-resources">
-                {resources_html}
-            </div>
-        </div>
-        """
-    
-    def _generate_resource_change(self, change: AnalyzedResourceChange) -> str:
-        """Generate HTML for a single resource change"""
-        action_class = change.action.value
-        action_icon = self._get_action_icon(change.action)
-        
-        # Generate dependency indicator if this resource has dependency changes
-        dependency_indicator = ""
-        if change.has_dependency_changes:
-            dependency_indicator = f'<span class="dependency-indicator" title="{html.escape(change.dependency_reason)}">💡</span>'
-        
-        properties_html = ""
-        if change.has_property_changes:
-            properties_html = self._generate_property_changes(change.property_changes)
-        
-        return f"""
-        <div class="resource-change {action_class}" data-action="{action_class}" data-address="{html.escape(change.address)}">
-            <div class="resource-header" onclick="toggleResource(this)">
-                <span class="action-icon">{action_icon}</span>
-                <span class="resource-address">{html.escape(change.address)}</span>
-                {dependency_indicator}
-                <span class="toggle-indicator">▼</span>
-            </div>
-            <div class="resource-details">
-                {properties_html}
-            </div>
-        </div>
-        """
-    
-    def _generate_property_changes(self, property_changes: List[PropertyChange]) -> str:
-        """Generate HTML for property changes"""
-        if not property_changes:
-            return "<p>No detailed changes available.</p>"
-        
-        changes_html = ""
-        for prop_change in property_changes:
-            changes_html += self._generate_property_change(prop_change)
-        
-        return f"""
-        <div class="property-changes">
-            <table class="properties-table">
-                <thead>
-                    <tr>
-                        <th>Property</th>
-                        <th>Before</th>
-                        <th>After</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {changes_html}
-                </tbody>
-            </table>
-        </div>
-        """
-    
-    def _generate_property_change(self, prop_change: PropertyChange) -> str:
-        """Generate HTML for a single property change"""
-        from .analyzer import PlanAnalyzer
-        analyzer = PlanAnalyzer()
-        
-        property_path = html.escape(prop_change.property_path)
-        
-        if prop_change.is_sensitive:
-            before_value = "<sensitive>"
-            after_value = "<sensitive>"
-        else:
-            before_value = analyzer.format_value_for_display(prop_change.before_value)
-            after_value = analyzer.format_value_for_display(prop_change.after_value)
-        
-        # Determine change type for styling
-        change_class = ""
-        if prop_change.is_addition:
-            change_class = "addition"
-            before_value = ""
-        elif prop_change.is_removal:
-            change_class = "removal"
-            after_value = ""
-        elif prop_change.is_modification:
-            change_class = "modification"
-        
-        
-        # Get base property name for filtering
-        base_property = prop_change.property_path.split('.')[0]
-        
-        return f"""
-        <tr class="property-change {change_class}" data-property="{html.escape(base_property)}">
-            <td class="property-name">{property_path}</td>
-            <td class="before-value"><pre>{html.escape(before_value)}</pre></td>
-            <td class="after-value"><pre>{html.escape(after_value)}</pre></td>
-        </tr>
-        """
-    
-    def _generate_footer(self) -> str:
-        """Generate the report footer"""
-        # Get BUILD_URL from environment or config
-        import os
-        build_url = os.environ.get('BUILD_URL', self.config.get('build_url', ''))
-        
-        # Generate JSON filename (replace .html with .json)
-        json_filename = self.plan_name.replace('.html', '') + '.json'
-        
-        buttons_html = ""
-        if build_url:
-            buttons_html += f'<a href="{build_url}" class="footer-btn" target="_blank">🔗 View Build</a>'
-        
-        buttons_html += f'<a href="{json_filename}" class="footer-btn" target="_blank">📄 View Raw JSON</a>'
-        
-        return f"""
-        <div class="footer">
-            <div class="footer-content">
-                <div class="footer-text">
-                    Generated by <strong>tofUI</strong> • 
-                    Better OpenTofu & Terraform Plans
-                </div>
-                <div class="footer-buttons">
-                    {buttons_html}
-                </div>
-            </div>
-        </div>
-        """
-    
-    def _get_action_icon(self, action: ActionType) -> str:
-        """Get icon for action type"""
-        icons = {
-            ActionType.CREATE: "",
-            ActionType.UPDATE: "", 
-            ActionType.DELETE: "⚠️",
-            ActionType.RECREATE: "⚠️",
-            ActionType.READ: "",
-            ActionType.NO_OP: "⭕"
-        }
-        return icons.get(action, "❓")
-    
-    def _generate_javascript_data(self, analysis: PlanAnalysis) -> str:
-        """Generate JavaScript data object"""
-        data = {
-            "summary": {
-                "create": analysis.plan.summary.create,
-                "update": analysis.plan.summary.update,
-                "delete": analysis.plan.summary.delete,
-                "has_changes": analysis.plan.summary.has_changes
-            },
-            "actions": [action.value for action in analysis.action_counts.keys()],
-            "properties": list(analysis.all_property_names)
-        }
-        return json.dumps(data)
-    
-    def _get_embedded_css(self) -> str:
-        """Get the embedded CSS styles"""
-        return """
         * {
             box-sizing: border-box;
         }
@@ -760,11 +425,440 @@ class HTMLGenerator:
                 width: 35%;
             }
         }
-        """
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="header">
+            <div class="plan-name"><strong>Plan:</strong> github-pages-test</div>
+            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-13 23:29:54 UTC</div>
+        </div>
+        
+        
+        <div class="summary">
+            <div class="summary-stats">
+                <div class="stat-item create">
+                    <span class="stat-number">2</span>
+                    <span class="stat-label">to create</span>
+                </div>
+                <div class="stat-item update">
+                    <span class="stat-number">1</span>
+                    <span class="stat-label">to update</span>
+                </div>
+                <div class="stat-item delete">
+                    <span class="stat-number">2</span>
+                    <span class="stat-label">to delete</span>
+                </div>
+            </div>
+        </div>
+        
+        
+        <div class="filters">
+            <div class="filter-section">
+                <h3>Hide Properties</h3>
+                <div class="filter-group" id="property-filters">
+                    
+            <label class="filter-checkbox">
+                <input type="checkbox" value="ami" > ami
+            </label>
+            
+            <label class="filter-checkbox">
+                <input type="checkbox" value="arn" > arn
+            </label>
+            
+            <label class="filter-checkbox">
+                <input type="checkbox" value="associate_public_ip_address" > associate_public_ip_address
+            </label>
+            
+            <label class="filter-checkbox">
+                <input type="checkbox" value="availability_zone" > availability_zone
+            </label>
+            
+            <label class="filter-checkbox">
+                <input type="checkbox" value="filters" > filters
+            </label>
+            
+                </div>
+            </div>
+            <div class="filter-divider"></div>
+            <div class="control-section">
+                <button id="toggle-all" class="btn toggle-btn">Expand All</button>
+            </div>
+        </div>
+        
+        
+        <div class="resource-groups" id="resource-groups">
+            
+        <div class="resource-group" data-resource-type="aws_ami">
+            <div class="group-header">
+                <h3>aws_ami (1 resources)</h3>
+                <span class="group-summary">1 read</span>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change read" data-action="read" data-address="data.aws_ami.latest">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="action-icon"></span>
+                <span class="resource-address">data.aws_ami.latest</span>
+                
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change addition" data-property="owners">
+            <td class="property-name">owners</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>[
+  &quot;amazon&quot;
+]</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="most_recent">
+            <td class="property-name">most_recent</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>true</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="filters">
+            <td class="property-name">filters</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>{
+  &quot;name&quot;: [
+    &quot;amzn2-ami-hvm-*-x86_64-gp2&quot;
+  ],
+  &quot;state&quot;: [
+    &quot;available&quot;
+  ]
+}</pre></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-group" data-resource-type="aws_instance">
+            <div class="group-header">
+                <h3>aws_instance (3 resources)</h3>
+                <span class="group-summary">1 delete, 1 recreate, 1 create</span>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change delete" data-action="delete" data-address="aws_instance.old_server">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="action-icon">⚠️</span>
+                <span class="resource-address">aws_instance.old_server</span>
+                
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change removal" data-property="ami">
+            <td class="property-name">ami</td>
+            <td class="before-value"><pre>ami-0a887e401f7654935</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="instance_type">
+            <td class="property-name">instance_type</td>
+            <td class="before-value"><pre>t2.micro</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="availability_zone">
+            <td class="property-name">availability_zone</td>
+            <td class="before-value"><pre>us-west-2a</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="associate_public_ip_address">
+            <td class="property-name">associate_public_ip_address</td>
+            <td class="before-value"><pre>true</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Name</td>
+            <td class="before-value"><pre>OldServer</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value"><pre>staging</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="id">
+            <td class="property-name">id</td>
+            <td class="before-value"><pre>i-1234567890abcdef0</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="arn">
+            <td class="property-name">arn</td>
+            <td class="before-value"><pre>arn:aws:ec2:us-west-2:123456789012:instance/i-1234567890abcdef0</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-change recreate" data-action="recreate" data-address="aws_instance.web">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="action-icon">⚠️</span>
+                <span class="resource-address">aws_instance.web</span>
+                <span class="dependency-indicator" title="Recreated due to dependency changes in: a, i">💡</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change modification" data-property="ami">
+            <td class="property-name">ami</td>
+            <td class="before-value"><pre>ami-0a887e401f7654935</pre></td>
+            <td class="after-value"><pre>ami-0c55b159cbfafe1d0</pre></td>
+        </tr>
+        
+        <tr class="property-change modification" data-property="instance_type">
+            <td class="property-name">instance_type</td>
+            <td class="before-value"><pre>t2.micro</pre></td>
+            <td class="after-value"><pre>t3.micro</pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="id">
+            <td class="property-name">id</td>
+            <td class="before-value"><pre>i-abcdef1234567890</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+        <tr class="property-change modification" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value"><pre>staging</pre></td>
+            <td class="after-value"><pre>production</pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="arn">
+            <td class="property-name">arn</td>
+            <td class="before-value"><pre>arn:aws:ec2:us-west-2:123456789012:instance/i-abcdef1234567890</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-change create" data-action="create" data-address="aws_instance.new_server">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="action-icon"></span>
+                <span class="resource-address">aws_instance.new_server</span>
+                
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change addition" data-property="ami">
+            <td class="property-name">ami</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>ami-0c55b159cbfafe1d0</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="instance_type">
+            <td class="property-name">instance_type</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>t3.micro</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="availability_zone">
+            <td class="property-name">availability_zone</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>us-west-2b</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="associate_public_ip_address">
+            <td class="property-name">associate_public_ip_address</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>true</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Name</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>NewServer</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>production</pre></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-group" data-resource-type="aws_s3_bucket">
+            <div class="group-header">
+                <h3>aws_s3_bucket (1 resources)</h3>
+                <span class="group-summary">1 update</span>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change update" data-action="update" data-address="aws_s3_bucket.data">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="action-icon"></span>
+                <span class="resource-address">aws_s3_bucket.data</span>
+                
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Backup</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>daily</pre></td>
+        </tr>
+        
+        <tr class="property-change modification" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value"><pre>staging</pre></td>
+            <td class="after-value"><pre>production</pre></td>
+        </tr>
+        
+        <tr class="property-change modification" data-property="versioning">
+            <td class="property-name">versioning.enabled</td>
+            <td class="before-value"><pre>false</pre></td>
+            <td class="after-value"><pre>true</pre></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-group" data-resource-type="aws_security_group">
+            <div class="group-header">
+                <h3>aws_security_group (1 resources)</h3>
+                <span class="group-summary">1 read</span>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change read" data-action="read" data-address="aws_security_group.web_sg">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="action-icon"></span>
+                <span class="resource-address">aws_security_group.web_sg</span>
+                
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        </div>
+        
+        
+        <div class="footer">
+            <div class="footer-content">
+                <div class="footer-text">
+                    Generated by <strong>tofUI</strong> • 
+                    Better OpenTofu & Terraform Plans
+                </div>
+                <div class="footer-buttons">
+                    <a href="github-pages-test.json" class="footer-btn" target="_blank">📄 View Raw JSON</a>
+                </div>
+            </div>
+        </div>
+        
+    </div>
     
-    def _get_embedded_javascript(self) -> str:
-        """Get the embedded JavaScript code"""
-        return """
+    <script>
+        // Embedded plan data
+        const planData = {"summary": {"create": 2, "update": 1, "delete": 2, "has_changes": true}, "actions": ["delete", "recreate", "update", "create", "read"], "properties": ["ami", "instance_type", "id", "most_recent", "tags", "versioning", "availability_zone", "associate_public_ip_address", "owners", "arn", "filters"]};
+        
+        
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             initializeFilters();
@@ -951,4 +1045,7 @@ class HTMLGenerator:
             // Re-apply filters after sorting
             applyFilters();
         }
-        """
+        
+    </script>
+</body>
+</html>

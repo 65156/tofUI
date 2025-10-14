@@ -23,11 +23,20 @@ pip install tofui
 # With S3 support
 pip install tofui[s3]
 
+# With GitHub Pages support
+pip install tofui[ghpages]
+
+# With both S3 and GitHub Pages support
+pip install tofui[s3,ghpages]
+
 # Development version (basic)
 pip install git+https://github.com/65156/tofUI.git
 
 # Development version with S3 support
 pip install git+https://github.com/65156/tofUI.git[s3]
+
+# Development version with GitHub Pages support
+pip install git+https://github.com/65156/tofUI.git[ghpages]
 ```
 
 ## Quick Start
@@ -78,13 +87,44 @@ tofui plan.json \
   --s3-region us-west-2
 ```
 
+### GitHub Pages Integration
+```bash
+# Basic GitHub Pages upload
+tofui plan.json \
+  --github-pages owner/terraform-reports \
+  --batch-folder "batch-2024-10-13" \
+  --build-name "production"
+
+# With custom GitHub token
+tofui plan.json \
+  --github-pages owner/terraform-reports \
+  --github-token "ghp_xxxxxxxxxxxx" \
+  --batch-folder "nightly-tests" \
+  --build-name "integration-suite"
+
+# Using environment variable for token
+export GITHUB_TOKEN="ghp_xxxxxxxxxxxx"
+tofui plan.json \
+  --github-pages owner/terraform-reports \
+  --batch-folder "release-v2.1" \
+  --build-name "staging"
+```
+
 ### CI/CD Pipeline Integration
 ```bash
-# Complete CI/CD example
+# Complete CI/CD example with S3
 tofui plan.json \
   --name "Build ${BUILD_NUMBER}" \
   --s3-bucket company-terraform-reports \
   --s3-prefix builds/ \
+  --build-url "https://jenkins.company.com/job/123" \
+  --verbose
+
+# Complete CI/CD example with GitHub Pages
+tofui plan.json \
+  --github-pages company/terraform-reports \
+  --batch-folder "build-$(date +%Y-%m-%d)" \
+  --build-name "${CI_JOB_NAME}-${BUILD_NUMBER}" \
   --build-url "https://jenkins.company.com/job/123" \
   --verbose
 ```
@@ -109,8 +149,10 @@ Use `tofui-config.json` file for customization:
 
 ```
 usage: tofui [-h] [--name NAME] [--config CONFIG] [--s3-bucket S3_BUCKET]
-             [--s3-prefix S3_PREFIX] [--s3-region S3_REGION] [--verbose]
-             [--debug] [--version]
+             [--s3-prefix S3_PREFIX] [--s3-region S3_REGION] 
+             [--github-pages GITHUB_PAGES] [--github-token GITHUB_TOKEN]
+             [--batch-folder BATCH_FOLDER] [--build-name BUILD_NAME]
+             [--verbose] [--debug] [--version]
              [plan_file]
 
 Generate beautiful, interactive HTML reports from terraform JSON plans
@@ -136,6 +178,16 @@ S3 Upload Options:
                         S3 key prefix (default: root of bucket)
   --s3-region S3_REGION
                         AWS region (default: uses AWS_DEFAULT_REGION or us-east-1)
+
+GitHub Pages Options:
+  --github-pages GITHUB_PAGES
+                        GitHub repository (owner/repo) to upload the report to GitHub Pages
+  --github-token GITHUB_TOKEN
+                        GitHub Personal Access Token (default: uses GITHUB_TOKEN environment variable)
+  --batch-folder BATCH_FOLDER
+                        Batch folder name for organizing multiple builds (required when using --github-pages)
+  --build-name BUILD_NAME
+                        Build name within the batch folder (defaults to plan name)
 ```
 
 ## Testing

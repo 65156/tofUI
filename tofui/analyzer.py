@@ -55,6 +55,30 @@ class AnalyzedResourceChange:
     @property
     def has_property_changes(self) -> bool:
         return len(self.property_changes) > 0
+    
+    @property
+    def has_dependency_changes(self) -> bool:
+        """Check if this resource is being changed due to dependencies"""
+        return len(self.resource_change.replace_paths) > 0
+    
+    @property
+    def dependency_reason(self) -> str:
+        """Get a human-readable explanation of dependency-driven changes"""
+        if not self.has_dependency_changes:
+            return ""
+        
+        # Extract the first element from each replace_path
+        paths = []
+        for path in self.resource_change.replace_paths:
+            if path:  # Make sure the path is not empty
+                paths.append(path[0])
+            else:
+                paths.append("unknown")
+        
+        if len(paths) == 1:
+            return f"Recreated due to dependency change in: {paths[0]}"
+        else:
+            return f"Recreated due to dependency changes in: {', '.join(paths)}"
 
 
 @dataclass

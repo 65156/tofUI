@@ -32,7 +32,7 @@ class ResourceChange:
     after: Optional[Dict[str, Any]]
     before_sensitive: List[str]
     after_sensitive: List[str]
-    replaced_paths: List[List[str]]
+    replace_paths: List[List[str]]
     
     @property
     def is_creation(self) -> bool:
@@ -176,7 +176,7 @@ class TerraformPlanParser:
             after=change_info.get("after"),
             before_sensitive=change_info.get("before_sensitive", []),
             after_sensitive=change_info.get("after_sensitive", []),
-            replaced_paths=change_info.get("replaced_paths", [])
+            replace_paths=change_info.get("replace_paths", [])
         )
     
     def _parse_action(self, actions: List[str]) -> ActionType:
