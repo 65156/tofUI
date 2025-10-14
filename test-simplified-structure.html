@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terraplan Report - test-installation</title>
+    <title>Terraplan Report - test-simplified-structure</title>
     <style>
         
         * {
@@ -432,8 +432,8 @@
     <div class="container">
         
         <div class="header">
-            <div class="plan-name"><strong>Plan:</strong> test-installation</div>
-            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-14 01:00:14 UTC</div>
+            <div class="plan-name"><strong>Plan:</strong> test-simplified-structure</div>
+            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-14 03:24:19 UTC</div>
         </div>
         
         
@@ -518,20 +518,6 @@
                 </thead>
                 <tbody>
                     
-        <tr class="property-change addition" data-property="most_recent">
-            <td class="property-name">most_recent</td>
-            <td class="before-value"><pre></pre></td>
-            <td class="after-value"><pre>true</pre></td>
-        </tr>
-        
-        <tr class="property-change addition" data-property="owners">
-            <td class="property-name">owners</td>
-            <td class="before-value"><pre></pre></td>
-            <td class="after-value"><pre>[
-  &quot;amazon&quot;
-]</pre></td>
-        </tr>
-        
         <tr class="property-change addition" data-property="filters">
             <td class="property-name">filters</td>
             <td class="before-value"><pre></pre></td>
@@ -543,6 +529,20 @@
     &quot;available&quot;
   ]
 }</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="owners">
+            <td class="property-name">owners</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>[
+  &quot;amazon&quot;
+]</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="most_recent">
+            <td class="property-name">most_recent</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>true</pre></td>
         </tr>
         
                 </tbody>
@@ -657,16 +657,16 @@
                 </thead>
                 <tbody>
                     
+        <tr class="property-change removal" data-property="id">
+            <td class="property-name">id</td>
+            <td class="before-value"><pre>i-abcdef1234567890</pre></td>
+            <td class="after-value"><pre></pre></td>
+        </tr>
+        
         <tr class="property-change modification" data-property="tags">
             <td class="property-name">tags.Environment</td>
             <td class="before-value"><pre>staging</pre></td>
             <td class="after-value"><pre>production</pre></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="arn">
-            <td class="property-name">arn</td>
-            <td class="before-value"><pre>arn:aws:ec2:us-west-2:123456789012:instance/i-abcdef1234567890</pre></td>
-            <td class="after-value"><pre></pre></td>
         </tr>
         
         <tr class="property-change modification" data-property="ami">
@@ -675,9 +675,9 @@
             <td class="after-value"><pre>ami-0c55b159cbfafe1d0</pre></td>
         </tr>
         
-        <tr class="property-change removal" data-property="id">
-            <td class="property-name">id</td>
-            <td class="before-value"><pre>i-abcdef1234567890</pre></td>
+        <tr class="property-change removal" data-property="arn">
+            <td class="property-name">arn</td>
+            <td class="before-value"><pre>arn:aws:ec2:us-west-2:123456789012:instance/i-abcdef1234567890</pre></td>
             <td class="after-value"><pre></pre></td>
         </tr>
         
@@ -787,10 +787,10 @@
                 </thead>
                 <tbody>
                     
-        <tr class="property-change addition" data-property="tags">
-            <td class="property-name">tags.Backup</td>
-            <td class="before-value"><pre></pre></td>
-            <td class="after-value"><pre>daily</pre></td>
+        <tr class="property-change modification" data-property="versioning">
+            <td class="property-name">versioning.enabled</td>
+            <td class="before-value"><pre>false</pre></td>
+            <td class="after-value"><pre>true</pre></td>
         </tr>
         
         <tr class="property-change modification" data-property="tags">
@@ -799,10 +799,10 @@
             <td class="after-value"><pre>production</pre></td>
         </tr>
         
-        <tr class="property-change modification" data-property="versioning">
-            <td class="property-name">versioning.enabled</td>
-            <td class="before-value"><pre>false</pre></td>
-            <td class="after-value"><pre>true</pre></td>
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Backup</td>
+            <td class="before-value"><pre></pre></td>
+            <td class="after-value"><pre>daily</pre></td>
         </tr>
         
                 </tbody>
@@ -847,7 +847,7 @@
                     Better OpenTofu & Terraform Plans
                 </div>
                 <div class="footer-buttons">
-                    <a href="test-installation.json" class="footer-btn" target="_blank">📄 View Raw JSON</a>
+                    <a href="test-simplified-structure.json" class="footer-btn" target="_blank">📄 View Raw JSON</a>
                 </div>
             </div>
         </div>
@@ -856,7 +856,7 @@
     
     <script>
         // Embedded plan data
-        const planData = {"summary": {"create": 2, "update": 1, "delete": 2, "has_changes": true}, "actions": ["delete", "recreate", "update", "create", "read"], "properties": ["most_recent", "tags", "associate_public_ip_address", "versioning", "owners", "filters", "arn", "ami", "availability_zone", "id", "instance_type"]};
+        const planData = {"summary": {"create": 2, "update": 1, "delete": 2, "has_changes": true}, "actions": ["delete", "recreate", "update", "create", "read"], "properties": ["id", "associate_public_ip_address", "most_recent", "versioning", "tags", "ami", "availability_zone", "filters", "arn", "owners", "instance_type"]};
         
         
         // Initialize the application

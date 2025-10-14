@@ -57,8 +57,8 @@ def main():
             config['build_url'] = args.build_url
         
         # Generate display name and output filename
-        file_name = args.name or Path(args.plan_file).stem
-        display_name = args.display_name or file_name
+        file_name = args.build_name
+        display_name = args.display_name or args.build_name
         output_file = f"{file_name}.html"
         
         # Process the plan
@@ -120,22 +120,24 @@ Examples:
   # Basic usage
   terraform plan -out=plan.tfplan
   terraform show -json plan.tfplan > plan.json
-  tofui plan.json
+  tofui plan.json --build-name "deploy-${BUILD_ID}"
 
-  # Custom filename and display name
-  tofui plan.json --name "prod-deploy-2024" --display-name "Production Deployment"
+  # Custom display name for report title
+  tofui plan.json --build-name "prod-deploy-2024" --display-name "Production Deployment"
 
   # Upload to S3 (uploads both HTML report and JSON plan)
-  tofui plan.json --name "staging" --s3-bucket my-reports --s3-prefix reports/
+  tofui plan.json --build-name "staging-${BUILD_ID}" --s3-bucket my-reports --s3-prefix reports/
 
   # GitHub Pages upload to repository root
-  tofui plan.json --github-pages "owner/repo" --build-name "production"
+  tofui plan.json --build-name "production-${CI_BUILD_NUMBER}" --github-pages "owner/repo"
 
   # GitHub Pages upload with folder organization
-  tofui plan.json --github-pages "owner/repo" --folder "deployments" --build-name "staging"
+  tofui plan.json --build-name "staging-$(date +%Y%m%d)" --github-pages "owner/repo" --folder "deployments"
+
+  # Note: Use dynamic build names to prevent overwrites
 
   # With configuration and verbose output
-  tofui plan.json --display-name "Dev Environment" --config tofui-config.json --verbose
+  tofui plan.json --build-name "dev-${COMMIT_SHA:0:8}" --display-name "Dev Environment" --config tofui-config.json --verbose
         """
     )
     
@@ -147,8 +149,9 @@ Examples:
     )
     
     parser.add_argument(
-        "--name", "-n",
-        help="Name for the plan report and output file"
+        "--build-name", "-n",
+        required=True,
+        help="Name for the build/report (use dynamic values like ${BUILD_ID} to prevent overwrites)"
     )
     
     parser.add_argument(
@@ -202,10 +205,6 @@ Examples:
         help="Optional folder name for organizing reports (if not provided, reports go to repository root)"
     )
     
-    github_group.add_argument(
-        "--build-name",
-        help="Build name within the batch folder (defaults to plan name)"
-    )
     
     github_group.add_argument(
         "--github-branch",
@@ -380,12 +379,12 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
             # Update the index page
             update_github_index(owner, repo, headers, args, args.github_branch)
             
-            # Show URLs
+            # Show URLs with new organized structure
             pages_url = f"https://{owner}.github.io/{repo}"
             if args.folder:
-                build_url = f"{pages_url}/{args.folder}/{build_name}/report.html"
+                build_url = f"{pages_url}/{args.folder}/html_report/{build_name}.html"
             else:
-                build_url = f"{pages_url}/{build_name}/report.html"
+                build_url = f"{pages_url}/html_report/{build_name}.html"
             
             print(f"✅ Report uploaded to GitHub Pages: {build_url}")
             print(f"📋 Index page: {pages_url}")
@@ -407,16 +406,16 @@ def upload_build_to_github(owner: str, repo: str, headers: dict, folder: str,
     api_base = f"https://api.github.com/repos/{owner}/{repo}/contents"
     
     try:
-        # Handle build name conflicts with versioning
+        # Handle build name conflicts with versioning  
         original_build_name = build_name
         version = 1
         while True:
             try:
-                # Check if build already exists
+                # Check if build already exists using new organized structure
                 if folder:
-                    check_url = f"{api_base}/{folder}/{build_name}/report.html?ref={branch}"
+                    check_url = f"{api_base}/{folder}/html_report/{build_name}.html?ref={branch}"
                 else:
-                    check_url = f"{api_base}/{build_name}/report.html?ref={branch}"
+                    check_url = f"{api_base}/html_report/{build_name}.html?ref={branch}"
                 response = requests.get(check_url, headers=headers)
                 
                 if response.status_code == 404:
@@ -435,15 +434,15 @@ def upload_build_to_github(owner: str, repo: str, headers: dict, folder: str,
         if version > 1:
             print(f"⚠️  Build name conflict resolved: using '{build_name}' instead of '{original_build_name}'")
         
-        # Construct paths based on folder parameter
+        # Construct paths using organized structure with html_report/json_plan folders
         if folder:
-            html_path = f"{folder}/{build_name}/report.html"
-            json_path = f"{folder}/{build_name}/plan.json"
-            upload_location = f"{folder}/{build_name}"
+            html_path = f"{folder}/html_report/{build_name}.html"
+            json_path = f"{folder}/json_plan/{build_name}.json"
+            upload_location = f"{folder}"
         else:
-            html_path = f"{build_name}/report.html"
-            json_path = f"{build_name}/plan.json"
-            upload_location = build_name
+            html_path = f"html_report/{build_name}.html"
+            json_path = f"json_plan/{build_name}.json"
+            upload_location = "root"
         
         # Upload HTML report
         html_data = {
