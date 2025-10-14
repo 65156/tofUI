@@ -128,6 +128,12 @@ Examples:
   # Upload to S3 (uploads both HTML report and JSON plan)
   tofui plan.json --name "staging" --s3-bucket my-reports --s3-prefix reports/
 
+  # GitHub Pages upload to repository root
+  tofui plan.json --github-pages "owner/repo" --build-name "production"
+
+  # GitHub Pages upload with folder organization
+  tofui plan.json --github-pages "owner/repo" --folder "deployments" --build-name "staging"
+
   # With configuration and verbose output
   tofui plan.json --display-name "Dev Environment" --config tofui-config.json --verbose
         """
@@ -192,8 +198,8 @@ Examples:
     )
     
     github_group.add_argument(
-        "--batch-folder",
-        help="Batch folder name for organizing multiple builds (required when using --github-pages)"
+        "--folder",
+        help="Optional folder name for organizing reports (if not provided, reports go to repository root)"
     )
     
     github_group.add_argument(
@@ -339,10 +345,7 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
     try:
         print("🐙 Uploading to GitHub Pages...")
         
-        # Validate required arguments
-        if not args.batch_folder:
-            print("❌ Error: --batch-folder is required when using --github-pages", file=sys.stderr)
-            return
+        # No validation needed - folder is optional
             
         # Get GitHub token
         github_token = args.github_token or os.getenv('GITHUB_TOKEN')
@@ -369,7 +372,7 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
         
         # Upload the build files
         success = upload_build_to_github(
-            owner, repo, headers, args.batch_folder, build_name,
+            owner, repo, headers, args.folder, build_name,
             html_content, plan_file, display_name, args.github_branch
         )
         
@@ -379,7 +382,10 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
             
             # Show URLs
             pages_url = f"https://{owner}.github.io/{repo}"
-            build_url = f"{pages_url}/{args.batch_folder}/{build_name}/report.html"
+            if args.folder:
+                build_url = f"{pages_url}/{args.folder}/{build_name}/report.html"
+            else:
+                build_url = f"{pages_url}/{build_name}/report.html"
             
             print(f"✅ Report uploaded to GitHub Pages: {build_url}")
             print(f"📋 Index page: {pages_url}")
@@ -391,7 +397,7 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
             traceback.print_exc()
 
 
-def upload_build_to_github(owner: str, repo: str, headers: dict, batch_folder: str, 
+def upload_build_to_github(owner: str, repo: str, headers: dict, folder: str, 
                           build_name: str, html_content: str, plan_file: str, display_name: str, branch: str) -> bool:
     """Upload individual build files to GitHub repository"""
     import requests
@@ -407,7 +413,10 @@ def upload_build_to_github(owner: str, repo: str, headers: dict, batch_folder: s
         while True:
             try:
                 # Check if build already exists
-                check_url = f"{api_base}/{batch_folder}/{build_name}/report.html?ref={branch}"
+                if folder:
+                    check_url = f"{api_base}/{folder}/{build_name}/report.html?ref={branch}"
+                else:
+                    check_url = f"{api_base}/{build_name}/report.html?ref={branch}"
                 response = requests.get(check_url, headers=headers)
                 
                 if response.status_code == 404:
@@ -426,10 +435,19 @@ def upload_build_to_github(owner: str, repo: str, headers: dict, batch_folder: s
         if version > 1:
             print(f"⚠️  Build name conflict resolved: using '{build_name}' instead of '{original_build_name}'")
         
+        # Construct paths based on folder parameter
+        if folder:
+            html_path = f"{folder}/{build_name}/report.html"
+            json_path = f"{folder}/{build_name}/plan.json"
+            upload_location = f"{folder}/{build_name}"
+        else:
+            html_path = f"{build_name}/report.html"
+            json_path = f"{build_name}/plan.json"
+            upload_location = build_name
+        
         # Upload HTML report
-        html_path = f"{batch_folder}/{build_name}/report.html"
         html_data = {
-            "message": f"Add tofUI report: {batch_folder}/{build_name}",
+            "message": f"Add tofUI report: {upload_location}",
             "content": base64.b64encode(html_content.encode('utf-8')).decode('ascii'),
             "branch": branch
         }
@@ -440,12 +458,11 @@ def upload_build_to_github(owner: str, repo: str, headers: dict, batch_folder: s
         response.raise_for_status()
         
         # Upload JSON plan
-        json_path = f"{batch_folder}/{build_name}/plan.json"
         with open(plan_file, 'rb') as f:
             plan_content = f.read()
         
         json_data = {
-            "message": f"Add plan JSON: {batch_folder}/{build_name}",
+            "message": f"Add plan JSON: {upload_location}",
             "content": base64.b64encode(plan_content).decode('ascii'),
             "branch": branch
         }
@@ -455,7 +472,7 @@ def upload_build_to_github(owner: str, repo: str, headers: dict, batch_folder: s
                               data=json.dumps(json_data))
         response.raise_for_status()
         
-        print(f"📁 Uploaded build: {batch_folder}/{build_name}")
+        print(f"📁 Uploaded build: {upload_location}")
         return True
         
     except requests.exceptions.RequestException as e:
