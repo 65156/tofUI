@@ -6,5 +6,8 @@ black>=22.0.0
 flake8>=5.0.0
 mypy>=1.0.0
 
+[ghpages]
+requests>=2.25.0
+
 [s3]
 boto3>=1.26.0

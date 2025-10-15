@@ -33,12 +33,7 @@ def main():
     parser = create_argument_parser()
     args = parser.parse_args()
     
-    try:
-        # Handle version flag
-        if args.version:
-            print(f"tofui {__version__}")
-            return 0
-        
+    try:        
         # Validate input file
         if not args.plan_file:
             parser.print_help()
@@ -112,7 +107,7 @@ def main():
             upload_to_s3(html_content, args, output_file, args.plan_file)
         
         # Handle GitHub Pages upload if requested
-        if args.github_pages:
+        if args.github_repo:
             upload_to_github_pages(html_content, args, output_file, args.plan_file, display_name)
         
         return 0
@@ -213,7 +208,7 @@ Examples:
     # GitHub Pages options
     github_group = parser.add_argument_group("GitHub Pages Options")
     github_group.add_argument(
-        "--github-pages",
+        "--github-repo",
         help="GitHub repository (owner/repo) to upload the report to GitHub Pages"
     )
     
@@ -221,12 +216,11 @@ Examples:
         "--github-token",
         help="GitHub Personal Access Token (default: uses GITHUB_TOKEN environment variable)"
     )
-    
+
     github_group.add_argument(
         "--folder",
         help="Optional folder name for organizing reports (if not provided, reports go to repository root)"
     )
-    
     
     github_group.add_argument(
         "--github-branch",
@@ -235,9 +229,14 @@ Examples:
     )
     
     github_group.add_argument(
-        "--pages-base-url",
-        help="Custom GitHub Pages base URL (e.g., 'https://pages.github.ibm.com' for GitHub Enterprise)"
+        "--github-enterprise-url",
+        help="GitHub Enterprise base URL (e.g., 'https://github.ibm.com')"
     )
+    
+    # github_group.add_argument(
+    #     "--pages-base-url",
+    #     help="Custom GitHub Pages base URL (e.g., 'https://pages.github.ibm.com' for GitHub Enterprise)"
+    # )
     
     # Output options
     parser.add_argument(
@@ -254,7 +253,8 @@ Examples:
     
     parser.add_argument(
         "--version",
-        action="store_true",
+        action="version",
+        version=f'tofUI {__version__}',
         help="Show version information"
     )
     
@@ -284,7 +284,6 @@ def print_summary(analysis, output_file: str, args):
         print("📊 Summary: No changes planned")
     
     print(f"\n🌐 Open in browser: file://{os.path.abspath(output_file)}")
-
 
 def upload_to_s3(html_content: str, args, local_file: str, plan_file: str):
     """Upload the HTML report and JSON plan to S3"""
@@ -356,6 +355,25 @@ def upload_to_s3(html_content: str, args, local_file: str, plan_file: str):
     except Exception as e:
         print(f"❌ Error uploading to S3: {e}", file=sys.stderr)
 
+def get_github_pages_url(owner: str, repo: str, headers: dict, api_base_url: str) -> str:
+    """Get GitHub Pages URL for the repository using the API"""
+    import requests
+    
+    try:
+        # Try to get the Pages configuration from the API
+        response = requests.get(f"{api_base_url}/repos/{owner}/{repo}/pages", headers=headers)
+        
+        if response.status_code == 200:
+            pages_data = response.json()
+            if 'html_url' in pages_data:
+                # Return the actual Pages URL from the API
+                return pages_data['html_url'].rstrip('/')
+        
+        # If we get here, the API call failed or didn't return the expected data
+        return None
+    except Exception as e:
+        print(f"⚠️ Warning: Could not retrieve GitHub Pages URL: {e}")
+        return None
 
 def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: str, display_name: str):
     """Upload the HTML report and JSON plan to GitHub Pages"""
@@ -371,23 +389,30 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
     try:
         print("🐙 Uploading to GitHub Pages...")
         
-        # No validation needed - folder is optional
-            
         # Get GitHub token
         github_token = args.github_token or os.getenv('GITHUB_TOKEN')
         if not github_token:
             print("❌ Error: GitHub token not found. Use --github-token or set GITHUB_TOKEN environment variable.", file=sys.stderr)
             return
-            
+        
         # Parse repository
-        if '/' not in args.github_pages:
+        if '/' not in args.github_repo:
             print("❌ Error: GitHub repository must be in format 'owner/repo'", file=sys.stderr)
             return
             
-        owner, repo = args.github_pages.split('/', 1)
+        owner, repo = args.github_repo.split('/', 1)
         
-        # Use sanitized build name from local file name
-        sanitized_build_name = os.path.splitext(os.path.basename(local_file))[0]
+        # Determine API and Pages URLs based on enterprise URL if provided
+        if args.github_enterprise_url:
+            enterprise_url = args.github_enterprise_url.rstrip('/')
+            api_base_url = f"{enterprise_url}/api/v3"
+            # We'll detect pages_url from API
+            print(f"DEBUG - GitHub Enterprise URL: {enterprise_url}")
+            print(f"DEBUG - Using API URL: {api_base_url}")
+        else:
+            # Default to public GitHub
+            api_base_url = "https://api.github.com"
+            print(f"DEBUG - Using public GitHub API URL: {api_base_url}")
         
         # GitHub API headers
         headers = {
@@ -396,32 +421,44 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
             'Content-Type': 'application/json'
         }
         
-        # Upload the build files
+        # Get Pages URL from GitHub API
+        pages_url = get_github_pages_url(owner, repo, headers, api_base_url)
+        if not pages_url:
+            # Fallback - construct pages URL based on standard pattern
+            if args.github_enterprise_url:
+                pages_url = f"{args.github_enterprise_url.replace('https://', 'https://pages.')}/{owner}/{repo}"
+            else:
+                pages_url = f"https://{owner}.github.io/{repo}"
+            print(f"DEBUG - Using fallback Pages URL: {pages_url}")
+        else:
+            print(f"DEBUG - Found GitHub Pages URL: {pages_url}")
+        
+        # Use sanitized build name from local file name
+        sanitized_build_name = os.path.splitext(os.path.basename(local_file))[0]
+        
+        # Upload the build files using the derived API URL
         success = upload_build_to_github(
             owner, repo, headers, args.folder, sanitized_build_name,
-            html_content, plan_file, display_name, args.github_branch
+            html_content, plan_file, display_name, args.github_branch, api_base_url
         )
         
         if success:
-            # Update the index page
-            update_github_index(owner, repo, headers, args, args.github_branch)
+            # Update the index page with the derived API URL
+            update_github_index(owner, repo, headers, args, args.github_branch, api_base_url)
             
-            # Construct URLs using custom base URL if provided
-            if args.pages_base_url:
-                pages_url = f"{args.pages_base_url.rstrip('/')}/{owner}/{repo}"
-            else:
-                pages_url = f"https://{owner}.github.io/{repo}"
-            
+            # Construct final URLs with consistent logic
             if args.folder:
                 html_url = f"{pages_url}/{args.folder}/html_report/{sanitized_build_name}.html"
                 json_url = f"{pages_url}/{args.folder}/json_plan/{sanitized_build_name}.json"
+                index_url = f"{pages_url}/{args.folder}/index.html"
             else:
                 html_url = f"{pages_url}/html_report/{sanitized_build_name}.html"
                 json_url = f"{pages_url}/json_plan/{sanitized_build_name}.json"
+                index_url = f"{pages_url}/index.html"
             
             print(f"✅ HTML Report: {html_url}")
             print(f"✅ JSON Plan: {json_url}")
-            print(f"📋 Index page: {pages_url}")
+            print(f"📋 Index page: {index_url}")
             
             # Export URLs as environment variables for CI/CD integration
             print(f"\n📝 Environment Variables:")
@@ -436,13 +473,14 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
 
 
 def upload_build_to_github(owner: str, repo: str, headers: dict, folder: str, 
-                          build_name: str, html_content: str, plan_file: str, display_name: str, branch: str) -> bool:
+                            build_name: str, html_content: str, plan_file: str, 
+                            display_name: str, branch: str, api_base_url: str = "https://api.github.com") -> bool:
     """Upload individual build files to GitHub repository"""
     import requests
     import base64
     import json
     
-    api_base = f"https://api.github.com/repos/{owner}/{repo}/contents"
+    api_base = f"{api_base_url}/repos/{owner}/{repo}/contents"
     
     try:
         # Handle build name conflicts with versioning  
@@ -518,14 +556,14 @@ def upload_build_to_github(owner: str, repo: str, headers: dict, folder: str,
         return False
 
 
-def update_github_index(owner: str, repo: str, headers: dict, args, branch: str):
+def update_github_index(owner: str, repo: str, headers: dict, args, branch: str, api_base_url: str = "https://api.github.com"):
     """Update the main index.html page with batch listings"""
     import requests
     import json
     import base64
     from datetime import datetime
     
-    api_base = f"https://api.github.com/repos/{owner}/{repo}/contents"
+    api_base = f"{api_base_url}/repos/{owner}/{repo}/contents"
     
     try:
         # Load configuration for index limit
@@ -576,8 +614,8 @@ def update_github_index(owner: str, repo: str, headers: dict, args, branch: str)
             index_data['sha'] = sha
         
         response = requests.put(f"{api_base}/index.html", 
-                              headers=headers, 
-                              data=json.dumps(index_data))
+                                headers=headers, 
+                                data=json.dumps(index_data))
         response.raise_for_status()
         
         print(f"📋 Updated index page (showing {len(batch_folders)} batches)")
@@ -586,15 +624,15 @@ def update_github_index(owner: str, repo: str, headers: dict, args, branch: str)
         print(f"⚠️  Warning: Could not update index page: {e}")
 
 
-def generate_index_html(batch_folders: list, owner: str, repo: str, headers: dict, branch: str) -> str:
+def generate_index_html(batch_folders: list, owner: str, repo: str, headers: dict, branch: str, api_base_url: str) -> str:
     """Generate the main index.html page content"""
     import requests
     from datetime import datetime
     
     # Get build details for each batch
     batch_details = []
-    api_base = f"https://api.github.com/repos/{owner}/{repo}/contents"
-    
+    api_base = f"{api_base_url}/repos/{owner}/{repo}/contents"
+
     for batch_folder in batch_folders:
         try:
             response = requests.get(f"{api_base}/{batch_folder}?ref={branch}", headers=headers)
