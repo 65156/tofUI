@@ -28,13 +28,180 @@ def sanitize_build_name(name: str) -> str:
     return sanitized.strip('-').lower()
 
 
+def read_terraform_errors_from_stdin():
+    """Read terraform error output from stdin"""
+    import sys
+    
+    # Check if stdin is connected to a pipe/file (not a terminal)
+    if not sys.stdin.isatty():
+        try:
+            return sys.stdin.read()
+        except:
+            return None
+    return None
+
+
+def process_terraform_logs(log_source, output_log_file):
+    """Process terraform logs from file or stdin and save to output file"""
+    import sys
+    
+    log_content = None
+    
+    if log_source == '-':
+        # Read from stdin
+        if not sys.stdin.isatty():
+            try:
+                log_content = sys.stdin.read()
+                print(f"📝 Read terraform logs from stdin")
+            except Exception as e:
+                print(f"Warning: Failed to read logs from stdin: {e}", file=sys.stderr)
+                return False
+        else:
+            print("Warning: No stdin data available for logs", file=sys.stderr)
+            return False
+    else:
+        # Read from file
+        try:
+            with open(log_source, 'r', encoding='utf-8', errors='replace') as f:
+                log_content = f.read()
+                print(f"📝 Read terraform logs from: {log_source}")
+        except Exception as e:
+            print(f"Warning: Failed to read log file '{log_source}': {e}", file=sys.stderr)
+            return False
+    
+    if log_content:
+        try:
+            # Process logs (clean ANSI codes, ensure UTF-8)
+            processed_logs = clean_terraform_logs(log_content)
+            
+            # Write to output log file
+            with open(output_log_file, 'w', encoding='utf-8') as f:
+                f.write(processed_logs)
+            print(f"💾 Terraform logs saved to: {output_log_file}")
+            return True
+        except Exception as e:
+            print(f"Warning: Failed to process/save logs: {e}", file=sys.stderr)
+            return False
+    
+    return False
+
+
+def clean_terraform_logs(log_content):
+    """Clean terraform logs by removing ANSI escape codes and ensuring proper formatting"""
+    import re
+    
+    # Remove ANSI escape codes
+    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+    cleaned = ansi_escape.sub('', log_content)
+    
+    # Ensure proper line endings
+    cleaned = cleaned.replace('\r\n', '\n').replace('\r', '\n')
+    
+    # Remove excessive blank lines
+    cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
+    
+    return cleaned.strip()
+
+
+def handle_terraform_error(args):
+    """Handle terraform error scenarios and generate error reports"""
+    print("🚨 Handling Terraform Error Scenario...")
+    
+    # Try to read error output from stdin
+    error_output = read_terraform_errors_from_stdin()
+    
+    # If no stdin, try to read from the plan file if it exists (may contain error info)
+    plan_error_data = None
+    if args.plan_file and os.path.exists(args.plan_file):
+        try:
+            with open(args.plan_file, 'r') as f:
+                plan_error_data = f.read()
+                print(f"📄 Found plan file with potential error data: {args.plan_file}")
+        except:
+            plan_error_data = None
+    
+    # Sanitize build name
+    original_build_name = args.build_name
+    sanitized_build_name = sanitize_build_name(args.build_name)
+    
+    if sanitized_build_name != original_build_name:
+        print(f"🔧 Sanitized build name: '{original_build_name}' → '{sanitized_build_name}'")
+    
+    # Load configuration if provided
+    config = {}
+    if args.config:
+        if not os.path.exists(args.config):
+            print(f"Error: Config file '{args.config}' not found.", file=sys.stderr)
+            return 1
+        try:
+            import json
+            with open(args.config, 'r') as f:
+                config = json.load(f)
+            print(f"📋 Loaded configuration from: {args.config}")
+        except Exception as e:
+            print(f"Error: Failed to load config file: {e}", file=sys.stderr)
+            return 1
+    
+    # Add build_url from CLI if provided
+    if args.build_url:
+        config['build_url'] = args.build_url
+    
+    display_name = args.display_name or original_build_name
+    file_name = sanitized_build_name
+    output_file = f"{file_name}.html"
+    
+    # Process terraform logs if provided
+    log_file_available = False
+    if args.stdout_tf_log:
+        log_output_file = f"{file_name}.log"
+        log_file_available = process_terraform_logs(args.stdout_tf_log, log_output_file)
+    
+    print("🎨 Generating error report...")
+    
+    # Import generator and create error report
+    from .generator import HTMLGenerator
+    
+    generator = HTMLGenerator()
+    html_content = generator.generate_error_report(
+        error_output=error_output,
+        plan_error_data=plan_error_data,
+        plan_name=display_name,
+        output_file=output_file,
+        config=config,
+        log_file_available=log_file_available
+    )
+    
+    # Write the HTML file
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+    
+    print(f"✅ Error report generated: {output_file}")
+    print(f"🌐 Open in browser: file://{os.path.abspath(output_file)}")
+    
+    # Handle uploads if requested
+    if args.s3_bucket:
+        upload_to_s3(html_content, args, output_file, args.plan_file or "terraform-error.log")
+    
+    if args.github_repo:
+        upload_to_github_pages(html_content, args, output_file, args.plan_file or "terraform-error.log", display_name)
+    
+    return 0
+
+
 def main():
     """Main CLI entry point"""
     parser = create_argument_parser()
     args = parser.parse_args()
     
     try:        
-        # Validate input file
+        # Handle terraform exit codes and validate input accordingly
+        terraform_exit_code = getattr(args, 'terraform_exit_code', None)
+        
+        if terraform_exit_code == 1:
+            # For terraform errors, plan file might not exist - that's OK
+            return handle_terraform_error(args)
+        
+        # For normal operation, require plan file
         if not args.plan_file:
             parser.print_help()
             return 1
@@ -75,6 +242,12 @@ def main():
         display_name = args.display_name or original_build_name  # Use original for display
         output_file = f"{file_name}.html"
         
+        # Process terraform logs if provided
+        log_file_available = False
+        if args.stdout_tf_log:
+            log_output_file = f"{file_name}.log"
+            log_file_available = process_terraform_logs(args.stdout_tf_log, log_output_file)
+        
         # Process the plan
         print(f"🏗️ Processing terraform plan: {args.plan_file}")
         
@@ -96,7 +269,8 @@ def main():
             analysis, 
             plan_name=display_name,
             output_file=output_file,
-            config=config
+            config=config,
+            log_file_available=log_file_available
         )
         
         # Print summary
@@ -136,22 +310,48 @@ Examples:
   terraform show -json plan.tfplan > plan.json
   tofui plan.json --build-name "deploy-${BUILD_ID}"
 
-  # Custom display name for report title
-  tofui plan.json --build-name "prod-deploy-2024" --display-name "Production Deployment"
+  # Handle terraform planning errors  
+  terraform plan -out=plan.tfplan -detailed-exitcode 2>&1 | tee plan.log
+  if [ $? -eq 1 ]; then
+    tofui --terraform-exit-code 1 --build-name "failed-${BUILD_ID}" < plan.log
+  fi
+
+  # Include terraform logs in reports
+  terraform plan -out=plan.tfplan 2>&1 | tee terraform.log
+  terraform show -json plan.tfplan > plan.json
+  tofui plan.json --stdout-tf-log terraform.log --build-name "deploy-${BUILD_ID}"
+
+  # Handle successful plans with no changes
+  terraform plan -out=plan.tfplan -detailed-exitcode
+  if [ $? -eq 0 ]; then
+    terraform show -json plan.tfplan > plan.json
+    tofui plan.json --terraform-exit-code 0 --build-name "no-changes-${BUILD_ID}"
+  fi
+
+  # Handle normal plans with changes
+  terraform plan -out=plan.tfplan -detailed-exitcode
+  if [ $? -eq 2 ]; then
+    terraform show -json plan.tfplan > plan.json
+    tofui plan.json --terraform-exit-code 2 --build-name "deploy-${BUILD_ID}"
+  fi
+
+  # Complete CI/CD error handling pattern
+  set +e  # Don't exit on terraform errors
+  terraform plan -out=plan.tfplan -detailed-exitcode 2>&1 | tee terraform.log
+  TERRAFORM_EXIT_CODE=$?
+  case $TERRAFORM_EXIT_CODE in
+    0) terraform show -json plan.tfplan > plan.json
+       tofui plan.json --terraform-exit-code 0 --stdout-tf-log terraform.log --build-name "no-changes-${BUILD_NUMBER}" ;;
+    1) tofui --terraform-exit-code 1 --stdout-tf-log terraform.log --build-name "error-${BUILD_NUMBER}" < terraform.log ;;
+    2) terraform show -json plan.tfplan > plan.json
+       tofui plan.json --terraform-exit-code 2 --stdout-tf-log terraform.log --build-name "changes-${BUILD_NUMBER}" ;;
+  esac
 
   # Upload to S3 (uploads both HTML report and JSON plan)
   tofui plan.json --build-name "staging-${BUILD_ID}" --s3-bucket my-reports --s3-prefix reports/
 
-  # GitHub Pages upload to repository root
-  tofui plan.json --build-name "production-${CI_BUILD_NUMBER}" --github-pages "owner/repo"
-
-  # GitHub Pages upload with folder organization
-  tofui plan.json --build-name "staging-$(date +%Y%m%d)" --github-pages "owner/repo" --folder "deployments"
-
-  # IBM GitHub Enterprise with custom Pages URL
-  tofui plan.json --build-name "prod-${BUILD_ID}" --github-pages "IBM-Sports/cicd-module-testing-01" --pages-base-url "https://pages.github.ibm.com"
-
-  # Note: Use dynamic build names to prevent overwrites
+  # GitHub Pages upload
+  tofui plan.json --build-name "production-${CI_BUILD_NUMBER}" --github-repo "owner/repo"
 
   # With configuration and verbose output
   tofui plan.json --build-name "dev-${COMMIT_SHA:0:8}" --display-name "Dev Environment" --config tofui-config.json --verbose
@@ -186,6 +386,18 @@ Examples:
         help="Path to configuration JSON file"
     )
     
+    parser.add_argument(
+        "--terraform-exit-code",
+        type=int,
+        choices=[0, 1, 2],
+        help="Terraform exit code (0=no changes, 1=error, 2=changes). When set to 1, generates an error report even if plan file is missing/invalid. Automatically extracts and displays terraform errors in a formatted terminal view."
+    )
+    
+    parser.add_argument(
+        "--stdout-tf-log",
+        help="Terraform stdout log file or '-' for stdin. Creates a separate .log file for dynamic loading in the HTML report."
+    )
+
     # S3 options
     s3_group = parser.add_argument_group("S3 Upload Options")
     s3_group.add_argument(
@@ -592,7 +804,7 @@ def update_github_index(owner: str, repo: str, headers: dict, args, branch: str,
         batch_folders = batch_folders[:index_limit]
         
         # Generate index HTML content
-        index_html = generate_index_html(batch_folders, owner, repo, headers, branch)
+        index_html = generate_index_html(batch_folders, owner, repo, headers, branch, api_base_url)
         
         # Get current index.html SHA if it exists (needed for updates)
         sha = None

@@ -57,6 +57,7 @@ class PlanSummary:
     create: int = 0
     update: int = 0
     delete: int = 0
+    resources_total: int = 0
     
     @property
     def total_changes(self) -> int:
@@ -76,6 +77,7 @@ class TerraformPlan:
     resource_changes: List[ResourceChange]
     configuration: Dict[str, Any]
     summary: PlanSummary
+    outputs: Optional[Dict[str, Any]] = None  
     timestamp: Optional[str] = None
 
 
@@ -105,7 +107,13 @@ class TerraformPlanParser:
         resource_changes = self._parse_resource_changes(
             plan_data.get("resource_changes", [])
         )
+        # Extract outputs - ADD THIS SECTION
+        outputs = plan_data.get("output_changes", {})
+        if not outputs:
+            outputs = plan_data.get("outputs", {})
         
+        # Extract timestamp - ADD THIS SECTION
+        timestamp = plan_data.get("timestamp")
         # Generate summary
         summary = self._generate_summary(resource_changes)
         
@@ -115,7 +123,9 @@ class TerraformPlanParser:
             planned_values=planned_values,
             resource_changes=resource_changes,
             configuration=configuration,
-            summary=summary
+            summary=summary,
+            outputs=outputs,
+            timestamp=timestamp 
         )
     
     def _validate_plan_format(self, plan_data: Dict[str, Any]) -> None:
@@ -204,6 +214,9 @@ class TerraformPlanParser:
     def _generate_summary(self, resource_changes: List[ResourceChange]) -> PlanSummary:
         """Generate a summary of plan changes"""
         summary = PlanSummary()
+        
+        # Count all resources including no-op/read-only
+        summary.resources_total = len(resource_changes)
         
         for change in resource_changes:
             if change.action == ActionType.CREATE:
