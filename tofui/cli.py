@@ -843,6 +843,81 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
             traceback.print_exc()
 
 
+def github_api_request_with_retry(url: str, headers: dict, data: dict, method: str = "PUT", max_retries: int = 12) -> tuple:
+    """Make GitHub API request with exponential backoff retry logic"""
+    import requests
+    import json
+    import time
+    import random
+    
+    base_delay = 2.0  # Start with 2 seconds
+    multiplier = 1.2  # Increase by 20% each time
+    current_delay = base_delay
+    total_wait_time = 0
+    max_total_time = 60  # Maximum total wait time
+    
+    for attempt in range(1, max_retries + 1):
+        try:
+            print(f"🔄 API Request attempt {attempt}/{max_retries}: {method} {url}")
+            
+            if method.upper() == "PUT":
+                response = requests.put(url, headers=headers, data=json.dumps(data))
+            elif method.upper() == "GET":
+                response = requests.get(url, headers=headers)
+            else:
+                raise ValueError(f"Unsupported HTTP method: {method}")
+            
+            print(f"📡 Response: {response.status_code} {response.reason}")
+            
+            # Check if request was successful
+            if response.status_code in [200, 201]:
+                if attempt > 1:
+                    print(f"✅ GitHub API request succeeded on attempt {attempt}")
+                return True, response
+            elif response.status_code == 409:
+                # Conflict - likely due to concurrent pipeline execution
+                print(f"⚠️  GitHub API conflict (409) on attempt {attempt}/{max_retries}")
+                print(f"📄 Response body: {response.text[:200]}...")
+                if attempt == max_retries:
+                    print(f"❌ Maximum retries ({max_retries}) reached for GitHub API request")
+                    return False, response
+            elif response.status_code in [500, 502, 503, 504]:
+                # Server errors - retry
+                print(f"⚠️  GitHub API server error ({response.status_code}) on attempt {attempt}/{max_retries}")
+                if attempt == max_retries:
+                    print(f"❌ Maximum retries ({max_retries}) reached for GitHub API request")
+                    return False, response
+            else:
+                # Other errors - don't retry
+                print(f"❌ GitHub API request failed with status {response.status_code}: {response.text}")
+                return False, response
+                
+        except requests.exceptions.RequestException as e:
+            print(f"⚠️  GitHub API request exception on attempt {attempt}/{max_retries}: {e}")
+            if attempt == max_retries:
+                print(f"❌ Maximum retries ({max_retries}) reached for GitHub API request")
+                return False, None
+        
+        # Don't wait after the last attempt
+        if attempt < max_retries:
+            # Check if we would exceed maximum total wait time
+            if total_wait_time + current_delay > max_total_time:
+                print(f"⏱️ Maximum wait time ({max_total_time}s) would be exceeded, stopping retries")
+                break
+            
+            # Add randomized jitter (±20%) to prevent thundering herd
+            jitter = random.uniform(0.8, 1.2)
+            actual_delay = current_delay * jitter
+            
+            print(f"⏳ Waiting {actual_delay:.1f}s before retry (attempt {attempt + 1}/{max_retries})")
+            time.sleep(actual_delay)
+            
+            total_wait_time += actual_delay
+            current_delay *= multiplier
+    
+    return False, None
+
+
 def upload_build_to_github(owner: str, repo: str, headers: dict, folder: str, 
                             build_name: str, html_content: str, plan_file: str, 
                             display_name: str, branch: str, api_base_url: str = "https://api.github.com") -> bool:
@@ -894,19 +969,20 @@ def upload_build_to_github(owner: str, repo: str, headers: dict, folder: str,
             log_path = f"logs/{build_name}.log"
             upload_location = "root"
         
-        # Upload HTML report
+        # Upload HTML report with retry logic
         html_data = {
             "message": f"Add tofUI report: {upload_location}",
             "content": base64.b64encode(html_content.encode('utf-8')).decode('ascii'),
             "branch": branch
         }
         
-        response = requests.put(f"{api_base}/{html_path}", 
-                              headers=headers, 
-                              data=json.dumps(html_data))
-        response.raise_for_status()
+        print(f"📤 Uploading HTML report: {html_path}")
+        success, response = github_api_request_with_retry(f"{api_base}/{html_path}", headers, html_data)
+        if not success:
+            print(f"❌ Failed to upload HTML report after all retries")
+            return False
         
-        # Upload JSON plan
+        # Upload JSON plan with retry logic
         with open(plan_file, 'rb') as f:
             plan_content = f.read()
         
@@ -916,10 +992,11 @@ def upload_build_to_github(owner: str, repo: str, headers: dict, folder: str,
             "branch": branch
         }
         
-        response = requests.put(f"{api_base}/{json_path}", 
-                              headers=headers, 
-                              data=json.dumps(json_data))
-        response.raise_for_status()
+        print(f"📤 Uploading JSON plan: {json_path}")
+        success, response = github_api_request_with_retry(f"{api_base}/{json_path}", headers, json_data)
+        if not success:
+            print(f"❌ Failed to upload JSON plan after all retries")
+            return False
         
         # Upload log file if it exists
         log_file_path = f"{build_name}.log"
@@ -934,11 +1011,12 @@ def upload_build_to_github(owner: str, repo: str, headers: dict, folder: str,
                     "branch": branch
                 }
                 
-                response = requests.put(f"{api_base}/{log_path}", 
-                                      headers=headers, 
-                                      data=json.dumps(log_data))
-                response.raise_for_status()
-                print(f"📋 Uploaded log file: {log_path}")
+                print(f"📤 Uploading log file: {log_path}")
+                success, response = github_api_request_with_retry(f"{api_base}/{log_path}", headers, log_data)
+                if success:
+                    print(f"📋 Uploaded log file: {log_path}")
+                else:
+                    print(f"⚠️  Failed to upload log file: {log_path}")
             except Exception as e:
                 print(f"⚠️  Warning: Could not upload log file: {e}")
         
