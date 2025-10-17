@@ -161,13 +161,16 @@ positional arguments:
   plan_file             Path to terraform plan JSON file
 
 optional arguments:
-  -h, --help            show this help message and exit
-  --name NAME, -n NAME  Name for the plan report and output file
-  --display-name        Name to display at the top of the report (if different to --name)
-  --build-url           Sets the http target for the build link button in the html report
-  --config CONFIG, -c CONFIG
+  --help                Show this help message and exit
+  --display-name        Name to display at the top of the report (if different to --build-name)
+  --build-name          Name of files generated
+  --build-url           Sets the http target for the build link button generation in the html report
+  --terraform-exit-code Used to help determine plan generation (0=no changes, 1=error, 2=changes)
+  --stdout-tf-log       Used to utilize log loading in the report
+  --export-vars-file    Exports sourceable .sh containing TOFUI_WEB_URL environment variable.
+  --config CONFIG
                         Path to configuration JSON file
-  --verbose, -v         Show verbose output
+  --verbose             Show verbose output
   --debug               Show debug information
   --version             Show version information
 
@@ -180,14 +183,15 @@ S3 Upload Options:
                         AWS region (default: uses AWS_DEFAULT_REGION or us-east-1)
 
 GitHub Pages Options:
-  --github-pages GITHUB_PAGES
-                        GitHub repository (owner/repo) to upload the report to GitHub Pages
+  --github-repo         GitHub repository (owner/repo) to upload the report to GitHub Pages
+  --github-enterprise-url 
+                        GHE URL to support Enterprise deployments.
+  --github-branch       (default: gh-pages)
   --github-token GITHUB_TOKEN
                         GitHub Personal Access Token (default: uses GITHUB_TOKEN environment variable)
-  --batch-folder BATCH_FOLDER
-                        Batch folder name for organizing multiple builds (required when using --github-pages)
-  --build-name BUILD_NAME
-                        Build name within the batch folder (defaults to plan name)
+  --folder FOLDER
+                        Folder name for organizing multiple builds (required when using --github-pages)
+
 ```
 
 ## Testing
