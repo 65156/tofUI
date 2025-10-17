@@ -113,6 +113,105 @@ def clean_terraform_logs(log_content):
     return cleaned.strip()
 
 
+def handle_no_changes_scenario(args):
+    """Handle terraform no-changes scenarios and generate no-changes reports"""
+    print("✅ Handling Terraform No Changes Scenario...")
+    
+    # Sanitize build name
+    original_build_name = args.build_name
+    sanitized_build_name = sanitize_build_name(args.build_name)
+    
+    if sanitized_build_name != original_build_name:
+        print(f"🔧 Sanitized build name: '{original_build_name}' → '{sanitized_build_name}'")
+    
+    # Load configuration if provided
+    config = {}
+    if args.config:
+        if not os.path.exists(args.config):
+            print(f"Error: Config file '{args.config}' not found.", file=sys.stderr)
+            return 1
+        try:
+            import json
+            with open(args.config, 'r') as f:
+                config = json.load(f)
+            print(f"📋 Loaded configuration from: {args.config}")
+        except Exception as e:
+            print(f"Error: Failed to load config file: {e}", file=sys.stderr)
+            return 1
+    
+    # Add build_url from CLI if provided
+    if args.build_url:
+        config['build_url'] = args.build_url
+    
+    display_name = args.display_name or original_build_name
+    file_name = sanitized_build_name
+    output_file = f"{file_name}.html"
+    
+    # Process terraform logs if provided
+    log_file_available = False
+    if args.stdout_tf_log:
+        log_output_file = f"{file_name}.log"
+        log_file_available = process_terraform_logs(args.stdout_tf_log, log_output_file)
+    
+    print("🎨 Generating no-changes report...")
+    
+    # Create a minimal analysis for no-changes scenario
+    from .parser import TerraformPlan, PlanSummary
+    from .analyzer import PlanAnalysis
+    from .generator import HTMLGenerator
+    
+    # Create a minimal plan object for no-changes
+    plan_summary = PlanSummary(
+        create=0,
+        update=0, 
+        delete=0,
+        has_changes=False,
+        resources_total=0
+    )
+    
+    minimal_plan = TerraformPlan(
+        terraform_version="1.0.0",  # Default version
+        summary=plan_summary,
+        resource_changes=[],
+        outputs={}
+    )
+    
+    # Create minimal analysis
+    analysis = PlanAnalysis(
+        plan=minimal_plan,
+        resource_groups=[],
+        action_counts={},
+        all_property_names=set(),
+        total_resources=0,
+        has_changes=False
+    )
+    
+    generator = HTMLGenerator()
+    html_content = generator.generate_report(
+        analysis,
+        plan_name=display_name,
+        output_file=output_file,
+        config=config,
+        log_file_available=log_file_available
+    )
+    
+    # Write the HTML file
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+    
+    print(f"✅ No-changes report generated: {output_file}")
+    print(f"🌐 Open in browser: file://{os.path.abspath(output_file)}")
+    
+    # Handle uploads if requested
+    if args.s3_bucket:
+        upload_to_s3(html_content, args, output_file, args.plan_file or "terraform-no-changes.json")
+    
+    if args.github_repo:
+        upload_to_github_pages(html_content, args, output_file, args.plan_file or "terraform-no-changes.json", display_name)
+    
+    return 0
+
+
 def handle_terraform_error(args):
     """Handle terraform error scenarios and generate error reports"""
     print("🚨 Handling Terraform Error Scenario...")
@@ -210,8 +309,11 @@ def main():
         if terraform_exit_code == 1:
             # For terraform errors, plan file might not exist - that's OK
             return handle_terraform_error(args)
+        elif terraform_exit_code == 0:
+            # For no changes, use special handling that doesn't require resource_changes
+            return handle_no_changes_scenario(args)
         
-        # For normal operation, require plan file
+        # For normal operation (terraform_exit_code == 2 or None), require plan file
         if not args.plan_file:
             parser.print_help()
             return 1
@@ -219,6 +321,10 @@ def main():
         if not os.path.exists(args.plan_file):
             print(f"Error: Plan file '{args.plan_file}' not found.", file=sys.stderr)
             return 1
+        
+        # Add verbose logging for terraform exit code 2
+        if terraform_exit_code == 2:
+            print(f"🔄 Handling Terraform Changes Scenario (exit code 2)...")
         
         # Load configuration file if provided
         config = {}
