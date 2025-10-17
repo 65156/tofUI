@@ -617,10 +617,6 @@ def write_export_vars_file(file_path: str, html_url: str, json_url: str):
 export TOFUI_HTML_URL='{html_url}'
 export TOFUI_JSON_URL='{json_url}'
 
-# Convenience echo commands for verification
-echo "✅ tofUI environment variables loaded:"
-echo "   TOFUI_HTML_URL: $TOFUI_HTML_URL"
-echo "   TOFUI_JSON_URL: $TOFUI_JSON_URL"
 """
         
         # Write the file
