@@ -1075,14 +1075,17 @@ class HTMLGenerator:
         import os
         build_url = os.environ.get('BUILD_URL', self.config.get('build_url', ''))
         
-        # Generate JSON filename (replace .html with .json)
-        json_filename = self.plan_name.replace('.html', '') + '.json'
+        # Get JSON URL from environment variable (exported by tofUI) or fallback to relative filename
+        json_url = os.environ.get('TOFUI_JSON_URL', self.config.get('json_url', ''))
+        if not json_url:
+            # Fallback to relative filename if no URL provided
+            json_url = self.plan_name.replace('.html', '') + '.json'
         
         buttons_html = ""
         if build_url:
             buttons_html += f'<a href="{build_url}" class="footer-btn" target="_blank">🔗 View Build</a>'
         
-        buttons_html += f'<a href="{json_filename}" class="footer-btn" target="_blank">📄 View JSON</a>'
+        buttons_html += f'<a href="{json_url}" class="footer-btn" target="_blank">📄 View JSON</a>'
         
         return f"""
         <div class="footer">
@@ -1824,13 +1827,12 @@ class HTMLGenerator:
             
             const resourceGroups = Array.from(resourceGroupsContainer.querySelectorAll('.resource-group'));
             
-            // Always use priority-based sorting: delete → recreate → update → create → read
+            // Always use priority-based sorting: delete → recreate → update → create
             const actionPriority = {
                 'delete': 1,
                 'recreate': 2, 
                 'update': 3,
-                'create': 4,
-                'read': 5
+                'create': 4
             };
             
             // Collect all resources from all groups

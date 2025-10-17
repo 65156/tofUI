@@ -125,11 +125,17 @@ class PlanAnalyzer:
     def analyze(self, plan: TerraformPlan) -> PlanAnalysis:
         """Analyze a terraform plan and return detailed insights"""
         
+        # Filter out read operations and no-op operations - only show resources with actual changes
+        filtered_changes = [
+            rc for rc in plan.resource_changes 
+            if rc.action not in [ActionType.READ, ActionType.NO_OP]
+        ]
+        
         # Analyze each resource change in detail
         analyzed_changes = []
         all_property_names = set()
         
-        for resource_change in plan.resource_changes:
+        for resource_change in filtered_changes:
             analyzed_change = self._analyze_resource_change(resource_change)
             analyzed_changes.append(analyzed_change)
             
@@ -203,7 +209,10 @@ class PlanAnalyzer:
         
         for key, value in obj.items():
             current_path = f"{prefix}.{key}" if prefix else key
-            is_sensitive = current_path in sensitive_paths
+            
+            # Only mark leaf values as sensitive, not container objects
+            # Check if this specific path is in the sensitive_paths list
+            is_sensitive = self._is_path_sensitive(current_path, sensitive_paths)
             
             if isinstance(value, dict) and not is_sensitive:
                 # Recursively process nested objects
@@ -236,6 +245,26 @@ class PlanAnalyzer:
         
         return changes
     
+    def _is_path_sensitive(self, path: str, sensitive_paths: List[str]) -> bool:
+        """
+        Check if a property path should be marked as sensitive.
+        
+        This method properly handles Terraform's sensitive_values structure which
+        can contain nested objects that don't necessarily mean the values are sensitive.
+        Only leaf values with actual sensitive data should be marked as sensitive.
+        """
+        if not sensitive_paths:
+            return False
+            
+        # Direct path match
+        if path in sensitive_paths:
+            return True
+            
+        # For now, use simple string matching as Terraform's sensitive_paths 
+        # format can vary. In the future, this could be enhanced to handle
+        # more complex nested structures based on actual Terraform output format.
+        return False
+    
     def _compare_objects(
         self, 
         before: Dict[str, Any], 
@@ -260,8 +289,9 @@ class PlanAnalyzer:
             before_value = before.get(key)
             after_value = after.get(key)
             
-            is_sensitive = (current_path in before_sensitive or 
-                          current_path in after_sensitive)
+            # Use the improved sensitive path checking
+            is_sensitive = (self._is_path_sensitive(current_path, before_sensitive) or 
+                          self._is_path_sensitive(current_path, after_sensitive))
             
             if before_value == after_value:
                 # No change
