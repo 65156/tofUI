@@ -216,6 +216,10 @@ class PlanAnalyzer:
             # Check if this specific value is marked as sensitive
             is_sensitive = self._is_value_sensitive(value, sensitive_for_key)
             
+            # Skip empty values unless they're sensitive (sensitive values should always be shown)
+            if not is_sensitive and self._should_skip_empty_value(value):
+                continue
+            
             if isinstance(value, dict) and not is_sensitive:
                 # Recursively process nested objects
                 before_value = before_obj.get(key, {}) if before_obj else {}
@@ -263,6 +267,26 @@ class PlanAnalyzer:
             return None
         else:
             return None
+    
+    def _should_skip_empty_value(self, value: Any) -> bool:
+        """
+        Check if a value should be skipped because it's empty/null.
+        
+        Skip display of:
+        - Empty arrays: []
+        - Empty objects: {}
+        - Null/None values
+        - Empty strings (after JSON formatting)
+        """
+        if value is None:
+            return True
+        if isinstance(value, list) and len(value) == 0:
+            return True
+        if isinstance(value, dict) and len(value) == 0:
+            return True
+        if isinstance(value, str) and value.strip() == "":
+            return True
+        return False
     
     def _is_value_sensitive(self, value: Any, sensitive_structure: Any) -> bool:
         """
@@ -336,6 +360,10 @@ class PlanAnalyzer:
             # Check if either value is marked as sensitive
             is_sensitive = (self._is_value_sensitive(before_value, before_sensitive_for_key) or 
                           self._is_value_sensitive(after_value, after_sensitive_for_key))
+            
+            # Skip empty values unless they're sensitive or there's an actual change
+            if not is_sensitive and before_value == after_value and self._should_skip_empty_value(after_value):
+                continue
             
             if before_value == after_value:
                 # No change

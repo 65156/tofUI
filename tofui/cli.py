@@ -398,6 +398,34 @@ def main():
         
         # Handle GitHub Pages upload if requested
         if args.github_repo:
+            # Get the JSON URL that will be constructed by the upload function
+            sanitized_build_name = sanitize_build_name(args.build_name)
+            
+            # Determine GitHub Pages URL
+            if args.github_enterprise_url:
+                pages_url = f"{args.github_enterprise_url.replace('https://', 'https://pages.')}/{args.github_repo}"
+            else:
+                owner, repo = args.github_repo.split('/', 1)
+                pages_url = f"https://{owner}.github.io/{repo}"
+            
+            # Construct JSON URL using the same logic as upload_to_github_pages
+            if args.folder:
+                json_url = f"{pages_url}/{args.folder}/json_plan/{sanitized_build_name}.json"
+            else:
+                json_url = f"{pages_url}/json_plan/{sanitized_build_name}.json"
+            
+            # Add JSON URL to config and regenerate HTML with the proper link
+            config['json_url'] = json_url
+            
+            # Regenerate HTML with the JSON URL included
+            html_content = generator.generate_report(
+                analysis, 
+                plan_name=display_name,
+                output_file=output_file,
+                config=config,
+                log_file_available=log_file_available
+            )
+            
             upload_to_github_pages(html_content, args, output_file, args.plan_file, display_name)
         
         return 0
