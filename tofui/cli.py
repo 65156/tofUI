@@ -165,14 +165,16 @@ def handle_no_changes_scenario(args):
         create=0,
         update=0, 
         delete=0,
-        has_changes=False,
         resources_total=0
     )
     
     minimal_plan = TerraformPlan(
         terraform_version="1.0.0",  # Default version
-        summary=plan_summary,
+        format_version="1.0",
+        planned_values={},
         resource_changes=[],
+        configuration={},
+        summary=plan_summary,
         outputs={}
     )
     
@@ -181,9 +183,7 @@ def handle_no_changes_scenario(args):
         plan=minimal_plan,
         resource_groups=[],
         action_counts={},
-        all_property_names=set(),
-        total_resources=0,
-        has_changes=False
+        all_property_names=set()
     )
     
     generator = HTMLGenerator()
