@@ -99,8 +99,6 @@
             letter-spacing: 0.3px;
         }
         
-
-        
         .filters {
             padding: 1.5rem 2rem;
             background: #f8f9fa;
@@ -108,8 +106,6 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            # gap: 2rem;
-            # flex-wrap: wrap;
         }
         
         .filter-section h3 {
@@ -533,7 +529,7 @@
         }
         
         .footer-btn {
-            background: #6b7280;
+            background: #dc3545;
             color: white;
             text-decoration: none;
             padding: 0.5rem 1rem;
@@ -543,7 +539,7 @@
         }
         
         .footer-btn:hover {
-            background: #4b5563;
+            background: #721c24;
         }
         
         .hidden {
@@ -671,7 +667,7 @@
             
         <div class="header">
             <div class="plan-name"><strong>has-changes-example</strong></div>
-            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-17 01:48:18 UTC</div>
+            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-17 03:40:05 UTC</div>
         </div>
         
             
@@ -821,11 +817,10 @@
         <div class="terminal-section">
             <div class="terminal-header">
                 <h3>Logs</h3>
-                <button class="load-logs-btn" onclick="loadTerraformLogs()">View Logs</button>
-                <button class="copy-btn" onclick="copyToClipboard('terminal-output')" style="display:none;">Copy to Clipboard</button>
+                <button class="copy-btn" onclick="copyToClipboard('terminal-output')">Copy to Clipboard</button>
             </div>
-            <div class="terminal-container" style="display:none;">
-                <pre id="terminal-output" class="terminal-output"></pre>
+            <div class="terminal-container">
+                <pre id="terminal-output" class="terminal-output">Loading logs...</pre>
             </div>
         </div>
         
@@ -846,7 +841,7 @@
         
         <script>
             // Embedded plan data
-            const planData = {"summary": {"create": 1, "update": 0, "delete": 0, "has_changes": true}, "actions": ["create"], "properties": ["ami", "instance_type", "tags"]};
+            const planData = {"summary": {"create": 1, "update": 0, "delete": 0, "has_changes": true}, "actions": ["create"], "properties": ["tags", "instance_type", "ami"]};
             
             
         // Initialize the application
@@ -856,6 +851,9 @@
             
             // Initially collapse all resources
             collapseAllResources();
+            
+            // Auto-load logs
+            autoLoadLogs();
         });
         
         function initializeFilters() {
@@ -1037,25 +1035,35 @@
             applyFilters();
         }
         
-        function loadTerraformLogs() {
-            // This would be implemented to View Logs from the companion .log file
-            const logFileName = window.location.pathname.replace('.html', '.log');
+        function autoLoadLogs() {
+            // Try different log locations based on environment
+            const baseName = window.location.pathname.split('/').pop().replace('.html', '');
             
-            fetch(logFileName)
-                .then(response => response.text())
+            const logUrls = [
+                `${baseName}.log`,  // Local: same directory
+                `../logs/${baseName}.log`,  // GitHub Pages: logs folder
+                `logs/${baseName}.log`  // Alternative GitHub Pages path
+            ];
+            
+            tryLoadLog(logUrls, 0);
+        }
+        
+        function tryLoadLog(urls, index) {
+            if (index >= urls.length) {
+                document.getElementById('terminal-output').textContent = 
+                    'Error: Log file not found in any expected location\nTried:\n' + urls.join('\n');
+                return;
+            }
+            
+            fetch(urls[index])
+                .then(response => {
+                    if (!response.ok) throw new Error('Not found');
+                    return response.text();
+                })
                 .then(data => {
                     document.getElementById('terminal-output').textContent = data;
-                    document.querySelector('.terminal-container').style.display = 'block';
-                    document.querySelector('.copy-btn').style.display = 'inline-block';
-                    
-                    const loadBtn = document.querySelector('.load-logs-btn');
-                    loadBtn.textContent = 'Logs Loaded';
-                    loadBtn.disabled = true;
                 })
-                .catch(err => {
-                    console.error('Could not View Logs:', err);
-                    alert('Could not View Logs. Make sure the .log file exists.');
-                });
+                .catch(() => tryLoadLog(urls, index + 1));
         }
         
         function copyToClipboard(elementId) {
@@ -1067,7 +1075,7 @@
                 const btn = document.querySelector('.copy-btn');
                 const originalText = btn.textContent;
                 btn.textContent = 'Copied!';
-                btn.style.background = '#28a745';
+                btn.style.background = '#6c757d';
                 
                 setTimeout(function() {
                     btn.textContent = originalText;

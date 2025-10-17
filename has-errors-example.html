@@ -99,8 +99,6 @@
             letter-spacing: 0.3px;
         }
         
-
-        
         .filters {
             padding: 1.5rem 2rem;
             background: #f8f9fa;
@@ -108,8 +106,6 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            # gap: 2rem;
-            # flex-wrap: wrap;
         }
         
         .filter-section h3 {
@@ -533,7 +529,7 @@
         }
         
         .footer-btn {
-            background: #6b7280;
+            background: #dc3545;
             color: white;
             text-decoration: none;
             padding: 0.5rem 1rem;
@@ -543,7 +539,7 @@
         }
         
         .footer-btn:hover {
-            background: #4b5563;
+            background: #721c24;
         }
         
         .hidden {
@@ -765,8 +761,8 @@
         
         /* Syntax highlighting for terraform output */
         .terminal-output {
-            /* Error text in red */
-            color: #f44747;
+            /* Error text in white */
+            color: #d4d4d4;
         }
         
         @media (max-width: 768px) {
@@ -789,14 +785,14 @@
         
         <div class="header error-header">
             <div class="plan-name"><strong>has-errors-example</strong></div>
-            <div class="meta-info"><strong>Generated:</strong> 2025-10-17 01:48:18 UTC</div>
+            <div class="meta-info"><strong>Generated:</strong> 2025-10-17 03:40:05 UTC</div>
         </div>
         
         
         <div class="error-summary">
             <div class="error-icon">❌</div>
-            <h2>Terraform Plan Failed</h2>
-            <p>The terraform plan command failed with errors.</p>
+            <h2>Issues Detected</h2>
+            <p>There were fatal errors during your infrastructure plan.</p>
         </div>
         
         <div class="resource-groups">
@@ -807,9 +803,9 @@
                 <div class="group-resources">
                     
             <div class="resource-change delete collapsed" data-action="delete" data-address="error_1">
-                <div class="resource-header error-header-nonclick">
-                    <span class="action-icon">🚨</span>
+                <div class="resource-header" onclick="toggleResource(this)">
                     <span class="resource-address">Error 1: Error: Failed to validate terraform configuration</span>
+                    <span class="toggle-indicator">▼</span>
                 </div>
                 <div class="resource-details">
                     <p>No additional details available.</p>
@@ -817,9 +813,9 @@
             </div>
             
             <div class="resource-change delete collapsed" data-action="delete" data-address="error_2">
-                <div class="resource-header error-header-nonclick">
-                    <span class="action-icon">🚨</span>
+                <div class="resource-header" onclick="toggleResource(this)">
                     <span class="resource-address">Error 2: Error: Invalid resource type</span>
+                    <span class="toggle-indicator">▼</span>
                 </div>
                 <div class="resource-details">
                     <p>No additional details available.</p>
@@ -827,9 +823,9 @@
             </div>
             
             <div class="resource-change delete collapsed" data-action="delete" data-address="error_3">
-                <div class="resource-header error-header-nonclick">
-                    <span class="action-icon">🚨</span>
+                <div class="resource-header" onclick="toggleResource(this)">
                     <span class="resource-address">Error 3: Error: Reference to undeclared resource</span>
+                    <span class="toggle-indicator">▼</span>
                 </div>
                 <div class="resource-details">
                     <p>No additional details available.</p>
@@ -843,28 +839,10 @@
         <div class="terminal-section">
             <div class="terminal-header">
                 <h3>Logs</h3>
-                <button class="load-logs-btn" onclick="loadErrorLogs()">View Logs</button>
-                <button class="copy-btn" onclick="copyToClipboard('terminal-output')" style="display:none;">Copy to Clipboard</button>
+                <button class="copy-btn" onclick="copyToClipboard('terminal-output')">Copy to Clipboard</button>
             </div>
-            <div class="terminal-container" style="display:none;">
-                <pre id="terminal-output" class="terminal-output" data-raw-output="Error: Failed to validate terraform configuration
-
-Error: Invalid resource type
-
-  on main.tf line 15, in resource &quot;aws_instance&quot; &quot;example&quot;:
-  15:   invalid_attribute = &quot;this will cause an error&quot;
-
-This resource type does not support this attribute.
-
-Error: Reference to undeclared resource
-
-  on main.tf line 23:
-  23:     subnet_id = aws_subnet.nonexistent.id
-
-A managed resource &quot;aws_subnet&quot; &quot;nonexistent&quot; has not been declared in the
-root module.
-
-Planning failed. Terraform encountered an error while generating this plan."></pre>
+            <div class="terminal-container">
+                <pre id="terminal-output" class="terminal-output">Loading logs...</pre>
             </div>
         </div>
         
@@ -885,30 +863,46 @@ Planning failed. Terraform encountered an error while generating this plan."></p
     
     <script>
         
-        function loadErrorLogs() {
-            // Load error logs from data attribute
-            const terminalOutput = document.getElementById('terminal-output');
-            const rawOutput = terminalOutput.getAttribute('data-raw-output');
+        // Initialize the error page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-load logs for error pages
+            autoLoadLogs();
+        });
+        
+        function autoLoadLogs() {
+            // Try different log locations based on environment
+            const baseName = window.location.pathname.split('/').pop().replace('.html', '');
             
-            if (rawOutput) {
-                terminalOutput.textContent = rawOutput;
-                document.querySelector('.terminal-container').style.display = 'block';
-                document.querySelector('.copy-btn').style.display = 'inline-block';
-                
-                const loadBtn = document.querySelector('.load-logs-btn');
-                loadBtn.textContent = 'Logs Loaded';
-                loadBtn.disabled = true;
-            } else {
-                alert('No error logs available to display.');
+            const logUrls = [
+                `${baseName}.log`,  // Local: same directory
+                `../logs/${baseName}.log`,  // GitHub Pages: logs folder
+                `logs/${baseName}.log`  // Alternative GitHub Pages path
+            ];
+            
+            tryLoadLog(logUrls, 0);
+        }
+        
+        function tryLoadLog(urls, index) {
+            if (index >= urls.length) {
+                document.getElementById('terminal-output').textContent = 
+                    'Error: Log file not found in any expected location\nTried:\n' + urls.join('\n');
+                return;
             }
+            
+            fetch(urls[index])
+                .then(response => {
+                    if (!response.ok) throw new Error('Not found');
+                    return response.text();
+                })
+                .then(data => {
+                    document.getElementById('terminal-output').textContent = data;
+                })
+                .catch(() => tryLoadLog(urls, index + 1));
         }
         
-        function toggleError(errorItem) {
-            errorItem.classList.toggle('collapsed');
-        }
-        
-        function toggleOutput(outputItem) {
-            outputItem.classList.toggle('collapsed');
+        function toggleResource(header) {
+            const resourceChange = header.closest('.resource-change');
+            resourceChange.classList.toggle('collapsed');
         }
         
         function copyToClipboard(elementId) {
@@ -920,7 +914,7 @@ Planning failed. Terraform encountered an error while generating this plan."></p
                 const btn = document.querySelector('.copy-btn');
                 const originalText = btn.textContent;
                 btn.textContent = 'Copied!';
-                btn.style.background = '#28a745';
+                btn.style.background = '#6c757d';
                 
                 setTimeout(function() {
                     btn.textContent = originalText;

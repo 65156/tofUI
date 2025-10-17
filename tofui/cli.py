@@ -733,14 +733,16 @@ def upload_build_to_github(owner: str, repo: str, headers: dict, folder: str,
         if version > 1:
             print(f"⚠️  Build name conflict resolved: using '{build_name}' instead of '{original_build_name}'")
         
-        # Construct paths using organized structure with html_report/json_plan folders
+        # Construct paths using organized structure with html_report/json_plan/logs folders
         if folder:
             html_path = f"{folder}/html_report/{build_name}.html"
             json_path = f"{folder}/json_plan/{build_name}.json"
+            log_path = f"{folder}/logs/{build_name}.log"
             upload_location = f"{folder}"
         else:
             html_path = f"html_report/{build_name}.html"
-            json_path = f"json_plan/{build_name}.json"
+            json_path = f"json_plan/{build_name}.json" 
+            log_path = f"logs/{build_name}.log"
             upload_location = "root"
         
         # Upload HTML report
@@ -769,6 +771,27 @@ def upload_build_to_github(owner: str, repo: str, headers: dict, folder: str,
                               headers=headers, 
                               data=json.dumps(json_data))
         response.raise_for_status()
+        
+        # Upload log file if it exists
+        log_file_path = f"{build_name}.log"
+        if os.path.exists(log_file_path):
+            try:
+                with open(log_file_path, 'r', encoding='utf-8') as f:
+                    log_content = f.read()
+                
+                log_data = {
+                    "message": f"Add log file: {upload_location}",
+                    "content": base64.b64encode(log_content.encode('utf-8')).decode('ascii'),
+                    "branch": branch
+                }
+                
+                response = requests.put(f"{api_base}/{log_path}", 
+                                      headers=headers, 
+                                      data=json.dumps(log_data))
+                response.raise_for_status()
+                print(f"📋 Uploaded log file: {log_path}")
+            except Exception as e:
+                print(f"⚠️  Warning: Could not upload log file: {e}")
         
         print(f"📁 Uploaded build: {upload_location}")
         return True

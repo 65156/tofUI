@@ -459,7 +459,7 @@ class HTMLGenerator:
         if not errors and not warnings:
             errors.append({
                 'type': 'error',
-                'message': 'Terraform plan failed with exit code 1',
+                'message': 'The plan failed with exit code 1',
                 'detail': 'No specific error details could be extracted from the output.'
             })
         
@@ -598,8 +598,8 @@ class HTMLGenerator:
         content = """
         <div class="error-summary">
             <div class="error-icon">❌</div>
-            <h2>Terraform Plan Failed</h2>
-            <p>The terraform plan command failed with errors.</p>
+            <h2>Issues Detected</h2>
+            <p>There were fatal errors during your infrastructure plan.</p>
         </div>
         """
         
@@ -618,14 +618,14 @@ class HTMLGenerator:
         return content
     
     def _generate_errors_section(self, errors: List[Dict[str, str]]) -> str:
-        """Generate the errors section"""
+        """Generate the errors section with expandable format"""
         errors_html = ""
         
         for i, error in enumerate(errors):
             error_detail = html.escape(error['detail']) if error['detail'] else ""
             error_message = html.escape(error['message'])
             
-            # Create resource-change style error items with red blocks like delete resources
+            # Create expandable error items like resource deletions (no emoji)
             details_html = ""
             if error_detail:
                 details_html = f"""
@@ -649,9 +649,9 @@ class HTMLGenerator:
             
             errors_html += f"""
             <div class="resource-change delete collapsed" data-action="delete" data-address="error_{i+1}">
-                <div class="resource-header error-header-nonclick">
-                    <span class="action-icon">🚨</span>
+                <div class="resource-header" onclick="toggleResource(this)">
                     <span class="resource-address">Error {i+1}: {error_message}</span>
+                    <span class="toggle-indicator">▼</span>
                 </div>
                 <div class="resource-details">
                     {details_html}
@@ -695,31 +695,29 @@ class HTMLGenerator:
         """
     
     def _generate_terminal_section_placeholder(self) -> str:
-        """Generate placeholder terminal section for log loading"""
+        """Generate terminal section with auto-loading logs"""
         return f"""
         <div class="terminal-section">
             <div class="terminal-header">
                 <h3>Logs</h3>
-                <button class="load-logs-btn" onclick="loadTerraformLogs()">View Logs</button>
-                <button class="copy-btn" onclick="copyToClipboard('terminal-output')" style="display:none;">Copy to Clipboard</button>
+                <button class="copy-btn" onclick="copyToClipboard('terminal-output')">Copy to Clipboard</button>
             </div>
-            <div class="terminal-container" style="display:none;">
-                <pre id="terminal-output" class="terminal-output"></pre>
+            <div class="terminal-container">
+                <pre id="terminal-output" class="terminal-output">Loading logs...</pre>
             </div>
         </div>
         """
 
     def _generate_terminal_output_section(self, raw_output: str) -> str:
-        """Generate the terminal-style output section"""
+        """Generate the terminal-style output section with auto-loading"""
         return f"""
         <div class="terminal-section">
             <div class="terminal-header">
                 <h3>Logs</h3>
-                <button class="load-logs-btn" onclick="loadErrorLogs()">View Logs</button>
-                <button class="copy-btn" onclick="copyToClipboard('terminal-output')" style="display:none;">Copy to Clipboard</button>
+                <button class="copy-btn" onclick="copyToClipboard('terminal-output')">Copy to Clipboard</button>
             </div>
-            <div class="terminal-container" style="display:none;">
-                <pre id="terminal-output" class="terminal-output" data-raw-output="{html.escape(raw_output)}"></pre>
+            <div class="terminal-container">
+                <pre id="terminal-output" class="terminal-output">Loading logs...</pre>
             </div>
         </div>
         """
@@ -986,8 +984,8 @@ class HTMLGenerator:
         
         /* Syntax highlighting for terraform output */
         .terminal-output {
-            /* Error text in red */
-            color: #f44747;
+            /* Error text in white */
+            color: #d4d4d4;
         }
         
         @media (max-width: 768px) {
@@ -1007,30 +1005,46 @@ class HTMLGenerator:
     def _get_error_specific_javascript(self) -> str:
         """Get JavaScript specific to error reports"""
         return """
-        function loadErrorLogs() {
-            // Load error logs from data attribute
-            const terminalOutput = document.getElementById('terminal-output');
-            const rawOutput = terminalOutput.getAttribute('data-raw-output');
+        // Initialize the error page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-load logs for error pages
+            autoLoadLogs();
+        });
+        
+        function autoLoadLogs() {
+            // Try different log locations based on environment
+            const baseName = window.location.pathname.split('/').pop().replace('.html', '');
             
-            if (rawOutput) {
-                terminalOutput.textContent = rawOutput;
-                document.querySelector('.terminal-container').style.display = 'block';
-                document.querySelector('.copy-btn').style.display = 'inline-block';
-                
-                const loadBtn = document.querySelector('.load-logs-btn');
-                loadBtn.textContent = 'Logs Loaded';
-                loadBtn.disabled = true;
-            } else {
-                alert('No error logs available to display.');
+            const logUrls = [
+                `${baseName}.log`,  // Local: same directory
+                `../logs/${baseName}.log`,  // GitHub Pages: logs folder
+                `logs/${baseName}.log`  // Alternative GitHub Pages path
+            ];
+            
+            tryLoadLog(logUrls, 0);
+        }
+        
+        function tryLoadLog(urls, index) {
+            if (index >= urls.length) {
+                document.getElementById('terminal-output').textContent = 
+                    'Error: Log file not found in any expected location\\nTried:\\n' + urls.join('\\n');
+                return;
             }
+            
+            fetch(urls[index])
+                .then(response => {
+                    if (!response.ok) throw new Error('Not found');
+                    return response.text();
+                })
+                .then(data => {
+                    document.getElementById('terminal-output').textContent = data;
+                })
+                .catch(() => tryLoadLog(urls, index + 1));
         }
         
-        function toggleError(errorItem) {
-            errorItem.classList.toggle('collapsed');
-        }
-        
-        function toggleOutput(outputItem) {
-            outputItem.classList.toggle('collapsed');
+        function toggleResource(header) {
+            const resourceChange = header.closest('.resource-change');
+            resourceChange.classList.toggle('collapsed');
         }
         
         function copyToClipboard(elementId) {
@@ -1042,7 +1056,7 @@ class HTMLGenerator:
                 const btn = document.querySelector('.copy-btn');
                 const originalText = btn.textContent;
                 btn.textContent = 'Copied!';
-                btn.style.background = '#28a745';
+                btn.style.background = '#6c757d';
                 
                 setTimeout(function() {
                     btn.textContent = originalText;
@@ -1206,8 +1220,6 @@ class HTMLGenerator:
             letter-spacing: 0.3px;
         }
         
-
-        
         .filters {
             padding: 1.5rem 2rem;
             background: #f8f9fa;
@@ -1215,8 +1227,6 @@ class HTMLGenerator:
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            # gap: 2rem;
-            # flex-wrap: wrap;
         }
         
         .filter-section h3 {
@@ -1640,7 +1650,7 @@ class HTMLGenerator:
         }
         
         .footer-btn {
-            background: #6b7280;
+            background: #dc3545;
             color: white;
             text-decoration: none;
             padding: 0.5rem 1rem;
@@ -1650,7 +1660,7 @@ class HTMLGenerator:
         }
         
         .footer-btn:hover {
-            background: #4b5563;
+            background: #721c24;
         }
         
         .hidden {
@@ -1704,6 +1714,9 @@ class HTMLGenerator:
             
             // Initially collapse all resources
             collapseAllResources();
+            
+            // Auto-load logs
+            autoLoadLogs();
         });
         
         function initializeFilters() {
@@ -1885,25 +1898,35 @@ class HTMLGenerator:
             applyFilters();
         }
         
-        function loadTerraformLogs() {
-            // This would be implemented to View Logs from the companion .log file
-            const logFileName = window.location.pathname.replace('.html', '.log');
+        function autoLoadLogs() {
+            // Try different log locations based on environment
+            const baseName = window.location.pathname.split('/').pop().replace('.html', '');
             
-            fetch(logFileName)
-                .then(response => response.text())
+            const logUrls = [
+                `${baseName}.log`,  // Local: same directory
+                `../logs/${baseName}.log`,  // GitHub Pages: logs folder
+                `logs/${baseName}.log`  // Alternative GitHub Pages path
+            ];
+            
+            tryLoadLog(logUrls, 0);
+        }
+        
+        function tryLoadLog(urls, index) {
+            if (index >= urls.length) {
+                document.getElementById('terminal-output').textContent = 
+                    'Error: Log file not found in any expected location\\nTried:\\n' + urls.join('\\n');
+                return;
+            }
+            
+            fetch(urls[index])
+                .then(response => {
+                    if (!response.ok) throw new Error('Not found');
+                    return response.text();
+                })
                 .then(data => {
                     document.getElementById('terminal-output').textContent = data;
-                    document.querySelector('.terminal-container').style.display = 'block';
-                    document.querySelector('.copy-btn').style.display = 'inline-block';
-                    
-                    const loadBtn = document.querySelector('.load-logs-btn');
-                    loadBtn.textContent = 'Logs Loaded';
-                    loadBtn.disabled = true;
                 })
-                .catch(err => {
-                    console.error('Could not View Logs:', err);
-                    alert('Could not View Logs. Make sure the .log file exists.');
-                });
+                .catch(() => tryLoadLog(urls, index + 1));
         }
         
         function copyToClipboard(elementId) {
@@ -1915,7 +1938,7 @@ class HTMLGenerator:
                 const btn = document.querySelector('.copy-btn');
                 const originalText = btn.textContent;
                 btn.textContent = 'Copied!';
-                btn.style.background = '#28a745';
+                btn.style.background = '#6c757d';
                 
                 setTimeout(function() {
                     btn.textContent = originalText;
