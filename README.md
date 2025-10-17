@@ -160,6 +160,7 @@ optional arguments:
   --display-name        Name to display at the top of the report (if different to --build-name)
   --build-name          Name of files generated
   --build-url           Sets the http target for the build link button generation in the html report
+  --folder FOLDER       Folder name for organizing multiple builds
   --terraform-exit-code Used to help determine plan generation (0=no changes, 1=error, 2=changes)
   --stdout-tf-log       Used to utilize log loading in the report
   --export-vars-file    Exports sourceable .sh containing TOFUI_WEB_URL environment variable.
@@ -184,8 +185,7 @@ GitHub Pages Options:
   --github-branch       (default: gh-pages)
   --github-token GITHUB_TOKEN
                         GitHub Personal Access Token (default: uses GITHUB_TOKEN environment variable)
-  --folder FOLDER
-                        Folder name for organizing multiple builds (required when using --github-pages)
+
 
 ```
 
