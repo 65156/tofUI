@@ -161,7 +161,8 @@ optional arguments:
   --build-name          Name of files generated
   --build-url           Sets the http target for the build link button generation in the html report
   --folder FOLDER       Folder name for organizing multiple builds
-  --terraform-exit-code Used to help determine plan generation (0=no changes, 1=error, 2=changes)
+  --terraform-exit-code 
+                        Used to help determine plan generation (0=no changes, 1=error, 2=changes)
   --stdout-tf-log       Used to utilize log loading in the report
   --export-vars-file    Exports sourceable .sh containing TOFUI_WEB_URL environment variable.
   --config CONFIG
