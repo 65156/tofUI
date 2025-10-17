@@ -448,8 +448,154 @@ def run_performance_test():
     finally:
         os.unlink(large_plan_file)
 
+def generate_example_reports():
+    """Generate the 3 example HTML reports"""
+    print("🧪 Generating 3 example HTML reports...")
+    print("=" * 50)
+    
+    results = []
+    
+    try:
+        # 1. Has Changes Example
+        print("\n1️⃣ Generating has-changes-example.html...")
+        if os.path.exists("sample-plan.json"):
+            parser = TerraformPlanParser()
+            plan = parser.parse_file("sample-plan.json")
+            
+            analyzer = PlanAnalyzer()
+            analysis = analyzer.analyze(plan)
+            
+            generator = HTMLGenerator()
+            html_content = generator.generate_report(
+                analysis, 
+                plan_name="has-changes-example",
+                output_file="has-changes-example.html"
+            )
+            print("✅ has-changes-example.html generated")
+            results.append(True)
+        else:
+            print("❌ sample-plan.json not found")
+            results.append(False)
+        
+        # 2. No Changes Example
+        print("\n2️⃣ Generating no-changes-example.html...")
+        no_changes_plan = {
+            "terraform_version": "1.5.0",
+            "format_version": "1.2",
+            "planned_values": {
+                "outputs": {
+                    "app_url": {
+                        "value": "https://app.example.com",
+                        "type": "string",
+                        "sensitive": False
+                    },
+                    "vpc_id": {
+                        "value": "vpc-12345",
+                        "type": "string", 
+                        "sensitive": False
+                    }
+                },
+                "root_module": {"resources": []}
+            },
+            "resource_changes": [],
+            "output_changes": {
+                "app_url": {
+                    "actions": ["create"],
+                    "before": None,
+                    "after": "https://app.example.com"
+                }
+            },
+            "prior_state": {
+                "format_version": "1.0",
+                "terraform_version": "1.5.0",
+                "values": {"outputs": {}, "root_module": {"resources": []}}
+            },
+            "configuration": {}
+        }
+        
+        with open("temp-no-changes.json", "w") as f:
+            json.dump(no_changes_plan, f)
+        
+        parser = TerraformPlanParser()
+        plan = parser.parse_file("temp-no-changes.json")
+        
+        analyzer = PlanAnalyzer()
+        analysis = analyzer.analyze(plan)
+        
+        generator = HTMLGenerator()
+        html_content = generator.generate_report(
+            analysis, 
+            plan_name="no-changes-example",
+            output_file="no-changes-example.html"
+        )
+        
+        os.remove("temp-no-changes.json")
+        print("✅ no-changes-example.html generated")
+        results.append(True)
+        
+        # 3. Has Errors Example
+        print("\n3️⃣ Generating has-errors-example.html...")
+        generator = HTMLGenerator()
+        
+        error_output = """Error: Failed to validate terraform configuration
+
+Error: Invalid resource type
+
+  on main.tf line 15, in resource "aws_instance" "example":
+  15:   invalid_attribute = "this will cause an error"
+
+This resource type does not support this attribute.
+
+Error: Reference to undeclared resource
+
+  on main.tf line 23:
+  23:     subnet_id = aws_subnet.nonexistent.id
+
+A managed resource "aws_subnet" "nonexistent" has not been declared in the
+root module.
+
+Planning failed. Terraform encountered an error while generating this plan."""
+        
+        html_content = generator.generate_error_report(
+            error_output=error_output,
+            plan_error_data=None,
+            plan_name="has-errors-example",
+            output_file="has-errors-example.html"
+        )
+        print("✅ has-errors-example.html generated")
+        results.append(True)
+        
+        # Summary
+        print("\n" + "=" * 50)
+        success_count = sum(results)
+        total_count = len(results)
+        
+        if success_count == total_count:
+            print(f"✅ All {total_count} example reports generated successfully!")
+            print("\n📁 Generated files:")
+            print("   • has-changes-example.html")
+            print("   • no-changes-example.html") 
+            print("   • has-errors-example.html")
+            print("\n🎯 These demonstrate:")
+            print("   • New 3-line header format")
+            print("   • Fixed alignment issues")
+            print("   • Proper terminal section")
+            print("   • Error handling for all exit codes")
+            return True
+        else:
+            print(f"❌ {success_count}/{total_count} examples generated")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error generating examples: {e}")
+        return False
+
 def main():
     """Main test runner"""
+    # Check if user wants to generate examples only
+    if len(sys.argv) > 1 and sys.argv[1] == "examples":
+        return 0 if generate_example_reports() else 1
+    
     print("🧪 Starting tofUI Comprehensive Test Suite")
     print("=" * 60)
     
@@ -488,11 +634,13 @@ def main():
             print(f"🔗 Build URL configured: {os.environ.get('BUILD_URL')}")
         
         print("\n💡 Next steps:")
-        print("   1. Test with your own terraform plans:")
+        print("   1. Generate example reports:")
+        print("      python test_tofui.py examples")
+        print("   2. Test with your own terraform plans:")
         print("      tofui your-plan.json --name 'Your Project' --verbose")
-        print("   2. Try S3 upload (if configured):")
+        print("   3. Try S3 upload (if configured):")
         print("      tofui your-plan.json --s3-bucket your-bucket")
-        print("   3. Customize with configuration file:")
+        print("   4. Customize with configuration file:")
         print("      tofui your-plan.json --config tofui-config.json")
         
         return 0

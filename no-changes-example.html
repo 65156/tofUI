@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Terraplan Report - no-changes-example</title>
+        <style>
+            
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        .plan-name {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 300;
+            margin-bottom: 0.3rem;
+        }
+        
+        .meta-info {
+            opacity: 0.9;
+            font-size: 0.85rem;
+            font-weight: 300;
+        }
+        
+        .summary {
+            padding: 0.8rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .summary h2 {
+            margin: 0 0 0.4rem 0;
+            color: #495057;
+        }
+        
+        .summary-stats {
+            display: flex;
+            gap: 0.8rem;
+            justify-content: center;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 0.4rem;
+            border-radius: 4px;
+            background: #f8f9fa;
+            min-width: 48px;
+        }
+        
+        .stat-item.create {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .stat-item.update {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .stat-item.delete {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .stat-number {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 0.54rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+
+        
+        .filters {
+            padding: 1.5rem 2rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            # gap: 2rem;
+            # flex-wrap: wrap;
+        }
+        
+        .filter-section h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem;
+            color: #495057;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        
+        .filter-checkbox input {
+            margin: 0;
+        }
+        
+        .btn {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .btn:hover {
+            background: #4b5563;
+        }
+        
+        .sort-dropdown {
+            padding: 0.5rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .resource-groups {
+            padding: 1.2rem;
+        }
+        
+        .resource-group {
+            margin-bottom: 0.4rem;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .group-header {
+            background: #f8f9fa;
+            padding: 0.6rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .group-header h3 {
+            margin: 0;
+            color: #495057;
+        }
+        
+        .group-resources {
+            padding: 1rem;
+        }
+        
+        .resource-change {
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        
+        .resource-change.create {
+            border-left: 16px solid #28a745;
+        }
+        
+        .resource-change.update {
+            border-left: 16px solid #ffc107;
+        }
+        
+        .resource-change.delete {
+            border-left: 16px solid #dc3545;
+        }
+        
+        .resource-change.recreate {
+            border-left: 16px solid #6f42c1;
+        }
+        
+        .resource-change.read {
+            border-left: 16px solid #6c757d;
+        }
+        
+        .resource-header {
+            padding: 1rem;
+            background: #f8f9fa;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            user-select: none;
+        }
+        
+        .resource-header:hover {
+            background: #e9ecef;
+        }
+        
+        .resource-address {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-weight: 500;
+            flex: 1;
+        }
+        
+        .dependency-indicator {
+            font-size: 1.1rem;
+            margin-left: 0.5rem;
+            cursor: help;
+            opacity: 0.8;
+        }
+        
+        .dependency-indicator:hover {
+            opacity: 1;
+        }
+        
+        .toggle-indicator {
+            transition: transform 0.2s;
+        }
+        
+        .resource-change.collapsed .toggle-indicator {
+            transform: rotate(-90deg);
+        }
+        
+        .resource-details {
+            padding: 1rem;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .resource-change.collapsed .resource-details {
+            display: none;
+        }
+        
+        /* Outputs Section Styling */
+        .outputs-section {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .outputs-section h2 {
+            margin: 0 0 1rem 0;
+            color: #495057;
+            font-size: 1.4rem;
+        }
+
+        .outputs-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .output-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .output-name {
+            background: #e9ecef;
+            padding: 0.75rem;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-weight: 500;
+            color: #495057;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .output-details {
+            padding: 0.75rem;
+        }
+
+        .output-value {
+            margin: 0 0 0.5rem 0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            overflow-x: auto;
+        }
+
+        .output-type {
+            font-size: 0.8rem;
+            color: #6c757d;
+            display: block;
+            margin-top: 0.5rem;
+        }
+
+        .sensitive-value {
+            color: #6c757d;
+            font-style: italic;
+            background: #f1f3f5;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+        }
+
+        .no-changes-summary {
+            padding: 2rem;
+            text-align: center;
+            background: #d4edda;
+            color: #155724;
+            border-bottom: 1px solid #d4edda;
+        }
+
+        .no-changes-summary h2 {
+            margin: 0 0 1rem 0;
+            color: #155724;
+        }
+
+        .no-changes-icon {
+            font-size: 2.5rem;
+            color: #28a745;
+        }
+
+        .command-box {
+            background: #f1f3f5;
+            border-radius: 6px;
+            padding: 0.2rem;
+            margin: 0.2rem 0;
+        }
+
+        .command {
+            background: #212529;
+            color: #f8f9fa;
+            padding: 0.6rem 0.8rem;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            margin-top: 0.75rem;
+        }
+        
+        /* Terminal Section Styling */
+        .terminal-section {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .terminal-header h3 {
+            margin: 0;
+            color: #495057;
+        }
+        
+        .load-logs-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-right: 0.5rem;
+        }
+        
+        .load-logs-btn:hover {
+            background: #5a6268;
+        }
+        
+        .copy-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .copy-btn:hover {
+            background: #5a6268;
+        }
+        
+        .terminal-container {
+            background: #1e1e1e;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .terminal-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            margin: 0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .properties-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        
+        .properties-table th {
+            background: #f8f9fa;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .properties-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #dee2e6;
+            vertical-align: top;
+        }
+        
+        .property-name {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-weight: 500;
+            color: #495057;
+            width: 25%;
+        }
+        
+        .before-value, .after-value {
+            width: 37.5%;
+        }
+        
+        .before-value pre, .after-value pre {
+            margin: 0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        .property-change.addition .after-value {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .property-change.removal .before-value {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .property-change.modification .before-value {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .property-change.modification .after-value {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .filter-divider {
+            width: 1px;
+            background: #dee2e6;
+            height: 4rem;
+            margin: 0 1rem;
+        }
+        
+        .control-section {
+            display: flex;
+            align-items: flex-start;
+            padding-top: 0.25rem;
+        }
+        
+        .resource-change.recreate .property-change .before-value {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 1.5rem 2rem;
+            color: #6c757d;
+            font-size: 0.9rem;
+            border-top: 1px solid #e9ecef;
+            margin-top: auto;
+        }
+        
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .footer-text {
+            text-align: left;
+        }
+        
+        .footer-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .footer-btn {
+            background: #6b7280;
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+        
+        .footer-btn:hover {
+            background: #4b5563;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                padding: 1.5rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .summary-stats {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .filters {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .resource-groups {
+                padding: 1rem;
+            }
+            
+            .properties-table {
+                font-size: 0.8rem;
+            }
+            
+            .property-name {
+                width: 30%;
+            }
+            
+            .before-value, .after-value {
+                width: 35%;
+            }
+        }
+        
+            
+        /* Yellow Theme (Changes) */
+        .theme-yellow .header {
+            background: linear-gradient(135deg, #ffda18 0%, #f4c430 100%);
+            color: #333;
+        }
+        
+        .theme-yellow .filters {
+            background: #fffbf0;
+            border-bottom: 1px solid #ffda18;
+        }
+        
+        .theme-yellow .btn {
+            background: #ffda18;
+            color: #333;
+        }
+        
+        .theme-yellow .btn:hover {
+            background: #f4c430;
+        }
+        
+        .theme-yellow .footer-btn {
+            background: #ffda18;
+            color: #333;
+        }
+        
+        .theme-yellow .footer-btn:hover {
+            background: #f4c430;
+        }
+        
+        /* Green Theme (No Changes) */
+        .theme-green .header {
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+        }
+        
+        .theme-green .command-box {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .theme-green .output-item {
+            border: 1px solid #c3e6cb;
+        }
+        
+        .theme-green .output-name {
+            background: #d4edda;
+            border-bottom: 1px solid #c3e6cb;
+        }
+        
+        .theme-green .footer-btn {
+            background: #28a745;
+        }
+        
+        .theme-green .footer-btn:hover {
+            background: #218838;
+        }
+        
+        .load-logs-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-right: 0.5rem;
+        }
+        
+        .theme-yellow .load-logs-btn {
+            background: #ffda18;
+            color: #333;
+        }
+        
+        .theme-green .load-logs-btn {
+            background: #28a745;
+            color: white;
+        }
+        
+        </style>
+    </head>
+    <body class="theme-green">
+        <div class="container">
+            
+        <div class="header">
+            <div class="plan-name"><strong>no-changes-example</strong></div>
+            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-17 01:48:18 UTC</div>
+        </div>
+        
+            
+        <div class="no-changes-summary no-changes">
+            <div class="no-changes-icon">✅</div>
+            <h2>No Changes Detected</h2>
+            <p>Your infrastructure matches the configuration.</p>
+        </div>
+        
+            
+        <div class="resource-groups">
+            <div class="resource-group" data-resource-type="outputs">
+                <div class="group-header">
+                    <h3>Outputs (1 items)</h3>
+                </div>
+                <div class="group-resources">
+                    
+            <div class="resource-change read collapsed" data-action="read" data-address="output_app_url">
+                <div class="resource-header" onclick="toggleResource(this)">
+                    <span class="resource-address">app_url</span>
+                    <span class="toggle-indicator">▼</span>
+                </div>
+                <div class="resource-details">
+                    
+                <div class="property-changes">
+                    <table class="properties-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="property-change">
+                                <td class="property-name">unknown</td>
+                                <td class="after-value"><pre></pre></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                </div>
+            </div>
+            
+                </div>
+            </div>
+        </div>
+        
+            
+        <div class="terminal-section">
+            <div class="terminal-header">
+                <h3>Logs</h3>
+                <button class="load-logs-btn" onclick="loadTerraformLogs()">View Logs</button>
+                <button class="copy-btn" onclick="copyToClipboard('terminal-output')" style="display:none;">Copy to Clipboard</button>
+            </div>
+            <div class="terminal-container" style="display:none;">
+                <pre id="terminal-output" class="terminal-output"></pre>
+            </div>
+        </div>
+        
+            
+        <div class="footer">
+            <div class="footer-content">
+                <div class="footer-text">
+                    Generated by <strong>tofUI</strong> • 
+                    Better OpenTofu & Terraform Plans
+                </div>
+                <div class="footer-buttons">
+                    <a href="no-changes-example.json" class="footer-btn" target="_blank">📄 View JSON</a>
+                </div>
+            </div>
+        </div>
+        
+        </div>
+        
+        <script>
+            // Embedded plan data
+            const planData = {"summary": {"create": 0, "update": 0, "delete": 0, "has_changes": false}, "actions": [], "properties": []};
+            
+            
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeFilters();
+            initializeToggleButtons();
+            
+            // Initially collapse all resources
+            collapseAllResources();
+        });
+        
+        function initializeFilters() {
+            // Property filters (hide properties)
+            const propertyFilters = document.querySelectorAll('#property-filters input[type="checkbox"]');
+            propertyFilters.forEach(filter => {
+                filter.addEventListener('change', applyFilters);
+            });
+            
+            // Always sort by action priority
+            applySorting();
+        }
+        
+        function initializeToggleButtons() {
+            const toggleBtn = document.getElementById('toggle-all');
+            
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', function() {
+                    const isCurrentlyExpanded = toggleBtn.textContent.trim() === 'Collapse All';
+                    
+                    if (isCurrentlyExpanded) {
+                        collapseAllResources();
+                        toggleBtn.textContent = 'Expand All';
+                    } else {
+                        expandAllResources();
+                        toggleBtn.textContent = 'Collapse All';
+                    }
+                });
+            }
+        }
+        
+        function toggleResource(header) {
+            const resourceChange = header.closest('.resource-change');
+            resourceChange.classList.toggle('collapsed');
+        }
+        
+        function expandAllResources() {
+            const resources = document.querySelectorAll('.resource-change');
+            resources.forEach(resource => {
+                resource.classList.remove('collapsed');
+            });
+        }
+        
+        function collapseAllResources() {
+            const resources = document.querySelectorAll('.resource-change');
+            resources.forEach(resource => {
+                resource.classList.add('collapsed');
+            });
+        }
+        
+        function applyFilters() {
+            // Get selected property filters (properties to hide)
+            const hiddenProperties = Array.from(
+                document.querySelectorAll('#property-filters input[type="checkbox"]:checked')
+            ).map(input => input.value);
+            
+            // Filter properties with smart matching
+            const propertyRows = document.querySelectorAll('.property-change');
+            propertyRows.forEach(row => {
+                const property = row.dataset.property;
+                const propertyPath = row.querySelector('.property-name').textContent.trim();
+                
+                let shouldHide = false;
+                for (const hiddenProp of hiddenProperties) {
+                    // Direct match
+                    if (property === hiddenProp) {
+                        shouldHide = true;
+                        break;
+                    }
+                    // Pattern matching for nested properties
+                    if (hiddenProp === 'tags_all' && (property === 'tags' || propertyPath.startsWith('tags.'))) {
+                        shouldHide = true;
+                        break;
+                    }
+                    // Generic pattern matching for other nested properties
+                    if (propertyPath.startsWith(hiddenProp + '.')) {
+                        shouldHide = true;
+                        break;
+                    }
+                }
+                
+                if (shouldHide) {
+                    row.style.display = 'none';
+                } else {
+                    row.style.display = 'table-row';
+                }
+            });
+            
+            // Hide resource groups that have no visible resources
+            const resourceGroups = document.querySelectorAll('.resource-group');
+            resourceGroups.forEach(group => {
+                const visibleResources = group.querySelectorAll('.resource-change:not([style*="display: none"])');
+                if (visibleResources.length === 0) {
+                    group.style.display = 'none';
+                } else {
+                    group.style.display = 'block';
+                }
+            });
+        }
+        
+        function applySorting() {
+            const resourceGroupsContainer = document.getElementById('resource-groups');
+            if (!resourceGroupsContainer) return; // No resources to sort
+            
+            const resourceGroups = Array.from(resourceGroupsContainer.querySelectorAll('.resource-group'));
+            
+            // Always use priority-based sorting: delete → recreate → update → create → read
+            const actionPriority = {
+                'delete': 1,
+                'recreate': 2, 
+                'update': 3,
+                'create': 4,
+                'read': 5
+            };
+            
+            // Collect all resources from all groups
+            const allResources = [];
+            resourceGroups.forEach(group => {
+                const resources = Array.from(group.querySelectorAll('.resource-change'));
+                resources.forEach(resource => {
+                    allResources.push({
+                        element: resource,
+                        action: resource.dataset.action,
+                        address: resource.dataset.address
+                    });
+                });
+            });
+            
+            // Sort by action priority, then by address
+            allResources.sort((a, b) => {
+                const priorityA = actionPriority[a.action] || 999;
+                const priorityB = actionPriority[b.action] || 999;
+                
+                if (priorityA !== priorityB) {
+                    return priorityA - priorityB;
+                }
+                return a.address.localeCompare(b.address);
+            });
+            
+            // Clear existing groups and create new action-based groups
+            resourceGroupsContainer.innerHTML = '';
+            
+            const actionGroups = {};
+            allResources.forEach(resource => {
+                const action = resource.action;
+                if (!actionGroups[action]) {
+                    actionGroups[action] = [];
+                }
+                actionGroups[action].push(resource.element);
+            });
+            
+            // Create HTML for action groups in priority order
+            Object.keys(actionPriority).forEach(action => {
+                if (actionGroups[action] && actionGroups[action].length > 0) {
+                    const groupDiv = document.createElement('div');
+                    groupDiv.className = 'resource-group';
+                    groupDiv.dataset.resourceType = action;
+                    
+                    const count = actionGroups[action].length;
+                    const actionTitle = action.charAt(0).toUpperCase() + action.slice(1);
+                    
+                    groupDiv.innerHTML = `
+                        <div class="group-header">
+                            <h3>${actionTitle} (${count} resources)</h3>
+                        </div>
+                        <div class="group-resources"></div>
+                    `;
+                    
+                    const resourcesContainer = groupDiv.querySelector('.group-resources');
+                    actionGroups[action].forEach(resourceElement => {
+                        resourcesContainer.appendChild(resourceElement);
+                    });
+                    
+                    resourceGroupsContainer.appendChild(groupDiv);
+                }
+            });
+            
+            // Re-apply filters after sorting
+            applyFilters();
+        }
+        
+        function loadTerraformLogs() {
+            // This would be implemented to View Logs from the companion .log file
+            const logFileName = window.location.pathname.replace('.html', '.log');
+            
+            fetch(logFileName)
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('terminal-output').textContent = data;
+                    document.querySelector('.terminal-container').style.display = 'block';
+                    document.querySelector('.copy-btn').style.display = 'inline-block';
+                    
+                    const loadBtn = document.querySelector('.load-logs-btn');
+                    loadBtn.textContent = 'Logs Loaded';
+                    loadBtn.disabled = true;
+                })
+                .catch(err => {
+                    console.error('Could not View Logs:', err);
+                    alert('Could not View Logs. Make sure the .log file exists.');
+                });
+        }
+        
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                // Show feedback
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.background = '#28a745';
+                
+                setTimeout(function() {
+                    btn.textContent = originalText;
+                    btn.style.background = '#6c757d';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Could not copy text: ', err);
+                alert('Failed to copy to clipboard');
+            });
+        }
+        
+        </script>
+    </body>
+    </html>

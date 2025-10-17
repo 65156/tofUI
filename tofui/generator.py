@@ -131,16 +131,10 @@ class HTMLGenerator:
         """Generate the report header"""
         formatted_time = self.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC")
         
-        # Determine status message based on plan results
-        if not analysis.plan.summary.has_changes:
-            status_message = "Terraform: ran successfully with no changes"
-        else:
-            status_message = "Terraform: ran successfully and has changes"
-        
         return f"""
         <div class="header">
-            <div class="plan-name"><strong>{status_message}</strong></div>
-            <div class="meta-info"><strong>Plan:</strong> {html.escape(self.plan_name)} • <strong>Terraform Version:</strong> {html.escape(analysis.plan.terraform_version)} • <strong>Generated:</strong> {formatted_time}</div>
+            <div class="plan-name"><strong>{html.escape(self.plan_name)}</strong></div>
+            <div class="meta-info"><strong>Terraform Version:</strong> {html.escape(analysis.plan.terraform_version)} • <strong>Generated:</strong> {formatted_time}</div>
         </div>
         """
     
@@ -242,7 +236,6 @@ class HTMLGenerator:
         <div class="resource-group" data-resource-type="{html.escape(group.resource_type)}">
             <div class="group-header">
                 <h3>{html.escape(group.resource_type)} ({group.count} resources)</h3>
-                <span class="group-summary">{counts_text}</span>
             </div>
             <div class="group-resources">
                 {resources_html}
@@ -267,7 +260,6 @@ class HTMLGenerator:
         return f"""
         <div class="resource-change {action_class}" data-action="{action_class}" data-address="{html.escape(change.address)}">
             <div class="resource-header" onclick="toggleResource(this)">
-                <span class="action-icon">{action_icon}</span>
                 <span class="resource-address">{html.escape(change.address)}</span>
                 {dependency_indicator}
                 <span class="toggle-indicator">▼</span>
@@ -347,20 +339,10 @@ class HTMLGenerator:
         resource_count = summary.resources_total or 0
         
         return f"""
-        <div class="summary no-changes">
+        <div class="no-changes-summary no-changes">
             <div class="no-changes-icon">✅</div>
-            <h2>No Changes Required</h2>
+            <h2>No Changes Detected</h2>
             <p>Your infrastructure matches the configuration.</p>
-            
-            <div class="no-changes-details">
-                <p><strong>{resource_count}</strong> resources are already in the desired state</p>
-                
-                <div class="command-box">
-                    <h4>Next Steps</h4>
-                    <p>Your infrastructure is up-to-date. You can apply this plan to confirm, or make new infrastructure changes.</p>
-                    <div class="command">$ terraform apply</div>
-                </div>
-            </div>
         </div>
         """
 
@@ -373,23 +355,58 @@ class HTMLGenerator:
         for name, output in analysis.plan.outputs.items():
             # Handle sensitive outputs
             if output.get('sensitive', False):
-                value_html = f'<span class="sensitive-value">(sensitive value)</span>'
+                details_html = """
+                <div class="property-changes">
+                    <table class="properties-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="property-change">
+                                <td class="property-name">sensitive</td>
+                                <td class="after-value"><pre>(sensitive value)</pre></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                """
             else:
                 value = output.get('value', '')
                 from .analyzer import PlanAnalyzer
                 analyzer = PlanAnalyzer()
                 formatted_value = analyzer.format_value_for_display(value)
-                value_html = f'<pre class="output-value">{html.escape(formatted_value)}</pre>'
-            
-            output_type = output.get('type', '')
-            type_html = f'<span class="output-type">{html.escape(output_type)}</span>' if output_type else ''
+                output_type = output.get('type', 'unknown')
+                
+                details_html = f"""
+                <div class="property-changes">
+                    <table class="properties-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="property-change">
+                                <td class="property-name">{html.escape(output_type)}</td>
+                                <td class="after-value"><pre>{html.escape(formatted_value)}</pre></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                """
             
             outputs_html += f"""
-            <div class="output-item">
-                <div class="output-name">{html.escape(name)}</div>
-                <div class="output-details">
-                    {value_html}
-                    {type_html}
+            <div class="resource-change read collapsed" data-action="read" data-address="output_{name}">
+                <div class="resource-header" onclick="toggleResource(this)">
+                    <span class="resource-address">{html.escape(name)}</span>
+                    <span class="toggle-indicator">▼</span>
+                </div>
+                <div class="resource-details">
+                    {details_html}
                 </div>
             </div>
             """
@@ -398,10 +415,14 @@ class HTMLGenerator:
             return ""
             
         return f"""
-        <div class="outputs-section">
-            <h2>Terraform Outputs</h2>
-            <div class="outputs-container">
-                {outputs_html}
+        <div class="resource-groups">
+            <div class="resource-group" data-resource-type="outputs">
+                <div class="group-header">
+                    <h3>Outputs ({len(analysis.plan.outputs)} items)</h3>
+                </div>
+                <div class="group-resources">
+                    {outputs_html}
+                </div>
             </div>
         </div>
         """
@@ -566,8 +587,8 @@ class HTMLGenerator:
         
         return f"""
         <div class="header error-header">
-            <div class="plan-name"><strong>Error Report:</strong> {html.escape(self.plan_name)}</div>
-            <div class="meta-info"><strong>Terraform Plan Failed</strong> • <strong>Generated:</strong> {formatted_time}</div>
+            <div class="plan-name"><strong>{html.escape(self.plan_name)}</strong></div>
+            <div class="meta-info"><strong>Generated:</strong> {formatted_time}</div>
         </div>
         """
     
@@ -578,7 +599,7 @@ class HTMLGenerator:
         <div class="error-summary">
             <div class="error-icon">❌</div>
             <h2>Terraform Plan Failed</h2>
-            <p>The terraform plan command failed with errors. Review the details below:</p>
+            <p>The terraform plan command failed with errors.</p>
         </div>
         """
         
@@ -600,20 +621,53 @@ class HTMLGenerator:
         """Generate the errors section"""
         errors_html = ""
         
-        for error in errors:
+        for i, error in enumerate(errors):
             error_detail = html.escape(error['detail']) if error['detail'] else ""
+            error_message = html.escape(error['message'])
+            
+            # Create resource-change style error items with red blocks like delete resources
+            details_html = ""
+            if error_detail:
+                details_html = f"""
+                <div class="property-changes">
+                    <table class="properties-table">
+                        <thead>
+                            <tr>
+                                <th>Error Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="property-change">
+                                <td class="error-detail-content">{error_detail}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                """
+            else:
+                details_html = "<p>No additional details available.</p>"
+            
             errors_html += f"""
-            <div class="error-item">
-                <div class="error-message">{html.escape(error['message'])}</div>
-                {f'<div class="error-detail">{error_detail}</div>' if error_detail else ''}
+            <div class="resource-change delete collapsed" data-action="delete" data-address="error_{i+1}">
+                <div class="resource-header error-header-nonclick">
+                    <span class="action-icon">🚨</span>
+                    <span class="resource-address">Error {i+1}: {error_message}</span>
+                </div>
+                <div class="resource-details">
+                    {details_html}
+                </div>
             </div>
             """
         
         return f"""
-        <div class="errors-section">
-            <h3>🚨 Errors ({len(errors)})</h3>
-            <div class="errors-container">
-                {errors_html}
+        <div class="resource-groups">
+            <div class="resource-group" data-resource-type="errors">
+                <div class="group-header">
+                    <h3>Errors ({len(errors)} items)</h3>
+                </div>
+                <div class="group-resources">
+                    {errors_html}
+                </div>
             </div>
         </div>
         """
@@ -645,8 +699,8 @@ class HTMLGenerator:
         return f"""
         <div class="terminal-section">
             <div class="terminal-header">
-                <h3>📟 Terraform Logs</h3>
-                <button class="load-logs-btn" onclick="loadTerraformLogs()">Load Logs</button>
+                <h3>Logs</h3>
+                <button class="load-logs-btn" onclick="loadTerraformLogs()">View Logs</button>
                 <button class="copy-btn" onclick="copyToClipboard('terminal-output')" style="display:none;">Copy to Clipboard</button>
             </div>
             <div class="terminal-container" style="display:none;">
@@ -660,11 +714,12 @@ class HTMLGenerator:
         return f"""
         <div class="terminal-section">
             <div class="terminal-header">
-                <h3>📟 Full Terraform Output</h3>
-                <button class="copy-btn" onclick="copyToClipboard('terminal-output')">Copy to Clipboard</button>
+                <h3>Logs</h3>
+                <button class="load-logs-btn" onclick="loadErrorLogs()">View Logs</button>
+                <button class="copy-btn" onclick="copyToClipboard('terminal-output')" style="display:none;">Copy to Clipboard</button>
             </div>
-            <div class="terminal-container">
-                <pre id="terminal-output" class="terminal-output">{html.escape(raw_output)}</pre>
+            <div class="terminal-container" style="display:none;">
+                <pre id="terminal-output" class="terminal-output" data-raw-output="{html.escape(raw_output)}"></pre>
             </div>
         </div>
         """
@@ -704,11 +759,6 @@ class HTMLGenerator:
         /* Green Theme (No Changes) */
         .theme-green .header {
             background: linear-gradient(135deg, #28a745 0%, #218838 100%);
-        }
-        
-        .theme-green .no-changes-details {
-            background: #e8f5e9;
-            border: 1px solid #c3e6cb;
         }
         
         .theme-green .command-box {
@@ -758,8 +808,8 @@ class HTMLGenerator:
     def _get_error_specific_css(self) -> str:
         """Get CSS specific to error reports"""
         return """
-        .error-header {
-            background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%);
+        .header.error-header {
+            background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%) !important;
         }
         
         .error-summary {
@@ -769,16 +819,11 @@ class HTMLGenerator:
             color: #721c24;
             border-bottom: 1px solid #f5c6cb;
         }
-        
-        .error-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-        
+
         .error-summary h2 {
             margin: 0 0 1rem 0;
             color: #721c24;
-        }
+        }   
         
         .errors-section, .warnings-section {
             padding: 1.5rem 2rem;
@@ -817,6 +862,74 @@ class HTMLGenerator:
             font-size: 0.9rem;
             color: #6c757d;
             white-space: pre-wrap;
+        }
+        
+        /* Collapsible Error Styling */
+        .error-change {
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .error-header {
+            padding: 1rem;
+            background: #f8f9fa;
+        }
+        
+        .error-header:hover {
+            background: #e9ecef;
+        }
+        
+        .error-header-nonclick {
+            padding: 1rem;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            user-select: none;
+            cursor: default;
+        }
+        
+        .error-header-nonclick:hover {
+            background: #f8f9fa;
+        }
+        
+        .error-icon {
+            font-size: 2.5rem;
+        }
+        
+        .error-address {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-weight: 500;
+            flex: 1;
+        }
+        
+        .error-change .toggle-indicator {
+            transition: transform 0.2s;
+        }
+        
+        .error-change.collapsed .toggle-indicator {
+            transform: rotate(-90deg);
+        }
+        
+        .error-details {
+            padding: 1rem;
+            border-top: 1px solid #e9ecef;
+            background: #fff;
+        }
+        
+        .error-change.collapsed .error-details {
+            display: none;
+        }
+        
+        .error-detail-content {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.9rem;
+            color: #6c757d;
+            white-space: pre-wrap;
+            line-height: 1.4;
         }
         
         .terminal-section {
@@ -894,6 +1007,32 @@ class HTMLGenerator:
     def _get_error_specific_javascript(self) -> str:
         """Get JavaScript specific to error reports"""
         return """
+        function loadErrorLogs() {
+            // Load error logs from data attribute
+            const terminalOutput = document.getElementById('terminal-output');
+            const rawOutput = terminalOutput.getAttribute('data-raw-output');
+            
+            if (rawOutput) {
+                terminalOutput.textContent = rawOutput;
+                document.querySelector('.terminal-container').style.display = 'block';
+                document.querySelector('.copy-btn').style.display = 'inline-block';
+                
+                const loadBtn = document.querySelector('.load-logs-btn');
+                loadBtn.textContent = 'Logs Loaded';
+                loadBtn.disabled = true;
+            } else {
+                alert('No error logs available to display.');
+            }
+        }
+        
+        function toggleError(errorItem) {
+            errorItem.classList.toggle('collapsed');
+        }
+        
+        function toggleOutput(outputItem) {
+            outputItem.classList.toggle('collapsed');
+        }
+        
         function copyToClipboard(elementId) {
             const element = document.getElementById(elementId);
             const text = element.textContent;
@@ -929,7 +1068,7 @@ class HTMLGenerator:
         if build_url:
             buttons_html += f'<a href="{build_url}" class="footer-btn" target="_blank">🔗 View Build</a>'
         
-        buttons_html += f'<a href="{json_filename}" class="footer-btn" target="_blank">📄 View Raw JSON</a>'
+        buttons_html += f'<a href="{json_filename}" class="footer-btn" target="_blank">📄 View JSON</a>'
         
         return f"""
         <div class="footer">
@@ -992,6 +1131,8 @@ class HTMLGenerator:
             margin: 0 auto;
             background: white;
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         
         .header {
@@ -1065,10 +1206,7 @@ class HTMLGenerator:
             letter-spacing: 0.3px;
         }
         
-        .no-changes {
-            text-align: center;
-            color: #28a745;
-        }
+
         
         .filters {
             padding: 1.5rem 2rem;
@@ -1153,11 +1291,6 @@ class HTMLGenerator:
             color: #495057;
         }
         
-        .group-summary {
-            font-size: 0.9rem;
-            color: #6c757d;
-        }
-        
         .group-resources {
             padding: 1rem;
         }
@@ -1185,6 +1318,10 @@ class HTMLGenerator:
             border-left: 16px solid #6f42c1;
         }
         
+        .resource-change.read {
+            border-left: 16px solid #6c757d;
+        }
+        
         .resource-header {
             padding: 1rem;
             background: #f8f9fa;
@@ -1197,10 +1334,6 @@ class HTMLGenerator:
         
         .resource-header:hover {
             background: #e9ecef;
-        }
-        
-        .action-icon {
-            font-size: 1.2rem;
         }
         
         .resource-address {
@@ -1237,12 +1370,10 @@ class HTMLGenerator:
             display: none;
         }
         
-        # THIS SECTION MIGHT NEED REVIEW
         /* Outputs Section Styling */
         .outputs-section {
             padding: 1.5rem 2rem;
             border-top: 1px solid #e9ecef;
-            margin-top: 1rem;
         }
 
         .outputs-section h2 {
@@ -1301,26 +1432,29 @@ class HTMLGenerator:
             border-radius: 3px;
         }
 
+        .no-changes-summary {
+            padding: 2rem;
+            text-align: center;
+            background: #d4edda;
+            color: #155724;
+            border-bottom: 1px solid #d4edda;
+        }
+
+        .no-changes-summary h2 {
+            margin: 0 0 1rem 0;
+            color: #155724;
+        }
+
         .no-changes-icon {
             font-size: 2.5rem;
             color: #28a745;
-            margin-bottom: 1rem;
-        }
-
-        .no-changes-details {
-            max-width: 600px;
-            margin: 1.5rem auto 0;
-            text-align: left;
-            background: #f8f9fa;
-            padding: 1.25rem;
-            border-radius: 8px;
         }
 
         .command-box {
             background: #f1f3f5;
             border-radius: 6px;
-            padding: 1rem;
-            margin-top: 1rem;
+            padding: 0.2rem;
+            margin: 0.2rem 0;
         }
 
         .command {
@@ -1331,7 +1465,75 @@ class HTMLGenerator:
             font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
             margin-top: 0.75rem;
         }
-        # END -- THIS SECTION MIGHT NEED REVIEW
+        
+        /* Terminal Section Styling */
+        .terminal-section {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .terminal-header h3 {
+            margin: 0;
+            color: #495057;
+        }
+        
+        .load-logs-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-right: 0.5rem;
+        }
+        
+        .load-logs-btn:hover {
+            background: #5a6268;
+        }
+        
+        .copy-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .copy-btn:hover {
+            background: #5a6268;
+        }
+        
+        .terminal-container {
+            background: #1e1e1e;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .terminal-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            margin: 0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
         
         .properties-table {
             width: 100%;
@@ -1417,6 +1619,7 @@ class HTMLGenerator:
             color: #6c757d;
             font-size: 0.9rem;
             border-top: 1px solid #e9ecef;
+            margin-top: auto;
         }
         
         .footer-content {
@@ -1665,7 +1868,6 @@ class HTMLGenerator:
                     groupDiv.innerHTML = `
                         <div class="group-header">
                             <h3>${actionTitle} (${count} resources)</h3>
-                            <span class="group-summary">${count} ${action}</span>
                         </div>
                         <div class="group-resources"></div>
                     `;
@@ -1684,7 +1886,7 @@ class HTMLGenerator:
         }
         
         function loadTerraformLogs() {
-            // This would be implemented to load logs from the companion .log file
+            // This would be implemented to View Logs from the companion .log file
             const logFileName = window.location.pathname.replace('.html', '.log');
             
             fetch(logFileName)
@@ -1699,8 +1901,29 @@ class HTMLGenerator:
                     loadBtn.disabled = true;
                 })
                 .catch(err => {
-                    console.error('Could not load logs:', err);
-                    alert('Could not load terraform logs. Make sure the .log file exists.');
+                    console.error('Could not View Logs:', err);
+                    alert('Could not View Logs. Make sure the .log file exists.');
                 });
+        }
+        
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                // Show feedback
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.background = '#28a745';
+                
+                setTimeout(function() {
+                    btn.textContent = originalText;
+                    btn.style.background = '#6c757d';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Could not copy text: ', err);
+                alert('Failed to copy to clipboard');
+            });
         }
         """

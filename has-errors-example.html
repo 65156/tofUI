@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terraform Error Report - has-errors-example</title>
+    <style>
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        .plan-name {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 300;
+            margin-bottom: 0.3rem;
+        }
+        
+        .meta-info {
+            opacity: 0.9;
+            font-size: 0.85rem;
+            font-weight: 300;
+        }
+        
+        .summary {
+            padding: 0.8rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .summary h2 {
+            margin: 0 0 0.4rem 0;
+            color: #495057;
+        }
+        
+        .summary-stats {
+            display: flex;
+            gap: 0.8rem;
+            justify-content: center;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 0.4rem;
+            border-radius: 4px;
+            background: #f8f9fa;
+            min-width: 48px;
+        }
+        
+        .stat-item.create {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .stat-item.update {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .stat-item.delete {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .stat-number {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 0.54rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+
+        
+        .filters {
+            padding: 1.5rem 2rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            # gap: 2rem;
+            # flex-wrap: wrap;
+        }
+        
+        .filter-section h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem;
+            color: #495057;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        
+        .filter-checkbox input {
+            margin: 0;
+        }
+        
+        .btn {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .btn:hover {
+            background: #4b5563;
+        }
+        
+        .sort-dropdown {
+            padding: 0.5rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .resource-groups {
+            padding: 1.2rem;
+        }
+        
+        .resource-group {
+            margin-bottom: 0.4rem;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .group-header {
+            background: #f8f9fa;
+            padding: 0.6rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .group-header h3 {
+            margin: 0;
+            color: #495057;
+        }
+        
+        .group-resources {
+            padding: 1rem;
+        }
+        
+        .resource-change {
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        
+        .resource-change.create {
+            border-left: 16px solid #28a745;
+        }
+        
+        .resource-change.update {
+            border-left: 16px solid #ffc107;
+        }
+        
+        .resource-change.delete {
+            border-left: 16px solid #dc3545;
+        }
+        
+        .resource-change.recreate {
+            border-left: 16px solid #6f42c1;
+        }
+        
+        .resource-change.read {
+            border-left: 16px solid #6c757d;
+        }
+        
+        .resource-header {
+            padding: 1rem;
+            background: #f8f9fa;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            user-select: none;
+        }
+        
+        .resource-header:hover {
+            background: #e9ecef;
+        }
+        
+        .resource-address {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-weight: 500;
+            flex: 1;
+        }
+        
+        .dependency-indicator {
+            font-size: 1.1rem;
+            margin-left: 0.5rem;
+            cursor: help;
+            opacity: 0.8;
+        }
+        
+        .dependency-indicator:hover {
+            opacity: 1;
+        }
+        
+        .toggle-indicator {
+            transition: transform 0.2s;
+        }
+        
+        .resource-change.collapsed .toggle-indicator {
+            transform: rotate(-90deg);
+        }
+        
+        .resource-details {
+            padding: 1rem;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .resource-change.collapsed .resource-details {
+            display: none;
+        }
+        
+        /* Outputs Section Styling */
+        .outputs-section {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .outputs-section h2 {
+            margin: 0 0 1rem 0;
+            color: #495057;
+            font-size: 1.4rem;
+        }
+
+        .outputs-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .output-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .output-name {
+            background: #e9ecef;
+            padding: 0.75rem;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-weight: 500;
+            color: #495057;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .output-details {
+            padding: 0.75rem;
+        }
+
+        .output-value {
+            margin: 0 0 0.5rem 0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            overflow-x: auto;
+        }
+
+        .output-type {
+            font-size: 0.8rem;
+            color: #6c757d;
+            display: block;
+            margin-top: 0.5rem;
+        }
+
+        .sensitive-value {
+            color: #6c757d;
+            font-style: italic;
+            background: #f1f3f5;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+        }
+
+        .no-changes-summary {
+            padding: 2rem;
+            text-align: center;
+            background: #d4edda;
+            color: #155724;
+            border-bottom: 1px solid #d4edda;
+        }
+
+        .no-changes-summary h2 {
+            margin: 0 0 1rem 0;
+            color: #155724;
+        }
+
+        .no-changes-icon {
+            font-size: 2.5rem;
+            color: #28a745;
+        }
+
+        .command-box {
+            background: #f1f3f5;
+            border-radius: 6px;
+            padding: 0.2rem;
+            margin: 0.2rem 0;
+        }
+
+        .command {
+            background: #212529;
+            color: #f8f9fa;
+            padding: 0.6rem 0.8rem;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            margin-top: 0.75rem;
+        }
+        
+        /* Terminal Section Styling */
+        .terminal-section {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .terminal-header h3 {
+            margin: 0;
+            color: #495057;
+        }
+        
+        .load-logs-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-right: 0.5rem;
+        }
+        
+        .load-logs-btn:hover {
+            background: #5a6268;
+        }
+        
+        .copy-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .copy-btn:hover {
+            background: #5a6268;
+        }
+        
+        .terminal-container {
+            background: #1e1e1e;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .terminal-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            margin: 0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .properties-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        
+        .properties-table th {
+            background: #f8f9fa;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .properties-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #dee2e6;
+            vertical-align: top;
+        }
+        
+        .property-name {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-weight: 500;
+            color: #495057;
+            width: 25%;
+        }
+        
+        .before-value, .after-value {
+            width: 37.5%;
+        }
+        
+        .before-value pre, .after-value pre {
+            margin: 0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        .property-change.addition .after-value {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .property-change.removal .before-value {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .property-change.modification .before-value {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .property-change.modification .after-value {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .filter-divider {
+            width: 1px;
+            background: #dee2e6;
+            height: 4rem;
+            margin: 0 1rem;
+        }
+        
+        .control-section {
+            display: flex;
+            align-items: flex-start;
+            padding-top: 0.25rem;
+        }
+        
+        .resource-change.recreate .property-change .before-value {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 1.5rem 2rem;
+            color: #6c757d;
+            font-size: 0.9rem;
+            border-top: 1px solid #e9ecef;
+            margin-top: auto;
+        }
+        
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .footer-text {
+            text-align: left;
+        }
+        
+        .footer-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .footer-btn {
+            background: #6b7280;
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+        
+        .footer-btn:hover {
+            background: #4b5563;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                padding: 1.5rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .summary-stats {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .filters {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .resource-groups {
+                padding: 1rem;
+            }
+            
+            .properties-table {
+                font-size: 0.8rem;
+            }
+            
+            .property-name {
+                width: 30%;
+            }
+            
+            .before-value, .after-value {
+                width: 35%;
+            }
+        }
+        
+        
+        .header.error-header {
+            background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%) !important;
+        }
+        
+        .error-summary {
+            padding: 2rem;
+            text-align: center;
+            background: #f8d7da;
+            color: #721c24;
+            border-bottom: 1px solid #f5c6cb;
+        }
+
+        .error-summary h2 {
+            margin: 0 0 1rem 0;
+            color: #721c24;
+        }   
+        
+        .errors-section, .warnings-section {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .errors-section h3 {
+            color: #dc3545;
+            margin: 0 0 1rem 0;
+        }
+        
+        .warnings-section h3 {
+            color: #ffc107;
+            margin: 0 0 1rem 0;
+        }
+        
+        .error-item, .warning-item {
+            background: #f8f9fa;
+            border-left: 4px solid #dc3545;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0 4px 4px 0;
+        }
+        
+        .warning-item {
+            border-left-color: #ffc107;
+        }
+        
+        .error-message, .warning-message {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+        }
+        
+        .error-detail, .warning-detail {
+            font-size: 0.9rem;
+            color: #6c757d;
+            white-space: pre-wrap;
+        }
+        
+        /* Collapsible Error Styling */
+        .error-change {
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .error-header {
+            padding: 1rem;
+            background: #f8f9fa;
+        }
+        
+        .error-header:hover {
+            background: #e9ecef;
+        }
+        
+        .error-header-nonclick {
+            padding: 1rem;
+            background: #f8f9fa;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            user-select: none;
+            cursor: default;
+        }
+        
+        .error-header-nonclick:hover {
+            background: #f8f9fa;
+        }
+        
+        .error-icon {
+            font-size: 2.5rem;
+        }
+        
+        .error-address {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-weight: 500;
+            flex: 1;
+        }
+        
+        .error-change .toggle-indicator {
+            transition: transform 0.2s;
+        }
+        
+        .error-change.collapsed .toggle-indicator {
+            transform: rotate(-90deg);
+        }
+        
+        .error-details {
+            padding: 1rem;
+            border-top: 1px solid #e9ecef;
+            background: #fff;
+        }
+        
+        .error-change.collapsed .error-details {
+            display: none;
+        }
+        
+        .error-detail-content {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.9rem;
+            color: #6c757d;
+            white-space: pre-wrap;
+            line-height: 1.4;
+        }
+        
+        .terminal-section {
+            padding: 1.5rem 2rem;
+        }
+        
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .terminal-header h3 {
+            margin: 0;
+            color: #495057;
+        }
+        
+        .copy-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .copy-btn:hover {
+            background: #5a6268;
+        }
+        
+        .terminal-container {
+            background: #1e1e1e;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .terminal-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            margin: 0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        /* Syntax highlighting for terraform output */
+        .terminal-output {
+            /* Error text in red */
+            color: #f44747;
+        }
+        
+        @media (max-width: 768px) {
+            .terminal-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            
+            .terminal-output {
+                font-size: 0.8rem;
+                padding: 1rem;
+            }
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="container">
+        
+        <div class="header error-header">
+            <div class="plan-name"><strong>has-errors-example</strong></div>
+            <div class="meta-info"><strong>Generated:</strong> 2025-10-17 01:48:18 UTC</div>
+        </div>
+        
+        
+        <div class="error-summary">
+            <div class="error-icon">❌</div>
+            <h2>Terraform Plan Failed</h2>
+            <p>The terraform plan command failed with errors.</p>
+        </div>
+        
+        <div class="resource-groups">
+            <div class="resource-group" data-resource-type="errors">
+                <div class="group-header">
+                    <h3>Errors (3 items)</h3>
+                </div>
+                <div class="group-resources">
+                    
+            <div class="resource-change delete collapsed" data-action="delete" data-address="error_1">
+                <div class="resource-header error-header-nonclick">
+                    <span class="action-icon">🚨</span>
+                    <span class="resource-address">Error 1: Error: Failed to validate terraform configuration</span>
+                </div>
+                <div class="resource-details">
+                    <p>No additional details available.</p>
+                </div>
+            </div>
+            
+            <div class="resource-change delete collapsed" data-action="delete" data-address="error_2">
+                <div class="resource-header error-header-nonclick">
+                    <span class="action-icon">🚨</span>
+                    <span class="resource-address">Error 2: Error: Invalid resource type</span>
+                </div>
+                <div class="resource-details">
+                    <p>No additional details available.</p>
+                </div>
+            </div>
+            
+            <div class="resource-change delete collapsed" data-action="delete" data-address="error_3">
+                <div class="resource-header error-header-nonclick">
+                    <span class="action-icon">🚨</span>
+                    <span class="resource-address">Error 3: Error: Reference to undeclared resource</span>
+                </div>
+                <div class="resource-details">
+                    <p>No additional details available.</p>
+                </div>
+            </div>
+            
+                </div>
+            </div>
+        </div>
+        
+        <div class="terminal-section">
+            <div class="terminal-header">
+                <h3>Logs</h3>
+                <button class="load-logs-btn" onclick="loadErrorLogs()">View Logs</button>
+                <button class="copy-btn" onclick="copyToClipboard('terminal-output')" style="display:none;">Copy to Clipboard</button>
+            </div>
+            <div class="terminal-container" style="display:none;">
+                <pre id="terminal-output" class="terminal-output" data-raw-output="Error: Failed to validate terraform configuration
+
+Error: Invalid resource type
+
+  on main.tf line 15, in resource &quot;aws_instance&quot; &quot;example&quot;:
+  15:   invalid_attribute = &quot;this will cause an error&quot;
+
+This resource type does not support this attribute.
+
+Error: Reference to undeclared resource
+
+  on main.tf line 23:
+  23:     subnet_id = aws_subnet.nonexistent.id
+
+A managed resource &quot;aws_subnet&quot; &quot;nonexistent&quot; has not been declared in the
+root module.
+
+Planning failed. Terraform encountered an error while generating this plan."></pre>
+            </div>
+        </div>
+        
+        
+        <div class="footer">
+            <div class="footer-content">
+                <div class="footer-text">
+                    Generated by <strong>tofUI</strong> • 
+                    Better OpenTofu & Terraform Plans
+                </div>
+                <div class="footer-buttons">
+                    <a href="has-errors-example.json" class="footer-btn" target="_blank">📄 View JSON</a>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <script>
+        
+        function loadErrorLogs() {
+            // Load error logs from data attribute
+            const terminalOutput = document.getElementById('terminal-output');
+            const rawOutput = terminalOutput.getAttribute('data-raw-output');
+            
+            if (rawOutput) {
+                terminalOutput.textContent = rawOutput;
+                document.querySelector('.terminal-container').style.display = 'block';
+                document.querySelector('.copy-btn').style.display = 'inline-block';
+                
+                const loadBtn = document.querySelector('.load-logs-btn');
+                loadBtn.textContent = 'Logs Loaded';
+                loadBtn.disabled = true;
+            } else {
+                alert('No error logs available to display.');
+            }
+        }
+        
+        function toggleError(errorItem) {
+            errorItem.classList.toggle('collapsed');
+        }
+        
+        function toggleOutput(outputItem) {
+            outputItem.classList.toggle('collapsed');
+        }
+        
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                // Show feedback
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.background = '#28a745';
+                
+                setTimeout(function() {
+                    btn.textContent = originalText;
+                    btn.style.background = '#6c757d';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Could not copy text: ', err);
+                alert('Failed to copy to clipboard');
+            });
+        }
+        
+    </script>
+</body>
+</html>

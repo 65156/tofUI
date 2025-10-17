@@ -44,8 +44,18 @@ def read_terraform_errors_from_stdin():
 def process_terraform_logs(log_source, output_log_file):
     """Process terraform logs from file or stdin and save to output file"""
     import sys
+    import os
     
     log_content = None
+    
+    # Create logs directory if it doesn't exist
+    log_dir = os.path.dirname(output_log_file)
+    if log_dir and not os.path.exists(log_dir):
+        try:
+            os.makedirs(log_dir, exist_ok=True)
+            print(f"📁 Created log directory: {log_dir}")
+        except Exception as e:
+            print(f"Warning: Failed to create log directory: {e}", file=sys.stderr)
     
     if log_source == '-':
         # Read from stdin
