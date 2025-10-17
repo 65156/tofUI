@@ -196,7 +196,7 @@ class PlanAnalyzer:
         obj: Dict[str, Any], 
         prefix: str, 
         before_obj: Dict[str, Any],
-        sensitive_paths: List[str],
+        sensitive_structure: Any,
         is_removal: bool = False,
         depth: int = 0
     ) -> List[PropertyChange]:
@@ -210,9 +210,11 @@ class PlanAnalyzer:
         for key, value in obj.items():
             current_path = f"{prefix}.{key}" if prefix else key
             
-            # Only mark leaf values as sensitive, not container objects
-            # Check if this specific path is in the sensitive_paths list
-            is_sensitive = self._is_path_sensitive(current_path, sensitive_paths)
+            # Get the sensitive structure for this key
+            sensitive_for_key = self._get_sensitive_for_key(sensitive_structure, key)
+            
+            # Check if this specific value is marked as sensitive
+            is_sensitive = self._is_value_sensitive(value, sensitive_for_key)
             
             if isinstance(value, dict) and not is_sensitive:
                 # Recursively process nested objects
@@ -221,7 +223,7 @@ class PlanAnalyzer:
                     value, 
                     current_path, 
                     before_value if isinstance(before_value, dict) else {},
-                    sensitive_paths,
+                    sensitive_for_key,
                     is_removal,
                     depth + 1
                 )
@@ -245,13 +247,54 @@ class PlanAnalyzer:
         
         return changes
     
+    def _get_sensitive_for_key(self, sensitive_structure: Any, key: str) -> Any:
+        """
+        Extract the sensitive structure for a specific key.
+        
+        Terraform's sensitive_values structure mirrors the actual values structure.
+        """
+        if not sensitive_structure:
+            return None
+            
+        if isinstance(sensitive_structure, dict):
+            return sensitive_structure.get(key)
+        elif isinstance(sensitive_structure, list):
+            # For lists, we can't map by key, so return None
+            return None
+        else:
+            return None
+    
+    def _is_value_sensitive(self, value: Any, sensitive_structure: Any) -> bool:
+        """
+        Check if a specific value should be marked as sensitive based on Terraform's structure.
+        
+        The key insight: Terraform's sensitive_values contains the STRUCTURE but only
+        marks actual sensitive leaf values as True. Empty objects/arrays mean the 
+        structure exists but contains no sensitive values.
+        """
+        if not sensitive_structure:
+            return False
+            
+        # If the sensitive structure is explicitly True, then this value is sensitive
+        if sensitive_structure is True:
+            return True
+            
+        # If it's an empty dict {}, empty list [], or any other structure,
+        # it means the container exists but the values inside are NOT sensitive
+        if isinstance(sensitive_structure, (dict, list)):
+            if not sensitive_structure:  # Empty dict or list
+                return False
+            # For non-empty structures, we need to check if ANY child is True
+            # But for the current level, the container itself is not sensitive
+            return False
+            
+        # Any other value (False, None, etc.) means not sensitive
+        return False
+    
     def _is_path_sensitive(self, path: str, sensitive_paths: List[str]) -> bool:
         """
-        Check if a property path should be marked as sensitive.
-        
-        This method properly handles Terraform's sensitive_values structure which
-        can contain nested objects that don't necessarily mean the values are sensitive.
-        Only leaf values with actual sensitive data should be marked as sensitive.
+        Legacy method - kept for backward compatibility but should not be used
+        with the new sensitive structure handling.
         """
         if not sensitive_paths:
             return False
@@ -260,9 +303,6 @@ class PlanAnalyzer:
         if path in sensitive_paths:
             return True
             
-        # For now, use simple string matching as Terraform's sensitive_paths 
-        # format can vary. In the future, this could be enhanced to handle
-        # more complex nested structures based on actual Terraform output format.
         return False
     
     def _compare_objects(
@@ -270,8 +310,8 @@ class PlanAnalyzer:
         before: Dict[str, Any], 
         after: Dict[str, Any], 
         prefix: str,
-        before_sensitive: List[str],
-        after_sensitive: List[str],
+        before_sensitive: Any,
+        after_sensitive: Any,
         depth: int = 0
     ) -> List[PropertyChange]:
         """Compare two objects and extract the differences"""
@@ -289,9 +329,13 @@ class PlanAnalyzer:
             before_value = before.get(key)
             after_value = after.get(key)
             
-            # Use the improved sensitive path checking
-            is_sensitive = (self._is_path_sensitive(current_path, before_sensitive) or 
-                          self._is_path_sensitive(current_path, after_sensitive))
+            # Get sensitive structures for this key from both before and after
+            before_sensitive_for_key = self._get_sensitive_for_key(before_sensitive, key)
+            after_sensitive_for_key = self._get_sensitive_for_key(after_sensitive, key)
+            
+            # Check if either value is marked as sensitive
+            is_sensitive = (self._is_value_sensitive(before_value, before_sensitive_for_key) or 
+                          self._is_value_sensitive(after_value, after_sensitive_for_key))
             
             if before_value == after_value:
                 # No change
@@ -302,8 +346,8 @@ class PlanAnalyzer:
                     before_value, 
                     after_value, 
                     current_path,
-                    before_sensitive,
-                    after_sensitive,
+                    before_sensitive_for_key,
+                    after_sensitive_for_key,
                     depth + 1
                 )
                 changes.extend(nested_changes)

@@ -30,8 +30,8 @@ class ResourceChange:
     action: ActionType
     before: Optional[Dict[str, Any]]
     after: Optional[Dict[str, Any]]
-    before_sensitive: List[str]
-    after_sensitive: List[str]
+    before_sensitive: Any  # Can be list, dict, or other structure from Terraform
+    after_sensitive: Any   # Can be list, dict, or other structure from Terraform
     replace_paths: List[List[str]]
     
     @property

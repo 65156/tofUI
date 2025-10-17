@@ -1077,9 +1077,16 @@ class HTMLGenerator:
         
         # Get JSON URL from environment variable (exported by tofUI) or fallback to relative filename
         json_url = os.environ.get('TOFUI_JSON_URL', self.config.get('json_url', ''))
+        
+        # Debug: Print what we got from environment for troubleshooting
+        import sys
+        print(f"DEBUG: TOFUI_JSON_URL = '{json_url}'", file=sys.stderr)
+        print(f"DEBUG: All environment vars containing 'JSON': {[(k, v) for k, v in os.environ.items() if 'JSON' in k.upper()]}", file=sys.stderr)
+        
         if not json_url:
             # Fallback to relative filename if no URL provided
             json_url = self.plan_name.replace('.html', '') + '.json'
+            print(f"DEBUG: Using fallback JSON URL: '{json_url}'", file=sys.stderr)
         
         buttons_html = ""
         if build_url:
