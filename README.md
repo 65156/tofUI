@@ -148,12 +148,7 @@ Use `tofui-config.json` file for customization:
 ## CLI Reference
 
 ```
-usage: tofui [-h] [--name NAME] [--config CONFIG] [--s3-bucket S3_BUCKET]
-             [--s3-prefix S3_PREFIX] [--s3-region S3_REGION] 
-             [--github-pages GITHUB_PAGES] [--github-token GITHUB_TOKEN]
-             [--batch-folder BATCH_FOLDER] [--build-name BUILD_NAME]
-             [--verbose] [--debug] [--version]
-             [plan_file]
+usage: tofui [plan_file] [--build-name BUILD_NAME] [--terraform-exit-code CODE]
 
 Generate beautiful, interactive HTML reports from terraform JSON plans
 
