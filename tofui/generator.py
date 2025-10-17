@@ -155,15 +155,15 @@ class HTMLGenerator:
             <div class="summary-stats">
                 <div class="stat-item create">
                     <span class="stat-number">{summary.create}</span>
-                    <span class="stat-label">to create</span>
+                    <span class="stat-label">add</span>
                 </div>
                 <div class="stat-item update">
                     <span class="stat-number">{summary.update}</span>
-                    <span class="stat-label">to update</span>
+                    <span class="stat-label">change</span>
                 </div>
                 <div class="stat-item delete">
                     <span class="stat-number">{summary.delete}</span>
-                    <span class="stat-label">to delete</span>
+                    <span class="stat-label">destroy</span>
                 </div>
             </div>
         </div>
@@ -1610,6 +1610,7 @@ class HTMLGenerator:
             background: #dee2e6;
             height: 4rem;
             margin: 0 1rem;
+            visibility: hidden;
         }
         
         .control-section {
