@@ -415,27 +415,34 @@ class PlanAnalyzer:
         
         return dict(counts)
     
-    def format_value_for_display(self, value: Any, max_length: int = 100) -> str:
-        """Format a value for display in the HTML report"""
+    def format_value_for_display(self, value: Any) -> tuple[str, bool]:
+        """
+        Format a value for display in the HTML report.
+        
+        Returns:
+            tuple: (formatted_value, is_long_value)
+                - formatted_value: The formatted string to display
+                - is_long_value: True if this should be displayed in a scrollable container
+        """
         if value is None:
-            return "<null>"
+            return "<null>", False
         elif isinstance(value, bool):
-            return "true" if value else "false"
+            return "true" if value else "false", False
         elif isinstance(value, (dict, list)):
-            # Pretty print JSON with limited length
+            # Pretty print JSON - never truncate
             json_str = json.dumps(value, indent=2, default=str)
-            if len(json_str) > max_length:
-                return json_str[:max_length] + "..."
-            return json_str
+            # Consider it "long" if it has multiple lines or is over 150 characters
+            is_long = '\n' in json_str or len(json_str) > 150
+            return json_str, is_long
         elif isinstance(value, str):
-            # Escape HTML and truncate long strings
+            # Escape HTML but never truncate
             escaped = value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-            if len(escaped) > max_length:
-                return escaped[:max_length] + "..."
-            return escaped
+            # Consider it "long" if it's over 100 characters or has multiple lines
+            is_long = len(escaped) > 100 or '\n' in escaped
+            return escaped, is_long
         else:
-            # Convert to string and truncate
+            # Convert to string but never truncate
             str_value = str(value)
-            if len(str_value) > max_length:
-                return str_value[:max_length] + "..."
-            return str_value
+            # Consider it "long" if it's over 100 characters
+            is_long = len(str_value) > 100
+            return str_value, is_long

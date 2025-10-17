@@ -103,7 +103,7 @@ class HTMLGenerator:
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Terraplan Report - {html.escape(self.plan_name)}</title>
+        <title>tofUI - {html.escape(self.plan_name)}</title>
         <style>
             {self._get_embedded_css()}
             {self._get_theme_css()}
@@ -306,9 +306,13 @@ class HTMLGenerator:
         if prop_change.is_sensitive:
             before_value = "<sensitive>"
             after_value = "<sensitive>"
+            before_is_long = False
+            after_is_long = False
         else:
-            before_value = analyzer.format_value_for_display(prop_change.before_value)
-            after_value = analyzer.format_value_for_display(prop_change.after_value)
+            before_formatted, before_is_long = analyzer.format_value_for_display(prop_change.before_value)
+            after_formatted, after_is_long = analyzer.format_value_for_display(prop_change.after_value)
+            before_value = before_formatted
+            after_value = after_formatted
         
         # Determine change type for styling
         change_class = ""
@@ -325,11 +329,15 @@ class HTMLGenerator:
         # Get base property name for filtering
         base_property = prop_change.property_path.split('.')[0]
         
+        # Apply special styling for long values
+        before_class = "long-value" if before_is_long else ""
+        after_class = "long-value" if after_is_long else ""
+        
         return f"""
         <tr class="property-change {change_class}" data-property="{html.escape(base_property)}">
             <td class="property-name">{property_path}</td>
-            <td class="before-value"><pre>{html.escape(before_value)}</pre></td>
-            <td class="after-value"><pre>{html.escape(after_value)}</pre></td>
+            <td class="before-value"><pre class="{before_class}">{html.escape(before_value)}</pre></td>
+            <td class="after-value"><pre class="{after_class}">{html.escape(after_value)}</pre></td>
         </tr>
         """
     
@@ -377,8 +385,9 @@ class HTMLGenerator:
                 value = output.get('value', '')
                 from .analyzer import PlanAnalyzer
                 analyzer = PlanAnalyzer()
-                formatted_value = analyzer.format_value_for_display(value)
+                formatted_value, is_long = analyzer.format_value_for_display(value)
                 output_type = output.get('type', 'unknown')
+                value_class = "long-value" if is_long else ""
                 
                 details_html = f"""
                 <div class="property-changes">
@@ -392,7 +401,7 @@ class HTMLGenerator:
                         <tbody>
                             <tr class="property-change">
                                 <td class="property-name">{html.escape(output_type)}</td>
-                                <td class="after-value"><pre>{html.escape(formatted_value)}</pre></td>
+                                <td class="after-value"><pre class="{value_class}">{html.escape(formatted_value)}</pre></td>
                             </tr>
                         </tbody>
                     </table>
@@ -1587,6 +1596,40 @@ class HTMLGenerator:
             font-size: 0.85rem;
             white-space: pre-wrap;
             word-break: break-all;
+        }
+        
+        /* Styling for long values - scrollable container with smaller font */
+        .before-value pre.long-value, .after-value pre.long-value {
+            font-size: 0.68rem; /* 20% smaller than 0.85rem */
+            max-height: 200px;
+            max-width: 100%;
+            overflow: auto;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 0.5rem;
+            white-space: pre;
+            word-break: normal;
+        }
+        
+        /* Custom scrollbar styling for long values */
+        .before-value pre.long-value::-webkit-scrollbar, .after-value pre.long-value::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .before-value pre.long-value::-webkit-scrollbar-track, .after-value pre.long-value::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .before-value pre.long-value::-webkit-scrollbar-thumb, .after-value pre.long-value::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .before-value pre.long-value::-webkit-scrollbar-thumb:hover, .after-value pre.long-value::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
         
         .property-change.addition .after-value {
