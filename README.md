@@ -4,6 +4,11 @@
 
 Generate stunning, interactive HTML reports from your terraform JSON plans. Lightweight core with optional S3 integration.
 
+## Interactive Examples
+https://65156.github.io/tofUI/has-changes-example.html
+https://65156.github.io/tofUI/has-errors-example.html
+https://65156.github.io/tofUI/no-changes-example.html
+
 ## Features ✨
 
 - **🔍 Interactive Analysis** - Expandable/collapsible sections, action filtering, property hiding
