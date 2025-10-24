@@ -1,30 +1,141 @@
 {
+  "format_version": "1.1",
   "terraform_version": "1.5.0",
-  "format_version": "1.2",
+  "planned_values": {
+    "root_module": {
+      "resources": []
+    }
+  },
   "resource_changes": [
     {
-      "address": "aws_instance.example",
-      "type": "aws_instance",
-      "name": "example",
+      "address": "module.ecs_service[\"gstream-svc-03\"].aws_ecs_task_definition.this[0]",
+      "module_address": "module.ecs_service[\"gstream-svc-03\"]",
+      "mode": "managed",
+      "type": "aws_ecs_task_definition",
+      "name": "this",
+      "index": 0,
       "provider_name": "registry.terraform.io/hashicorp/aws",
       "change": {
-        "actions": ["create"],
-        "before": null,
+        "actions": [
+          "create",
+          "delete"
+        ],
+        "before": {
+          "arn": "arn:aws:ecs:us-east-2:181579366464:task-definition/gstream-svc-03:4",
+          "arn_without_revision": "arn:aws:ecs:us-east-2:181579366464:task-definition/gstream-svc-03",
+          "container_definitions": "[{\"command\":[\"python3 -m http.server 8080 & gst-launch-1.0 -v udpsrc address=0.0.0.0 port=5024 caps=\\\"application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS,payload=96\\\" ! rtpjitterbuffer ! rtpopusdepay ! opusdec ! audioconvert ! voaacenc bitrate=128000 ! mux. videotestsrc is-live=true ! video/x-raw,width=4,height=4,framerate=1/1 ! videoconvert ! x264enc tune=zerolatency ! mux. flvmux name=mux streamable=true ! rtmpsink location=\\\"rtmp://172.72.173.238:1935/track/driver6\\\"\"],\"entryPoint\":[\"/bin/bash\",\"-c\"],\"environment\":[],\"essential\":true,\"image\":\"181579366464.dkr.ecr.us-east-2.amazonaws.com/sbx-cr-01:gstream-1.7\",\"interactive\":false,\"linuxParameters\":{\"initProcessEnabled\":true},\"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-stream-prefix\":\"gstream-svc-03\",\"awslogs-group\":\"/ecs/gstream-svc-03\",\"awslogs-region\":\"us-east-2\"}},\"mountPoints\":[],\"name\":\"gstream-pd-01\",\"portMappings\":[{\"containerPort\":5024,\"hostPort\":5024,\"name\":\"gstream-pd-01\",\"protocol\":\"udp\"},{\"containerPort\":8080,\"hostPort\":8080,\"name\":\"gstream-tcp-02\",\"protocol\":\"tcp\"}],\"privileged\":false,\"pseudoTerminal\":false,\"readonlyRootFilesystem\":false,\"restartPolicy\":{\"enabled\":true},\"startTimeout\":30,\"stopTimeout\":120,\"systemControls\":[],\"versionConsistency\":\"disabled\",\"volumesFrom\":[]}]",
+          "cpu": "1024",
+          "enable_fault_injection": false,
+          "ephemeral_storage": [],
+          "execution_role_arn": "arn:aws:iam::181579366464:role/gstream-svc-03-20251002202013053700000002",
+          "family": "gstream-svc-03",
+          "id": "gstream-svc-03",
+          "inference_accelerator": [],
+          "ipc_mode": "",
+          "memory": "2048",
+          "network_mode": "awsvpc",
+          "pid_mode": "",
+          "placement_constraints": [],
+          "proxy_configuration": [],
+          "requires_compatibilities": [
+            "FARGATE"
+          ],
+          "revision": 4,
+          "runtime_platform": [
+            {
+              "cpu_architecture": "X86_64",
+              "operating_system_family": "LINUX"
+            }
+          ],
+          "skip_destroy": false,
+          "tags": {},
+          "tags_all": {},
+          "task_role_arn": "arn:aws:iam::181579366464:role/gstream-svc-03-20251002202013272000000007",
+          "track_latest": true,
+          "volume": []
+        },
         "after": {
-          "ami": "ami-0123456789abcdef0",
-          "instance_type": "t3.micro",
-          "tags": {
-            "Name": "example-instance"
-          }
-        }
-      }
+          "container_definitions": "[{\"command\":[\"python3 -m http.server 8080 \\u0026 gst-launch-1.0 -v udpsrc address=0.0.0.0 port=5024 caps=\\\"application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS,payload=96\\\" ! rtpjitterbuffer ! rtpopusdepay ! opusdec ! audioconvert ! voaacenc bitrate=128000 ! mux. videotestsrc is-live=true ! video/x-raw,width=4,height=4,framerate=1/1 ! videoconvert ! x264enc tune=zerolatency ! mux. flvmux name=mux streamable=true ! rtmpsink location=\\\"rtmp://172.72.173.238:1935/track/driver6\\\"\"],\"entryPoint\":[\"/bin/bash\",\"-c\"],\"essential\":true,\"image\":\"181579366464.dkr.ecr.us-east-2.amazonaws.com/sbx-cr-01:gstream1-7\",\"interactive\":false,\"linuxParameters\":{\"initProcessEnabled\":true},\"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-group\":\"/ecs/gstream-svc-03\",\"awslogs-region\":\"us-east-2\",\"awslogs-stream-prefix\":\"gstream-svc-03\"}},\"name\":\"gstream-pd-01\",\"portMappings\":[{\"containerPort\":5024,\"hostPort\":5024,\"name\":\"gstream-pd-01\",\"protocol\":\"udp\"},{\"containerPort\":8080,\"hostPort\":8080,\"name\":\"gstream-tcp-02\",\"protocol\":\"tcp\"}],\"privileged\":false,\"pseudoTerminal\":false,\"readonlyRootFilesystem\":false,\"restartPolicy\":{\"enabled\":true},\"startTimeout\":30,\"stopTimeout\":120,\"versionConsistency\":\"disabled\"}]",
+          "cpu": "1024",
+          "ephemeral_storage": [],
+          "execution_role_arn": "arn:aws:iam::181579366464:role/gstream-svc-03-20251002202013053700000002",
+          "family": "gstream-svc-03",
+          "inference_accelerator": [],
+          "ipc_mode": null,
+          "memory": "2048",
+          "network_mode": "awsvpc",
+          "pid_mode": null,
+          "placement_constraints": [],
+          "proxy_configuration": [],
+          "requires_compatibilities": [
+            "FARGATE"
+          ],
+          "runtime_platform": [
+            {
+              "cpu_architecture": "X86_64",
+              "operating_system_family": "LINUX"
+            }
+          ],
+          "skip_destroy": false,
+          "tags": null,
+          "task_role_arn": "arn:aws:iam::181579366464:role/gstream-svc-03-20251002202013272000000007",
+          "track_latest": true,
+          "volume": []
+        },
+        "after_unknown": {
+          "arn": true,
+          "arn_without_revision": true,
+          "enable_fault_injection": true,
+          "ephemeral_storage": [],
+          "id": true,
+          "inference_accelerator": [],
+          "placement_constraints": [],
+          "proxy_configuration": [],
+          "requires_compatibilities": [false],
+          "revision": true,
+          "runtime_platform": [
+            {}
+          ],
+          "tags_all": true,
+          "volume": []
+        },
+        "before_sensitive": {
+          "ephemeral_storage": [],
+          "inference_accelerator": [],
+          "placement_constraints": [],
+          "proxy_configuration": [],
+          "requires_compatibilities": [false],
+          "runtime_platform": [
+            {}
+          ],
+          "tags": {},
+          "tags_all": {},
+          "volume": []
+        },
+        "after_sensitive": {
+          "ephemeral_storage": [],
+          "inference_accelerator": [],
+          "placement_constraints": [],
+          "proxy_configuration": [],
+          "requires_compatibilities": [false],
+          "runtime_platform": [
+            {}
+          ],
+          "tags_all": {},
+          "volume": []
+        },
+        "replace_paths": [
+          [
+            "container_definitions"
+          ]
+        ]
+      },
+      "action_reason": "replace_because_cannot_update"
     }
   ],
-  "outputs": {
-    "instance_ip": {
-      "value": "10.0.1.100",
-      "type": "string",
-      "sensitive": false
+  "configuration": {
+    "root_module": {
+      "module_calls": {}
     }
   }
 }

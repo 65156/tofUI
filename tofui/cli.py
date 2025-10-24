@@ -345,6 +345,9 @@ def main():
         if args.build_url:
             config['build_url'] = args.build_url
         
+        # Add debug_json flag to config
+        config['debug_json'] = getattr(args, 'debug_json', False)
+        
         # Sanitize build name for URL and file system safety
         original_build_name = args.build_name
         sanitized_build_name = sanitize_build_name(args.build_name)
@@ -613,6 +616,12 @@ Examples:
     )
     
     parser.add_argument(
+        "--debug-json",
+        action="store_true",
+        help="Include JSON plan file in uploads and add JSON link to report footer (useful for debugging)"
+    )
+    
+    parser.add_argument(
         "--version",
         action="version",
         version=f'tofUI {__version__}',
@@ -647,7 +656,7 @@ def print_summary(analysis, output_file: str, args):
     print(f"\n🌐 Open in browser: file://{os.path.abspath(output_file)}")
 
 def upload_to_s3(html_content: str, args, local_file: str, plan_file: str):
-    """Upload the HTML report and JSON plan to S3"""
+    """Upload the HTML report and optionally JSON plan to S3"""
     try:
         import boto3
         from botocore.exceptions import NoCredentialsError, ClientError
@@ -664,9 +673,8 @@ def upload_to_s3(html_content: str, args, local_file: str, plan_file: str):
         # Get the base name from the HTML file (without .html extension)
         base_name = os.path.splitext(os.path.basename(local_file))[0]
         
-        # Build S3 keys for both files
+        # Build S3 keys
         html_key = f"{args.s3_prefix.rstrip('/')}/{base_name}.html" if args.s3_prefix else f"{base_name}.html"
-        json_key = f"{args.s3_prefix.rstrip('/')}/{base_name}.json" if args.s3_prefix else f"{base_name}.json"
         
         # Upload HTML report
         s3_client.put_object(
@@ -677,22 +685,27 @@ def upload_to_s3(html_content: str, args, local_file: str, plan_file: str):
             CacheControl='max-age=3600'
         )
         
-        # Upload JSON plan file
-        with open(plan_file, 'rb') as f:
-            s3_client.put_object(
-                Bucket=args.s3_bucket,
-                Key=json_key,
-                Body=f.read(),
-                ContentType='application/json',
-                CacheControl='max-age=3600'
-            )
-        
-        # Construct URLs
         html_s3_url = f"https://{args.s3_bucket}.s3.{args.s3_region}.amazonaws.com/{html_key}"
-        json_s3_url = f"https://{args.s3_bucket}.s3.{args.s3_region}.amazonaws.com/{json_key}"
-        
         print(f"✅ HTML report uploaded to S3: {html_s3_url}")
-        print(f"✅ JSON plan uploaded to S3: {json_s3_url}")
+        
+        # Only upload JSON if debug-json flag is provided
+        if getattr(args, 'debug_json', False):
+            json_key = f"{args.s3_prefix.rstrip('/')}/{base_name}.json" if args.s3_prefix else f"{base_name}.json"
+            
+            # Upload JSON plan file
+            with open(plan_file, 'rb') as f:
+                s3_client.put_object(
+                    Bucket=args.s3_bucket,
+                    Key=json_key,
+                    Body=f.read(),
+                    ContentType='application/json',
+                    CacheControl='max-age=3600'
+                )
+            
+            json_s3_url = f"https://{args.s3_bucket}.s3.{args.s3_region}.amazonaws.com/{json_key}"
+            print(f"✅ JSON plan uploaded to S3: {json_s3_url}")
+        else:
+            print("ℹ️  JSON upload skipped (use --debug-json to include)")
         
         # If bucket has website hosting, also show website URL for HTML
         try:
@@ -834,7 +847,8 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
         # Upload the build files using the derived API URL
         success = upload_build_to_github(
             owner, repo, headers, args.folder, sanitized_build_name,
-            html_content, plan_file, display_name, args.github_branch, api_base_url
+            html_content, plan_file, display_name, args.github_branch, api_base_url, 
+            getattr(args, 'debug_json', False)
         )
         
         if success:
@@ -948,7 +962,8 @@ def github_api_request_with_retry(url: str, headers: dict, data: dict, method: s
 
 def upload_build_to_github(owner: str, repo: str, headers: dict, folder: str, 
                             build_name: str, html_content: str, plan_file: str, 
-                            display_name: str, branch: str, api_base_url: str = "https://api.github.com") -> bool:
+                            display_name: str, branch: str, api_base_url: str = "https://api.github.com", 
+                            debug_json: bool = False) -> bool:
     """Upload individual build files to GitHub repository"""
     import requests
     import base64
@@ -1010,21 +1025,25 @@ def upload_build_to_github(owner: str, repo: str, headers: dict, folder: str,
             print(f"❌ Failed to upload HTML report after all retries")
             return False
         
-        # Upload JSON plan with retry logic
-        with open(plan_file, 'rb') as f:
-            plan_content = f.read()
-        
-        json_data = {
-            "message": f"Add plan JSON: {upload_location}",
-            "content": base64.b64encode(plan_content).decode('ascii'),
-            "branch": branch
-        }
-        
-        print(f"📤 Uploading JSON plan: {json_path}")
-        success, response = github_api_request_with_retry(f"{api_base}/{json_path}", headers, json_data)
-        if not success:
-            print(f"❌ Failed to upload JSON plan after all retries")
-            return False
+        # Only upload JSON plan if debug-json flag is provided
+        if debug_json:
+            # Upload JSON plan with retry logic
+            with open(plan_file, 'rb') as f:
+                plan_content = f.read()
+            
+            json_data = {
+                "message": f"Add plan JSON: {upload_location}",
+                "content": base64.b64encode(plan_content).decode('ascii'),
+                "branch": branch
+            }
+            
+            print(f"📤 Uploading JSON plan: {json_path}")
+            success, response = github_api_request_with_retry(f"{api_base}/{json_path}", headers, json_data)
+            if not success:
+                print(f"❌ Failed to upload JSON plan after all retries")
+                return False
+        else:
+            print("ℹ️  JSON upload skipped (use --debug-json to include)")
         
         # Upload log file if it exists
         log_file_path = f"{build_name}.log"

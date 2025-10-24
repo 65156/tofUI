@@ -183,7 +183,8 @@ class PlanAnalyzer:
                 resource_change.after or {},
                 "",
                 resource_change.before_sensitive or [],
-                resource_change.after_sensitive or []
+                resource_change.after_sensitive or [],
+                resource_change.after_unknown or {} 
             )
         
         return AnalyzedResourceChange(
@@ -207,7 +208,9 @@ class PlanAnalyzer:
         
         changes = []
         
-        for key, value in obj.items():
+        # Sort keys alphabetically for consistent display order
+        for key in sorted(obj.keys()):
+            value = obj[key]
             current_path = f"{prefix}.{key}" if prefix else key
             
             # Get the sensitive structure for this key
@@ -315,19 +318,19 @@ class PlanAnalyzer:
         # Any other value (False, None, etc.) means not sensitive
         return False
     
-    def _is_path_sensitive(self, path: str, sensitive_paths: List[str]) -> bool:
-        """
-        Legacy method - kept for backward compatibility but should not be used
-        with the new sensitive structure handling.
-        """
-        if not sensitive_paths:
-            return False
+    # def _is_path_sensitive(self, path: str, sensitive_paths: List[str]) -> bool:
+    #     """
+    #     Legacy method - kept for backward compatibility but should not be used
+    #     with the new sensitive structure handling.
+    #     """
+    #     if not sensitive_paths:
+    #         return False
             
-        # Direct path match
-        if path in sensitive_paths:
-            return True
+    #     # Direct path match
+    #     if path in sensitive_paths:
+    #         return True
             
-        return False
+    #     return False
     
     def _compare_objects(
         self, 
@@ -336,6 +339,7 @@ class PlanAnalyzer:
         prefix: str,
         before_sensitive: Any,
         after_sensitive: Any,
+        after_unknown: Dict[str, Any] = None,  # Add this parameter
         depth: int = 0
     ) -> List[PropertyChange]:
         """Compare two objects and extract the differences"""
@@ -345,10 +349,10 @@ class PlanAnalyzer:
         
         changes = []
         
-        # Get all keys from both objects
+        # Get all keys from both objects and sort them alphabetically
         all_keys = set(before.keys()) | set(after.keys())
         
-        for key in all_keys:
+        for key in sorted(all_keys):
             current_path = f"{prefix}.{key}" if prefix else key
             before_value = before.get(key)
             after_value = after.get(key)
@@ -358,29 +362,42 @@ class PlanAnalyzer:
             after_sensitive_for_key = self._get_sensitive_for_key(after_sensitive, key)
             
             # Check if either value is marked as sensitive
-            is_sensitive = (self._is_value_sensitive(before_value, before_sensitive_for_key) or 
-                          self._is_value_sensitive(after_value, after_sensitive_for_key))
+            is_sensitive = (
+                self._is_value_sensitive(before_value, before_sensitive_for_key) 
+                or self._is_value_sensitive(after_value, after_sensitive_for_key)
+                )
             
             # Skip empty values unless they're sensitive or there's an actual change
             if not is_sensitive and before_value == after_value and self._should_skip_empty_value(after_value):
                 continue
             
             if before_value == after_value:
-                # No change
                 continue
+
+            is_computed = self._is_property_unknown(current_path, after_unknown)
+
+            if is_computed:
+                changes.append(PropertyChange(
+                    property_path=current_path,
+                    before_value=before_value,
+                    after_value=None,
+                    is_sensitive=is_sensitive,
+                    is_computed=True
+                ))
+                continue
+
             elif isinstance(before_value, dict) and isinstance(after_value, dict) and not is_sensitive:
-                # Both are dicts, compare recursively
                 nested_changes = self._compare_objects(
-                    before_value, 
-                    after_value, 
+                    before_value,
+                    after_value,
                     current_path,
                     before_sensitive_for_key,
                     after_sensitive_for_key,
+                    self._get_nested_after_unknown(after_unknown, key),  # Add this
                     depth + 1
                 )
                 changes.extend(nested_changes)
             else:
-                # Value changed
                 changes.append(PropertyChange(
                     property_path=current_path,
                     before_value=before_value,
@@ -406,6 +423,55 @@ class PlanAnalyzer:
         resource_groups.sort(key=lambda g: g.resource_type)
         return resource_groups
     
+    def _is_property_unknown(self, property_path: str, after_unknown: Dict[str, Any]) -> bool:
+        """
+        Check if a property path is marked as unknown (known after apply) in the after_unknown structure.
+        
+        Args:
+            property_path: The full property path (e.g., "tags.Name" or "container_definitions")
+            after_unknown: The after_unknown structure from the resource change
+            
+        Returns:
+            bool: True if the property will be known after apply
+        """
+        if not after_unknown:
+            return False
+        
+        # Check for direct path match
+        if after_unknown.get(property_path) is True:
+            return True
+        
+        # Check for parent path match (for nested properties)
+        path_parts = property_path.split('.')
+        for i in range(len(path_parts)):
+            parent_path = '.'.join(path_parts[:i+1])
+            if after_unknown.get(parent_path) is True:
+                return True
+        
+        return False
+
+    def _get_nested_after_unknown(self, after_unknown: Dict[str, Any], key: str) -> Dict[str, Any]:
+        """
+        Get the nested after_unknown structure for a specific key.
+        
+        Args:
+            after_unknown: The parent after_unknown structure
+            key: The key to look up
+            
+        Returns:
+            Dict[str, Any]: The nested after_unknown structure for the key
+        """
+        if not after_unknown:
+            return {}
+        
+        # If the after_unknown structure contains nested objects for this key, return it
+        nested = after_unknown.get(key, {})
+        if isinstance(nested, dict):
+            return nested
+        
+        # Otherwise return empty dict
+        return {}
+
     def _calculate_action_counts(self, analyzed_changes: List[AnalyzedResourceChange]) -> Dict[ActionType, int]:
         """Calculate counts of each action type"""
         counts = defaultdict(int)
@@ -415,34 +481,63 @@ class PlanAnalyzer:
         
         return dict(counts)
     
-    def format_value_for_display(self, value: Any) -> tuple[str, bool]:
+    def format_value_for_display(self, value: Any) -> tuple[str, str]:
         """
         Format a value for display in the HTML report.
         
         Returns:
-            tuple: (formatted_value, is_long_value)
+            tuple: (formatted_value, display_mode)
                 - formatted_value: The formatted string to display
-                - is_long_value: True if this should be displayed in a scrollable container
+                - display_mode: 'simple', 'long_simple', 'complex', or 'empty'
         """
-        if value is None:
-            return "<null>", False
-        elif isinstance(value, bool):
-            return "true" if value else "false", False
-        elif isinstance(value, (dict, list)):
-            # Pretty print JSON - never truncate
-            json_str = json.dumps(value, indent=2, default=str)
-            # Consider it "long" if it has multiple lines or is over 150 characters
-            is_long = '\n' in json_str or len(json_str) > 150
-            return json_str, is_long
-        elif isinstance(value, str):
-            # Escape HTML but never truncate
-            escaped = value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-            # Consider it "long" if it's over 100 characters or has multiple lines
-            is_long = len(escaped) > 100 or '\n' in escaped
-            return escaped, is_long
-        else:
-            # Convert to string but never truncate
-            str_value = str(value)
-            # Consider it "long" if it's over 100 characters
-            is_long = len(str_value) > 100
-            return str_value, is_long
+        # Treat true empties as empty
+        if value is None or value == "":
+            return "", "empty"
+
+        # Native containers
+        if isinstance(value, (dict, list)):
+            if not value:  # {} or []
+                return "", "empty"
+            json_str = json.dumps(value, indent=2, ensure_ascii=False, default=str)
+            return json_str, "complex"
+
+        # Strings (may contain JSON)
+        if isinstance(value, str):
+            s = value.strip()
+
+            # String forms of empties / null
+            if s in ("", "{}", "[]", "null", "None"):
+                return "", "empty"
+
+            # Try to parse JSON-in-strings
+            if (s.startswith("{") and s.endswith("}")) or (s.startswith("[") and s.endswith("]")):
+                try:
+                    parsed = json.loads(s)
+                    # If parsed to empty container or null → empty
+                    if parsed is None:
+                        return "", "empty"
+                    if isinstance(parsed, (dict, list)) and not parsed:
+                        return "", "empty"
+                    if isinstance(parsed, (dict, list)):
+                        return json.dumps(parsed, indent=2, ensure_ascii=False), "complex"
+                except Exception:
+                    pass  # not actually JSON—fall through
+
+            # Non-JSON strings: normal handling
+            escaped = (value
+                    .replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;"))
+            if "\n" in escaped:
+                return escaped, "complex"
+            if len(escaped) > 100:
+                return escaped, "long_simple"
+            return escaped, "simple"
+
+        # Fallback scalars
+        s = str(value)
+        if s in ("", "None"):
+            return "", "empty"
+        if len(s) > 100:
+            return s, "long_simple"
+        return s, "simple"

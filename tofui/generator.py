@@ -9,6 +9,7 @@ from datetime import datetime
 import json
 import html
 
+from .parser import ActionType  # at top of file if not already imported
 from .analyzer import PlanAnalysis, AnalyzedResourceChange, PropertyChange, ActionType
 
 
@@ -248,20 +249,14 @@ class HTMLGenerator:
         action_class = change.action.value
         action_icon = self._get_action_icon(change.action)
         
-        # Generate dependency indicator if this resource has dependency changes
-        dependency_indicator = ""
-        if change.has_dependency_changes:
-            dependency_indicator = f'<span class="dependency-indicator" title="{html.escape(change.dependency_reason)}">💡</span>'
-        
         properties_html = ""
         if change.has_property_changes:
-            properties_html = self._generate_property_changes(change.property_changes)
+            properties_html = self._generate_property_changes(change.property_changes, change.action)
         
         return f"""
         <div class="resource-change {action_class}" data-action="{action_class}" data-address="{html.escape(change.address)}">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">{html.escape(change.address)}</span>
-                {dependency_indicator}
                 <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
@@ -269,16 +264,17 @@ class HTMLGenerator:
             </div>
         </div>
         """
-    
-    def _generate_property_changes(self, property_changes: List[PropertyChange]) -> str:
+
+    def _generate_property_changes(self, property_changes: List[PropertyChange], action: ActionType) -> str:
         """Generate HTML for property changes"""
+    
         if not property_changes:
             return "<p>No detailed changes available.</p>"
         
         changes_html = ""
         for prop_change in property_changes:
-            changes_html += self._generate_property_change(prop_change)
-        
+            changes_html += self._generate_property_change(prop_change, action)
+                
         return f"""
         <div class="property-changes">
             <table class="properties-table">
@@ -296,7 +292,7 @@ class HTMLGenerator:
         </div>
         """
     
-    def _generate_property_change(self, prop_change: PropertyChange) -> str:
+    def _generate_property_change(self, prop_change: PropertyChange, action: ActionType) -> str:
         """Generate HTML for a single property change"""
         from .analyzer import PlanAnalyzer
         analyzer = PlanAnalyzer()
@@ -304,15 +300,24 @@ class HTMLGenerator:
         property_path = html.escape(prop_change.property_path)
         
         if prop_change.is_sensitive:
-            before_value = "<sensitive>"
-            after_value = "<sensitive>"
-            before_is_long = False
-            after_is_long = False
+            before_value, after_value = "<sensitive>", "<sensitive>"
+            before_mode = after_mode = "simple"
         else:
-            before_formatted, before_is_long = analyzer.format_value_for_display(prop_change.before_value)
-            after_formatted, after_is_long = analyzer.format_value_for_display(prop_change.after_value)
-            before_value = before_formatted
-            after_value = after_formatted
+            before_value, before_mode = analyzer.format_value_for_display(prop_change.before_value)
+            after_value,  after_mode  = analyzer.format_value_for_display(prop_change.after_value)
+
+        known_after_apply = (
+            action in (ActionType.UPDATE, ActionType.RECREATE)
+            and prop_change.is_computed
+        )
+
+        # after
+        if (before_mode == "empty" and after_mode == "empty"):
+            return ""
+        if (prop_change.is_addition and after_mode == "empty" and not known_after_apply):
+            return ""
+        if (prop_change.is_removal and before_mode == "empty"):
+            return ""
         
         # Determine change type for styling
         change_class = ""
@@ -329,15 +334,28 @@ class HTMLGenerator:
         # Get base property name for filtering
         base_property = prop_change.property_path.split('.')[0]
         
-        # Apply special styling for long values
-        before_class = "long-value" if before_is_long else ""
-        after_class = "long-value" if after_is_long else ""
+        # Generate appropriate HTML based on content type
+        def generate_value_html(value, mode, css_class):
+            if mode == "empty":
+                return f'<td class="{css_class}"></td>'
+            elif mode == "simple":
+                return f'<td class="{css_class}">{html.escape(value)}</td>'
+            elif mode == "long_simple":
+                return f'<td class="{css_class}"><div class="long-simple-value">{html.escape(value)}</div></td>'
+            else:  # complex
+                return f'<td class="{css_class}"><pre class="complex-value">{html.escape(value)}</pre></td>'
         
+        before_html = generate_value_html(before_value, before_mode, "before-value")
+
+        if known_after_apply:
+            after_html = '<td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>'
+        else:
+            after_html = generate_value_html(after_value, after_mode, "after-value")
         return f"""
         <tr class="property-change {change_class}" data-property="{html.escape(base_property)}">
             <td class="property-name">{property_path}</td>
-            <td class="before-value"><pre class="{before_class}">{html.escape(before_value)}</pre></td>
-            <td class="after-value"><pre class="{after_class}">{html.escape(after_value)}</pre></td>
+            {before_html}
+            {after_html}
         </tr>
         """
     
@@ -385,9 +403,23 @@ class HTMLGenerator:
                 value = output.get('value', '')
                 from .analyzer import PlanAnalyzer
                 analyzer = PlanAnalyzer()
-                formatted_value, is_long = analyzer.format_value_for_display(value)
-                output_type = output.get('type', 'unknown')
-                value_class = "long-value" if is_long else ""
+                formatted_value, display_mode = analyzer.format_value_for_display(value)
+                
+                # Infer type from the actual value instead of relying on 'type' field
+                output_type = self._infer_output_type(value, analysis.plan.configuration, name)
+                
+                # Generate appropriate HTML based on content type
+                def generate_output_value_html(value, mode):
+                    if mode == "empty":
+                        return ""
+                    elif mode == "simple":
+                        return html.escape(value)
+                    elif mode == "long_simple":
+                        return f'<div class="long-simple-value">{html.escape(value)}</div>'
+                    else:  # complex
+                        return f'<pre class="complex-value">{html.escape(value)}</pre>'
+                
+                value_html = generate_output_value_html(formatted_value, display_mode)
                 
                 details_html = f"""
                 <div class="property-changes">
@@ -401,7 +433,7 @@ class HTMLGenerator:
                         <tbody>
                             <tr class="property-change">
                                 <td class="property-name">{html.escape(output_type)}</td>
-                                <td class="after-value"><pre class="{value_class}">{html.escape(formatted_value)}</pre></td>
+                                <td class="after-value">{value_html}</td>
                             </tr>
                         </tbody>
                     </table>
@@ -435,6 +467,59 @@ class HTMLGenerator:
             </div>
         </div>
         """
+
+    def _infer_output_type(self, value: Any, configuration: Dict[str, Any], output_name: str) -> str:
+        """
+        Infer the output type from the actual value and configuration.
+        
+        Args:
+            value: The actual output value
+            configuration: The terraform configuration section
+            output_name: Name of the output
+            
+        Returns:
+            str: The inferred type (e.g., 'string', 'number', 'object', 'list')
+        """
+        # First, try to get type from configuration if available
+        try:
+            config_outputs = configuration.get('root_module', {}).get('outputs', {})
+            if output_name in config_outputs:
+                output_config = config_outputs[output_name]
+                if 'type' in output_config:
+                    return output_config['type']
+        except (KeyError, AttributeError):
+            pass
+        
+        # If no type in configuration, infer from the value
+        if value is None:
+            return "null"
+        elif isinstance(value, bool):
+            return "bool"
+        elif isinstance(value, int):
+            return "number"
+        elif isinstance(value, float):
+            return "number"
+        elif isinstance(value, str):
+            return "string"
+        elif isinstance(value, list):
+            if len(value) == 0:
+                return "list"
+            # Check if it's a list of the same type
+            first_type = type(value[0]).__name__
+            if all(type(item).__name__ == first_type for item in value):
+                if first_type == 'str':
+                    return "list(string)"
+                elif first_type in ['int', 'float']:
+                    return "list(number)"
+                elif first_type == 'bool':
+                    return "list(bool)"
+                elif first_type == 'dict':
+                    return "list(object)"
+            return "list"
+        elif isinstance(value, dict):
+            return "object"
+        else:
+            return "unknown"
 
     def _process_terraform_errors(self, error_output: Optional[str], plan_error_data: Optional[str]) -> Dict[str, Any]:
         """Process terraform error output and extract meaningful information"""
@@ -1084,18 +1169,23 @@ class HTMLGenerator:
         import os
         build_url = os.environ.get('BUILD_URL', self.config.get('build_url', ''))
         
-        # Get JSON URL from config (passed from CLI) or environment variable as fallback
-        json_url = self.config.get('json_url', '') or os.environ.get('TOFUI_JSON_URL', '')
-        
-        if not json_url:
-            # Fallback to relative filename if no URL provided
-            json_url = self.plan_name.replace('.html', '') + '.json'
+        # Check if debug_json is enabled before showing JSON button
+        debug_json = self.config.get('debug_json', False)
         
         buttons_html = ""
         if build_url:
             buttons_html += f'<a href="{build_url}" class="footer-btn" target="_blank">🔗 View Build</a>'
         
-        buttons_html += f'<a href="{json_url}" class="footer-btn" target="_blank">📄 View JSON</a>'
+        # Only show JSON button if debug_json flag is enabled
+        if debug_json:
+            # Get JSON URL from config (passed from CLI) or environment variable as fallback
+            json_url = self.config.get('json_url', '') or os.environ.get('TOFUI_JSON_URL', '')
+            
+            if not json_url:
+                # Fallback to relative filename if no URL provided
+                json_url = self.plan_name.replace('.html', '') + '.json'
+            
+            buttons_html += f'<a href="{json_url}" class="footer-btn" target="_blank">📄 View JSON</a>'
         
         return f"""
         <div class="footer">
@@ -1169,6 +1259,17 @@ class HTMLGenerator:
             text-align: center;
         }
         
+        .known-after-apply {
+            color: #a3c5a8;
+            font-style: italic;
+            opacity: 0.8;
+        }
+
+        .known-after-apply-cell {
+            background: #d4edda !important;
+            color: #155724;
+        }
+
         .plan-name {
             margin: 0;
             font-size: 1.2rem;
@@ -1365,17 +1466,6 @@ class HTMLGenerator:
             flex: 1;
         }
         
-        .dependency-indicator {
-            font-size: 1.1rem;
-            margin-left: 0.5rem;
-            cursor: help;
-            opacity: 0.8;
-        }
-        
-        .dependency-indicator:hover {
-            opacity: 1;
-        }
-        
         .toggle-indicator {
             transition: transform 0.2s;
         }
@@ -1562,6 +1652,7 @@ class HTMLGenerator:
             width: 100%;
             border-collapse: collapse;
             font-size: 0.9rem;
+            table-layout: fixed; /* Use fixed layout for better column control */
         }
         
         .properties-table th {
@@ -1574,7 +1665,7 @@ class HTMLGenerator:
         }
         
         .properties-table td {
-            padding: 0.75rem;
+            padding: 0.5rem; #decrease this to decrease padding between properties
             border-bottom: 1px solid #dee2e6;
             vertical-align: top;
         }
@@ -1588,6 +1679,8 @@ class HTMLGenerator:
         
         .before-value, .after-value {
             width: 37.5%;
+            max-width: 37.5%;
+            min-width: 0; /* Allow shrinking */
         }
         
         .before-value pre, .after-value pre {
@@ -1596,11 +1689,7 @@ class HTMLGenerator:
             font-size: 0.85rem;
             white-space: pre-wrap;
             word-break: break-all;
-        }
-        
-        /* Styling for long values - scrollable container with smaller font */
-        .before-value pre.long-value, .after-value pre.long-value {
-            font-size: 0.68rem; /* 20% smaller than 0.85rem */
+            /* Apply consistent constraints to ALL pre elements */
             max-height: 200px;
             max-width: 100%;
             overflow: auto;
@@ -1608,6 +1697,11 @@ class HTMLGenerator:
             border: 1px solid #e9ecef;
             border-radius: 4px;
             padding: 0.5rem;
+        }
+        
+        /* Styling for long values - additional styling for complex content */
+        .before-value pre.long-value, .after-value pre.long-value {
+            font-size: 0.68rem; /* 20% smaller than 0.85rem */
             white-space: pre;
             word-break: normal;
         }
@@ -1629,6 +1723,77 @@ class HTMLGenerator:
         }
         
         .before-value pre.long-value::-webkit-scrollbar-thumb:hover, .after-value pre.long-value::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Long simple values - horizontal scroll only for ARNs, URLs, etc */
+        .long-simple-value {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            max-width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+        
+        /* Custom scrollbar for long simple values */
+        .long-simple-value::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .long-simple-value::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .long-simple-value::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        .long-simple-value::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Complex content - 5-line container with both scrolls for JSON, multiline */
+        .complex-value {
+            margin: 0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.75rem;
+            white-space: pre-wrap;
+            word-break: normal;
+            max-height: 100px; /* Exactly 5 lines with line-height 1.2 */
+            min-height: 60px;  /* Ensure it shows as a container even for short content */
+            max-width: 100%;
+            overflow: auto;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 0.5rem;
+            line-height: 1.2;
+        }
+        
+        /* Custom scrollbar styling for complex values */
+        .complex-value::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .complex-value::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .complex-value::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .complex-value::-webkit-scrollbar-thumb:hover {
             background: #a8a8a8;
         }
         

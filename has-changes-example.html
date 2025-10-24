@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Terraplan Report - has-changes-example</title>
+        <title>tofUI - has-changes-example</title>
         <style>
             
         * {
@@ -35,6 +35,17 @@
             text-align: center;
         }
         
+        .known-after-apply {
+            color: #a3c5a8;
+            font-style: italic;
+            opacity: 0.8;
+        }
+
+        .known-after-apply-cell {
+            background: #d4edda !important;
+            color: #155724;
+        }
+
         .plan-name {
             margin: 0;
             font-size: 1.2rem;
@@ -231,17 +242,6 @@
             flex: 1;
         }
         
-        .dependency-indicator {
-            font-size: 1.1rem;
-            margin-left: 0.5rem;
-            cursor: help;
-            opacity: 0.8;
-        }
-        
-        .dependency-indicator:hover {
-            opacity: 1;
-        }
-        
         .toggle-indicator {
             transition: transform 0.2s;
         }
@@ -428,6 +428,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.9rem;
+            table-layout: fixed; /* Use fixed layout for better column control */
         }
         
         .properties-table th {
@@ -440,7 +441,7 @@
         }
         
         .properties-table td {
-            padding: 0.75rem;
+            padding: 0.5rem; #decrease this to decrease padding between properties
             border-bottom: 1px solid #dee2e6;
             vertical-align: top;
         }
@@ -454,6 +455,8 @@
         
         .before-value, .after-value {
             width: 37.5%;
+            max-width: 37.5%;
+            min-width: 0; /* Allow shrinking */
         }
         
         .before-value pre, .after-value pre {
@@ -462,6 +465,112 @@
             font-size: 0.85rem;
             white-space: pre-wrap;
             word-break: break-all;
+            /* Apply consistent constraints to ALL pre elements */
+            max-height: 200px;
+            max-width: 100%;
+            overflow: auto;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 0.5rem;
+        }
+        
+        /* Styling for long values - additional styling for complex content */
+        .before-value pre.long-value, .after-value pre.long-value {
+            font-size: 0.68rem; /* 20% smaller than 0.85rem */
+            white-space: pre;
+            word-break: normal;
+        }
+        
+        /* Custom scrollbar styling for long values */
+        .before-value pre.long-value::-webkit-scrollbar, .after-value pre.long-value::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .before-value pre.long-value::-webkit-scrollbar-track, .after-value pre.long-value::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .before-value pre.long-value::-webkit-scrollbar-thumb, .after-value pre.long-value::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .before-value pre.long-value::-webkit-scrollbar-thumb:hover, .after-value pre.long-value::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Long simple values - horizontal scroll only for ARNs, URLs, etc */
+        .long-simple-value {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            max-width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+        
+        /* Custom scrollbar for long simple values */
+        .long-simple-value::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .long-simple-value::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .long-simple-value::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        .long-simple-value::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Complex content - 5-line container with both scrolls for JSON, multiline */
+        .complex-value {
+            margin: 0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.75rem;
+            white-space: pre-wrap;
+            word-break: normal;
+            max-height: 100px; /* Exactly 5 lines with line-height 1.2 */
+            min-height: 60px;  /* Ensure it shows as a container even for short content */
+            max-width: 100%;
+            overflow: auto;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 0.5rem;
+            line-height: 1.2;
+        }
+        
+        /* Custom scrollbar styling for complex values */
+        .complex-value::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .complex-value::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .complex-value::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .complex-value::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
         
         .property-change.addition .after-value {
@@ -489,6 +598,7 @@
             background: #dee2e6;
             height: 4rem;
             margin: 0 1rem;
+            visibility: hidden;
         }
         
         .control-section {
@@ -667,7 +777,7 @@
             
         <div class="header">
             <div class="plan-name"><strong>has-changes-example</strong></div>
-            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-17 03:40:05 UTC</div>
+            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-24 15:48:13 UTC</div>
         </div>
         
             
@@ -676,15 +786,15 @@
             <div class="summary-stats">
                 <div class="stat-item create">
                     <span class="stat-number">1</span>
-                    <span class="stat-label">to create</span>
+                    <span class="stat-label">add</span>
                 </div>
                 <div class="stat-item update">
                     <span class="stat-number">0</span>
-                    <span class="stat-label">to update</span>
+                    <span class="stat-label">change</span>
                 </div>
                 <div class="stat-item delete">
-                    <span class="stat-number">0</span>
-                    <span class="stat-label">to delete</span>
+                    <span class="stat-number">1</span>
+                    <span class="stat-label">destroy</span>
                 </div>
             </div>
         </div>
@@ -696,15 +806,23 @@
                 <div class="filter-group" id="property-filters">
                     
             <label class="filter-checkbox">
-                <input type="checkbox" value="ami" > ami
+                <input type="checkbox" value="arn" > arn
             </label>
             
             <label class="filter-checkbox">
-                <input type="checkbox" value="instance_type" > instance_type
+                <input type="checkbox" value="arn_without_revision" > arn_without_revision
             </label>
             
             <label class="filter-checkbox">
-                <input type="checkbox" value="tags" > tags
+                <input type="checkbox" value="container_definitions" > container_definitions
+            </label>
+            
+            <label class="filter-checkbox">
+                <input type="checkbox" value="enable_fault_injection" > enable_fault_injection
+            </label>
+            
+            <label class="filter-checkbox">
+                <input type="checkbox" value="id" > id
             </label>
             
                 </div>
@@ -718,16 +836,15 @@
                 
         <div class="resource-groups" id="resource-groups">
             
-        <div class="resource-group" data-resource-type="aws_instance">
+        <div class="resource-group" data-resource-type="aws_ecs_task_definition">
             <div class="group-header">
-                <h3>aws_instance (1 resources)</h3>
+                <h3>aws_ecs_task_definition (1 resources)</h3>
             </div>
             <div class="group-resources">
                 
-        <div class="resource-change create" data-action="create" data-address="aws_instance.example">
+        <div class="resource-change recreate" data-action="recreate" data-address="module.ecs_service[&quot;gstream-svc-03&quot;].aws_ecs_task_definition.this[0]">
             <div class="resource-header" onclick="toggleResource(this)">
-                <span class="resource-address">aws_instance.example</span>
-                
+                <span class="resource-address">module.ecs_service[&quot;gstream-svc-03&quot;].aws_ecs_task_definition.this[0]</span>
                 <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
@@ -743,22 +860,140 @@
                 </thead>
                 <tbody>
                     
-        <tr class="property-change addition" data-property="ami">
-            <td class="property-name">ami</td>
-            <td class="before-value"><pre></pre></td>
-            <td class="after-value"><pre>ami-0123456789abcdef0</pre></td>
+        <tr class="property-change removal" data-property="enable_fault_injection">
+            <td class="property-name">enable_fault_injection</td>
+            <td class="before-value">False</td>
+            <td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>
         </tr>
         
-        <tr class="property-change addition" data-property="instance_type">
-            <td class="property-name">instance_type</td>
-            <td class="before-value"><pre></pre></td>
-            <td class="after-value"><pre>t3.micro</pre></td>
+        <tr class="property-change removal" data-property="arn_without_revision">
+            <td class="property-name">arn_without_revision</td>
+            <td class="before-value">arn:aws:ecs:us-east-2:181579366464:task-definition/gstream-svc-03</td>
+            <td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>
         </tr>
         
-        <tr class="property-change addition" data-property="tags">
-            <td class="property-name">tags.Name</td>
-            <td class="before-value"><pre></pre></td>
-            <td class="after-value"><pre>example-instance</pre></td>
+        <tr class="property-change removal" data-property="revision">
+            <td class="property-name">revision</td>
+            <td class="before-value">4</td>
+            <td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="arn">
+            <td class="property-name">arn</td>
+            <td class="before-value">arn:aws:ecs:us-east-2:181579366464:task-definition/gstream-svc-03:4</td>
+            <td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>
+        </tr>
+        
+        <tr class="property-change modification" data-property="container_definitions">
+            <td class="property-name">container_definitions</td>
+            <td class="before-value"><pre class="complex-value">[
+  {
+    &quot;command&quot;: [
+      &quot;python3 -m http.server 8080 &amp; gst-launch-1.0 -v udpsrc address=0.0.0.0 port=5024 caps=\&quot;application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS,payload=96\&quot; ! rtpjitterbuffer ! rtpopusdepay ! opusdec ! audioconvert ! voaacenc bitrate=128000 ! mux. videotestsrc is-live=true ! video/x-raw,width=4,height=4,framerate=1/1 ! videoconvert ! x264enc tune=zerolatency ! mux. flvmux name=mux streamable=true ! rtmpsink location=\&quot;rtmp://172.72.173.238:1935/track/driver6\&quot;&quot;
+    ],
+    &quot;entryPoint&quot;: [
+      &quot;/bin/bash&quot;,
+      &quot;-c&quot;
+    ],
+    &quot;environment&quot;: [],
+    &quot;essential&quot;: true,
+    &quot;image&quot;: &quot;181579366464.dkr.ecr.us-east-2.amazonaws.com/sbx-cr-01:gstream-1.7&quot;,
+    &quot;interactive&quot;: false,
+    &quot;linuxParameters&quot;: {
+      &quot;initProcessEnabled&quot;: true
+    },
+    &quot;logConfiguration&quot;: {
+      &quot;logDriver&quot;: &quot;awslogs&quot;,
+      &quot;options&quot;: {
+        &quot;awslogs-stream-prefix&quot;: &quot;gstream-svc-03&quot;,
+        &quot;awslogs-group&quot;: &quot;/ecs/gstream-svc-03&quot;,
+        &quot;awslogs-region&quot;: &quot;us-east-2&quot;
+      }
+    },
+    &quot;mountPoints&quot;: [],
+    &quot;name&quot;: &quot;gstream-pd-01&quot;,
+    &quot;portMappings&quot;: [
+      {
+        &quot;containerPort&quot;: 5024,
+        &quot;hostPort&quot;: 5024,
+        &quot;name&quot;: &quot;gstream-pd-01&quot;,
+        &quot;protocol&quot;: &quot;udp&quot;
+      },
+      {
+        &quot;containerPort&quot;: 8080,
+        &quot;hostPort&quot;: 8080,
+        &quot;name&quot;: &quot;gstream-tcp-02&quot;,
+        &quot;protocol&quot;: &quot;tcp&quot;
+      }
+    ],
+    &quot;privileged&quot;: false,
+    &quot;pseudoTerminal&quot;: false,
+    &quot;readonlyRootFilesystem&quot;: false,
+    &quot;restartPolicy&quot;: {
+      &quot;enabled&quot;: true
+    },
+    &quot;startTimeout&quot;: 30,
+    &quot;stopTimeout&quot;: 120,
+    &quot;systemControls&quot;: [],
+    &quot;versionConsistency&quot;: &quot;disabled&quot;,
+    &quot;volumesFrom&quot;: []
+  }
+]</pre></td>
+            <td class="after-value"><pre class="complex-value">[
+  {
+    &quot;command&quot;: [
+      &quot;python3 -m http.server 8080 &amp; gst-launch-1.0 -v udpsrc address=0.0.0.0 port=5024 caps=\&quot;application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS,payload=96\&quot; ! rtpjitterbuffer ! rtpopusdepay ! opusdec ! audioconvert ! voaacenc bitrate=128000 ! mux. videotestsrc is-live=true ! video/x-raw,width=4,height=4,framerate=1/1 ! videoconvert ! x264enc tune=zerolatency ! mux. flvmux name=mux streamable=true ! rtmpsink location=\&quot;rtmp://172.72.173.238:1935/track/driver6\&quot;&quot;
+    ],
+    &quot;entryPoint&quot;: [
+      &quot;/bin/bash&quot;,
+      &quot;-c&quot;
+    ],
+    &quot;essential&quot;: true,
+    &quot;image&quot;: &quot;181579366464.dkr.ecr.us-east-2.amazonaws.com/sbx-cr-01:gstream1-7&quot;,
+    &quot;interactive&quot;: false,
+    &quot;linuxParameters&quot;: {
+      &quot;initProcessEnabled&quot;: true
+    },
+    &quot;logConfiguration&quot;: {
+      &quot;logDriver&quot;: &quot;awslogs&quot;,
+      &quot;options&quot;: {
+        &quot;awslogs-group&quot;: &quot;/ecs/gstream-svc-03&quot;,
+        &quot;awslogs-region&quot;: &quot;us-east-2&quot;,
+        &quot;awslogs-stream-prefix&quot;: &quot;gstream-svc-03&quot;
+      }
+    },
+    &quot;name&quot;: &quot;gstream-pd-01&quot;,
+    &quot;portMappings&quot;: [
+      {
+        &quot;containerPort&quot;: 5024,
+        &quot;hostPort&quot;: 5024,
+        &quot;name&quot;: &quot;gstream-pd-01&quot;,
+        &quot;protocol&quot;: &quot;udp&quot;
+      },
+      {
+        &quot;containerPort&quot;: 8080,
+        &quot;hostPort&quot;: 8080,
+        &quot;name&quot;: &quot;gstream-tcp-02&quot;,
+        &quot;protocol&quot;: &quot;tcp&quot;
+      }
+    ],
+    &quot;privileged&quot;: false,
+    &quot;pseudoTerminal&quot;: false,
+    &quot;readonlyRootFilesystem&quot;: false,
+    &quot;restartPolicy&quot;: {
+      &quot;enabled&quot;: true
+    },
+    &quot;startTimeout&quot;: 30,
+    &quot;stopTimeout&quot;: 120,
+    &quot;versionConsistency&quot;: &quot;disabled&quot;
+  }
+]</pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="id">
+            <td class="property-name">id</td>
+            <td class="before-value">gstream-svc-03</td>
+            <td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>
         </tr>
         
                 </tbody>
@@ -775,44 +1010,6 @@
         
             
             
-        <div class="resource-groups">
-            <div class="resource-group" data-resource-type="outputs">
-                <div class="group-header">
-                    <h3>Outputs (1 items)</h3>
-                </div>
-                <div class="group-resources">
-                    
-            <div class="resource-change read collapsed" data-action="read" data-address="output_instance_ip">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">instance_ip</span>
-                    <span class="toggle-indicator">▼</span>
-                </div>
-                <div class="resource-details">
-                    
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="property-name">string</td>
-                                <td class="after-value"><pre>10.0.1.100</pre></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                </div>
-            </div>
-            
-                </div>
-            </div>
-        </div>
-        
             
         <div class="terminal-section">
             <div class="terminal-header">
@@ -841,7 +1038,7 @@
         
         <script>
             // Embedded plan data
-            const planData = {"summary": {"create": 1, "update": 0, "delete": 0, "has_changes": true}, "actions": ["create"], "properties": ["tags", "instance_type", "ami"]};
+            const planData = {"summary": {"create": 1, "update": 0, "delete": 1, "has_changes": true}, "actions": ["recreate"], "properties": ["ipc_mode", "arn_without_revision", "pid_mode", "tags_all", "arn", "tags", "revision", "container_definitions", "enable_fault_injection", "id"]};
             
             
         // Initialize the application
@@ -960,13 +1157,12 @@
             
             const resourceGroups = Array.from(resourceGroupsContainer.querySelectorAll('.resource-group'));
             
-            // Always use priority-based sorting: delete → recreate → update → create → read
+            // Always use priority-based sorting: delete → recreate → update → create
             const actionPriority = {
                 'delete': 1,
                 'recreate': 2, 
                 'update': 3,
-                'create': 4,
-                'read': 5
+                'create': 4
             };
             
             // Collect all resources from all groups

@@ -33,7 +33,10 @@ class ResourceChange:
     before_sensitive: Any  # Can be list, dict, or other structure from Terraform
     after_sensitive: Any   # Can be list, dict, or other structure from Terraform
     replace_paths: List[List[str]]
-    
+    after_unknown: Optional[Dict[str, Any]] = None 
+
+###
+
     @property
     def is_creation(self) -> bool:
         return self.action == ActionType.CREATE
@@ -107,10 +110,34 @@ class TerraformPlanParser:
         resource_changes = self._parse_resource_changes(
             plan_data.get("resource_changes", [])
         )
-        # Extract outputs - ADD THIS SECTION
-        outputs = plan_data.get("output_changes", {})
-        if not outputs:
-            outputs = plan_data.get("outputs", {})
+        
+        # Extract outputs (normalize to {"value", "type", "sensitive"})
+        outputs = {}
+
+        # 1) Preferred: planned_values.outputs (has final concrete values)
+        pv_outputs = plan_data.get("planned_values", {}).get("outputs", {})
+        if pv_outputs:
+            outputs = pv_outputs
+
+        # 2) Fallback: output_changes (diff form) → normalize to the same shape
+        elif plan_data.get("output_changes"):
+            outputs = {}
+            for name, oc in plan_data["output_changes"].items():
+                # Prefer the "after" value if present; otherwise keep empty
+                val = oc.get("after")
+                outputs[name] = {
+                    "value": val,
+                    "type": oc.get("type"),
+                    "sensitive": oc.get("sensitive", False),
+                }
+
+        # 3) Legacy/top-level "outputs" if present
+        elif plan_data.get("outputs"):
+            outputs = plan_data["outputs"]
+
+        # outputs = plan_data.get("output_changes", {})
+        # if not outputs:
+        #     outputs = plan_data.get("outputs", {})
         
         # Extract timestamp - ADD THIS SECTION
         timestamp = plan_data.get("timestamp")
@@ -186,7 +213,9 @@ class TerraformPlanParser:
             after=change_info.get("after"),
             before_sensitive=change_info.get("before_sensitive", []),
             after_sensitive=change_info.get("after_sensitive", []),
-            replace_paths=change_info.get("replace_paths", [])
+            replace_paths=change_info.get("replace_paths", []),
+            after_unknown=change_info.get("after_unknown", {})
+
         )
     
     def _parse_action(self, actions: List[str]) -> ActionType:
