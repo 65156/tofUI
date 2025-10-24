@@ -777,7 +777,7 @@
             
         <div class="header">
             <div class="plan-name"><strong>has-changes-example</strong></div>
-            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-24 15:15:58 UTC</div>
+            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-24 15:48:13 UTC</div>
         </div>
         
             
@@ -866,9 +866,21 @@
             <td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>
         </tr>
         
+        <tr class="property-change removal" data-property="arn_without_revision">
+            <td class="property-name">arn_without_revision</td>
+            <td class="before-value">arn:aws:ecs:us-east-2:181579366464:task-definition/gstream-svc-03</td>
+            <td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>
+        </tr>
+        
         <tr class="property-change removal" data-property="revision">
             <td class="property-name">revision</td>
             <td class="before-value">4</td>
+            <td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="arn">
+            <td class="property-name">arn</td>
+            <td class="before-value">arn:aws:ecs:us-east-2:181579366464:task-definition/gstream-svc-03:4</td>
             <td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>
         </tr>
         
@@ -984,18 +996,6 @@
             <td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>
         </tr>
         
-        <tr class="property-change removal" data-property="arn">
-            <td class="property-name">arn</td>
-            <td class="before-value">arn:aws:ecs:us-east-2:181579366464:task-definition/gstream-svc-03:4</td>
-            <td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="arn_without_revision">
-            <td class="property-name">arn_without_revision</td>
-            <td class="before-value">arn:aws:ecs:us-east-2:181579366464:task-definition/gstream-svc-03</td>
-            <td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>
-        </tr>
-        
                 </tbody>
             </table>
         </div>
@@ -1038,7 +1038,7 @@
         
         <script>
             // Embedded plan data
-            const planData = {"summary": {"create": 1, "update": 0, "delete": 1, "has_changes": true}, "actions": ["recreate"], "properties": ["arn", "enable_fault_injection", "tags_all", "ipc_mode", "revision", "pid_mode", "container_definitions", "id", "tags", "arn_without_revision"]};
+            const planData = {"summary": {"create": 1, "update": 0, "delete": 1, "has_changes": true}, "actions": ["recreate"], "properties": ["ipc_mode", "arn_without_revision", "pid_mode", "tags_all", "arn", "tags", "revision", "container_definitions", "enable_fault_injection", "id"]};
             
             
         // Initialize the application

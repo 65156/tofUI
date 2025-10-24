@@ -1169,18 +1169,23 @@ class HTMLGenerator:
         import os
         build_url = os.environ.get('BUILD_URL', self.config.get('build_url', ''))
         
-        # Get JSON URL from config (passed from CLI) or environment variable as fallback
-        json_url = self.config.get('json_url', '') or os.environ.get('TOFUI_JSON_URL', '')
-        
-        if not json_url:
-            # Fallback to relative filename if no URL provided
-            json_url = self.plan_name.replace('.html', '') + '.json'
+        # Check if debug_json is enabled before showing JSON button
+        debug_json = self.config.get('debug_json', False)
         
         buttons_html = ""
         if build_url:
             buttons_html += f'<a href="{build_url}" class="footer-btn" target="_blank">🔗 View Build</a>'
         
-        buttons_html += f'<a href="{json_url}" class="footer-btn" target="_blank">📄 View JSON</a>'
+        # Only show JSON button if debug_json flag is enabled
+        if debug_json:
+            # Get JSON URL from config (passed from CLI) or environment variable as fallback
+            json_url = self.config.get('json_url', '') or os.environ.get('TOFUI_JSON_URL', '')
+            
+            if not json_url:
+                # Fallback to relative filename if no URL provided
+                json_url = self.plan_name.replace('.html', '') + '.json'
+            
+            buttons_html += f'<a href="{json_url}" class="footer-btn" target="_blank">📄 View JSON</a>'
         
         return f"""
         <div class="footer">

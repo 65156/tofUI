@@ -208,7 +208,9 @@ class PlanAnalyzer:
         
         changes = []
         
-        for key, value in obj.items():
+        # Sort keys alphabetically for consistent display order
+        for key in sorted(obj.keys()):
+            value = obj[key]
             current_path = f"{prefix}.{key}" if prefix else key
             
             # Get the sensitive structure for this key
@@ -347,10 +349,10 @@ class PlanAnalyzer:
         
         changes = []
         
-        # Get all keys from both objects
+        # Get all keys from both objects and sort them alphabetically
         all_keys = set(before.keys()) | set(after.keys())
         
-        for key in all_keys:
+        for key in sorted(all_keys):
             current_path = f"{prefix}.{key}" if prefix else key
             before_value = before.get(key)
             after_value = after.get(key)
