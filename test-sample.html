@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>tofUI - no-changes-example</title>
+        <title>tofUI - Sample Plan Test</title>
         <style>
             
         * {
@@ -767,87 +767,244 @@
         
         </style>
     </head>
-    <body class="theme-green">
+    <body class="theme-yellow">
         <div class="container">
             
         <div class="header">
-            <div class="plan-name"><strong>no-changes-example</strong></div>
-            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-24 14:48:38 UTC</div>
+            <div class="plan-name"><strong>Sample Plan Test</strong></div>
+            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-24 14:51:32 UTC</div>
         </div>
         
             
-        <div class="no-changes-summary no-changes">
-            <div class="no-changes-icon">✅</div>
-            <h2>No Changes Detected</h2>
-            <p>Your infrastructure matches the configuration.</p>
-        </div>
-        
-            
-        <div class="resource-groups">
-            <div class="resource-group" data-resource-type="outputs">
-                <div class="group-header">
-                    <h3>Outputs (2 items)</h3>
-                </div>
-                <div class="group-resources">
-                    
-            <div class="resource-change read collapsed" data-action="read" data-address="output_app_url">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">app_url</span>
-                    <span class="toggle-indicator">▼</span>
-                </div>
-                <div class="resource-details">
-                    
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="property-name">string</td>
-                                <td class="after-value">https://app.example.com</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
                 
+        <div class="summary">
+            <div class="summary-stats">
+                <div class="stat-item create">
+                    <span class="stat-number">1</span>
+                    <span class="stat-label">add</span>
                 </div>
-            </div>
-            
-            <div class="resource-change read collapsed" data-action="read" data-address="output_vpc_id">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">vpc_id</span>
-                    <span class="toggle-indicator">▼</span>
+                <div class="stat-item update">
+                    <span class="stat-number">0</span>
+                    <span class="stat-label">change</span>
                 </div>
-                <div class="resource-details">
-                    
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="property-name">string</td>
-                                <td class="after-value">vpc-12345</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                </div>
-            </div>
-            
+                <div class="stat-item delete">
+                    <span class="stat-number">1</span>
+                    <span class="stat-label">destroy</span>
                 </div>
             </div>
         </div>
         
+                
+        <div class="filters">
+            <div class="filter-section">
+                <h3>Hide Properties</h3>
+                <div class="filter-group" id="property-filters">
+                    
+            <label class="filter-checkbox">
+                <input type="checkbox" value="arn" > arn
+            </label>
+            
+            <label class="filter-checkbox">
+                <input type="checkbox" value="arn_without_revision" > arn_without_revision
+            </label>
+            
+            <label class="filter-checkbox">
+                <input type="checkbox" value="container_definitions" > container_definitions
+            </label>
+            
+            <label class="filter-checkbox">
+                <input type="checkbox" value="enable_fault_injection" > enable_fault_injection
+            </label>
+            
+            <label class="filter-checkbox">
+                <input type="checkbox" value="id" > id
+            </label>
+            
+                </div>
+            </div>
+            <div class="filter-divider"></div>
+            <div class="control-section">
+                <button id="toggle-all" class="btn toggle-btn">Expand All</button>
+            </div>
+        </div>
+        
+                
+        <div class="resource-groups" id="resource-groups">
+            
+        <div class="resource-group" data-resource-type="aws_ecs_task_definition">
+            <div class="group-header">
+                <h3>aws_ecs_task_definition (1 resources)</h3>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change recreate" data-action="recreate" data-address="module.ecs_service[&quot;gstream-svc-03&quot;].aws_ecs_task_definition.this[0]">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">module.ecs_service[&quot;gstream-svc-03&quot;].aws_ecs_task_definition.this[0]</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change removal" data-property="id">
+            <td class="property-name">id</td>
+            <td class="before-value">gstream-svc-03</td>
+            <td class="after-value"><em class="known-after-apply">known after apply</em></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="arn">
+            <td class="property-name">arn</td>
+            <td class="before-value">arn:aws:ecs:us-east-2:181579366464:task-definition/gstream-svc-03:4</td>
+            <td class="after-value"><em class="known-after-apply">known after apply</em></td>
+        </tr>
+        
+        <tr class="property-change modification" data-property="container_definitions">
+            <td class="property-name">container_definitions</td>
+            <td class="before-value"><pre class="complex-value">[
+  {
+    &quot;command&quot;: [
+      &quot;python3 -m http.server 8080 &amp; gst-launch-1.0 -v udpsrc address=0.0.0.0 port=5024 caps=\&quot;application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS,payload=96\&quot; ! rtpjitterbuffer ! rtpopusdepay ! opusdec ! audioconvert ! voaacenc bitrate=128000 ! mux. videotestsrc is-live=true ! video/x-raw,width=4,height=4,framerate=1/1 ! videoconvert ! x264enc tune=zerolatency ! mux. flvmux name=mux streamable=true ! rtmpsink location=\&quot;rtmp://172.72.173.238:1935/track/driver6\&quot;&quot;
+    ],
+    &quot;entryPoint&quot;: [
+      &quot;/bin/bash&quot;,
+      &quot;-c&quot;
+    ],
+    &quot;environment&quot;: [],
+    &quot;essential&quot;: true,
+    &quot;image&quot;: &quot;181579366464.dkr.ecr.us-east-2.amazonaws.com/sbx-cr-01:gstream-1.7&quot;,
+    &quot;interactive&quot;: false,
+    &quot;linuxParameters&quot;: {
+      &quot;initProcessEnabled&quot;: true
+    },
+    &quot;logConfiguration&quot;: {
+      &quot;logDriver&quot;: &quot;awslogs&quot;,
+      &quot;options&quot;: {
+        &quot;awslogs-stream-prefix&quot;: &quot;gstream-svc-03&quot;,
+        &quot;awslogs-group&quot;: &quot;/ecs/gstream-svc-03&quot;,
+        &quot;awslogs-region&quot;: &quot;us-east-2&quot;
+      }
+    },
+    &quot;mountPoints&quot;: [],
+    &quot;name&quot;: &quot;gstream-pd-01&quot;,
+    &quot;portMappings&quot;: [
+      {
+        &quot;containerPort&quot;: 5024,
+        &quot;hostPort&quot;: 5024,
+        &quot;name&quot;: &quot;gstream-pd-01&quot;,
+        &quot;protocol&quot;: &quot;udp&quot;
+      },
+      {
+        &quot;containerPort&quot;: 8080,
+        &quot;hostPort&quot;: 8080,
+        &quot;name&quot;: &quot;gstream-tcp-02&quot;,
+        &quot;protocol&quot;: &quot;tcp&quot;
+      }
+    ],
+    &quot;privileged&quot;: false,
+    &quot;pseudoTerminal&quot;: false,
+    &quot;readonlyRootFilesystem&quot;: false,
+    &quot;restartPolicy&quot;: {
+      &quot;enabled&quot;: true
+    },
+    &quot;startTimeout&quot;: 30,
+    &quot;stopTimeout&quot;: 120,
+    &quot;systemControls&quot;: [],
+    &quot;versionConsistency&quot;: &quot;disabled&quot;,
+    &quot;volumesFrom&quot;: []
+  }
+]</pre></td>
+            <td class="after-value"><pre class="complex-value">[
+  {
+    &quot;command&quot;: [
+      &quot;python3 -m http.server 8080 &amp; gst-launch-1.0 -v udpsrc address=0.0.0.0 port=5024 caps=\&quot;application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS,payload=96\&quot; ! rtpjitterbuffer ! rtpopusdepay ! opusdec ! audioconvert ! voaacenc bitrate=128000 ! mux. videotestsrc is-live=true ! video/x-raw,width=4,height=4,framerate=1/1 ! videoconvert ! x264enc tune=zerolatency ! mux. flvmux name=mux streamable=true ! rtmpsink location=\&quot;rtmp://172.72.173.238:1935/track/driver6\&quot;&quot;
+    ],
+    &quot;entryPoint&quot;: [
+      &quot;/bin/bash&quot;,
+      &quot;-c&quot;
+    ],
+    &quot;essential&quot;: true,
+    &quot;image&quot;: &quot;181579366464.dkr.ecr.us-east-2.amazonaws.com/sbx-cr-01:gstream1-7&quot;,
+    &quot;interactive&quot;: false,
+    &quot;linuxParameters&quot;: {
+      &quot;initProcessEnabled&quot;: true
+    },
+    &quot;logConfiguration&quot;: {
+      &quot;logDriver&quot;: &quot;awslogs&quot;,
+      &quot;options&quot;: {
+        &quot;awslogs-group&quot;: &quot;/ecs/gstream-svc-03&quot;,
+        &quot;awslogs-region&quot;: &quot;us-east-2&quot;,
+        &quot;awslogs-stream-prefix&quot;: &quot;gstream-svc-03&quot;
+      }
+    },
+    &quot;name&quot;: &quot;gstream-pd-01&quot;,
+    &quot;portMappings&quot;: [
+      {
+        &quot;containerPort&quot;: 5024,
+        &quot;hostPort&quot;: 5024,
+        &quot;name&quot;: &quot;gstream-pd-01&quot;,
+        &quot;protocol&quot;: &quot;udp&quot;
+      },
+      {
+        &quot;containerPort&quot;: 8080,
+        &quot;hostPort&quot;: 8080,
+        &quot;name&quot;: &quot;gstream-tcp-02&quot;,
+        &quot;protocol&quot;: &quot;tcp&quot;
+      }
+    ],
+    &quot;privileged&quot;: false,
+    &quot;pseudoTerminal&quot;: false,
+    &quot;readonlyRootFilesystem&quot;: false,
+    &quot;restartPolicy&quot;: {
+      &quot;enabled&quot;: true
+    },
+    &quot;startTimeout&quot;: 30,
+    &quot;stopTimeout&quot;: 120,
+    &quot;versionConsistency&quot;: &quot;disabled&quot;
+  }
+]</pre></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="revision">
+            <td class="property-name">revision</td>
+            <td class="before-value">4</td>
+            <td class="after-value"><em class="known-after-apply">known after apply</em></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="enable_fault_injection">
+            <td class="property-name">enable_fault_injection</td>
+            <td class="before-value">False</td>
+            <td class="after-value"><em class="known-after-apply">known after apply</em></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="arn_without_revision">
+            <td class="property-name">arn_without_revision</td>
+            <td class="before-value">arn:aws:ecs:us-east-2:181579366464:task-definition/gstream-svc-03</td>
+            <td class="after-value"><em class="known-after-apply">known after apply</em></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        </div>
+        
+            
+            
             
         <div class="terminal-section">
             <div class="terminal-header">
@@ -867,7 +1024,7 @@
                     Better OpenTofu & Terraform Plans
                 </div>
                 <div class="footer-buttons">
-                    <a href="no-changes-example.json" class="footer-btn" target="_blank">📄 View JSON</a>
+                    <a href="Sample Plan Test.json" class="footer-btn" target="_blank">📄 View JSON</a>
                 </div>
             </div>
         </div>
@@ -876,7 +1033,7 @@
         
         <script>
             // Embedded plan data
-            const planData = {"summary": {"create": 0, "update": 0, "delete": 0, "has_changes": false}, "actions": [], "properties": []};
+            const planData = {"summary": {"create": 1, "update": 0, "delete": 1, "has_changes": true}, "actions": ["recreate"], "properties": ["ipc_mode", "id", "revision", "tags_all", "enable_fault_injection", "tags", "arn_without_revision", "pid_mode", "arn", "container_definitions"]};
             
             
         // Initialize the application

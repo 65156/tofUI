@@ -436,7 +436,7 @@
         }
         
         .properties-table td {
-            padding: 0.75rem; #decrease this to decrease padding between properties
+            padding: 0.5rem; #decrease this to decrease padding between properties
             border-bottom: 1px solid #dee2e6;
             vertical-align: top;
         }
@@ -772,7 +772,7 @@
             
         <div class="header">
             <div class="plan-name"><strong>has-changes-example</strong></div>
-            <div class="meta-info"><strong>Terraform Version:</strong> 1.10.0 • <strong>Generated:</strong> 2025-10-23 20:53:10 UTC</div>
+            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-24 14:48:38 UTC</div>
         </div>
         
             
@@ -784,11 +784,11 @@
                     <span class="stat-label">add</span>
                 </div>
                 <div class="stat-item update">
-                    <span class="stat-number">1</span>
+                    <span class="stat-number">0</span>
                     <span class="stat-label">change</span>
                 </div>
                 <div class="stat-item delete">
-                    <span class="stat-number">2</span>
+                    <span class="stat-number">1</span>
                     <span class="stat-label">destroy</span>
                 </div>
             </div>
@@ -817,7 +817,7 @@
             </label>
             
             <label class="filter-checkbox">
-                <input type="checkbox" value="engine_name" > engine_name
+                <input type="checkbox" value="id" > id
             </label>
             
                 </div>
@@ -831,284 +831,6 @@
                 
         <div class="resource-groups" id="resource-groups">
             
-        <div class="resource-group" data-resource-type="aws_db_option_group">
-            <div class="group-header">
-                <h3>aws_db_option_group (1 resources)</h3>
-            </div>
-            <div class="group-resources">
-                
-        <div class="resource-change delete" data-action="delete" data-address="module.db2_cluster[&quot;awispsbxdb01-login&quot;].module.db_option_group.aws_db_option_group.this[0]">
-            <div class="resource-header" onclick="toggleResource(this)">
-                <span class="resource-address">module.db2_cluster[&quot;awispsbxdb01-login&quot;].module.db_option_group.aws_db_option_group.this[0]</span>
-                <span class="toggle-indicator">▼</span>
-            </div>
-            <div class="resource-details">
-                
-        <div class="property-changes">
-            <table class="properties-table">
-                <thead>
-                    <tr>
-                        <th>Property</th>
-                        <th>Before</th>
-                        <th>After</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    
-        <tr class="property-change removal" data-property="arn">
-            <td class="property-name">arn</td>
-            <td class="before-value"><div class="long-simple-value">arn:aws:rds:us-east-2:181579366464:og:isp-awispsbxdb01-login-wlz-sbx-us-east-2-20251009200936596300000001</div></td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="engine_name">
-            <td class="property-name">engine_name</td>
-            <td class="before-value">db2-se</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="id">
-            <td class="property-name">id</td>
-            <td class="before-value">isp-awispsbxdb01-login-wlz-sbx-us-east-2-20251009200936596300000001</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="major_engine_version">
-            <td class="property-name">major_engine_version</td>
-            <td class="before-value">11.5</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="name">
-            <td class="property-name">name</td>
-            <td class="before-value">isp-awispsbxdb01-login-wlz-sbx-us-east-2-20251009200936596300000001</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="name_prefix">
-            <td class="property-name">name_prefix</td>
-            <td class="before-value">isp-awispsbxdb01-login-wlz-sbx-us-east-2-</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="option_group_description">
-            <td class="property-name">option_group_description</td>
-            <td class="before-value">isp-awispsbxdb01-login-wlz-sbx-us-east-2 option group</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="skip_destroy">
-            <td class="property-name">skip_destroy</td>
-            <td class="before-value">False</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags">
-            <td class="property-name">tags.Name</td>
-            <td class="before-value">isp-awispsbxdb01-login-wlz-sbx-us-east-2</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags">
-            <td class="property-name">tags.Terraform</td>
-            <td class="before-value">true</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags">
-            <td class="property-name">tags.architecture</td>
-            <td class="before-value">standard</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags">
-            <td class="property-name">tags.backup</td>
-            <td class="before-value">true</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags">
-            <td class="property-name">tags.backupplan</td>
-            <td class="before-value">standard-sbx-useast2-30d</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags">
-            <td class="property-name">tags.built_by</td>
-            <td class="before-value">terraform</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags">
-            <td class="property-name">tags.category</td>
-            <td class="before-value">wlz</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags">
-            <td class="property-name">tags.cost_center</td>
-            <td class="before-value">181579366464</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags">
-            <td class="property-name">tags.customer</td>
-            <td class="before-value">isp</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags">
-            <td class="property-name">tags.environment</td>
-            <td class="before-value">sbx-us-east-2</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags">
-            <td class="property-name">tags.iac_version</td>
-            <td class="before-value">1</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags">
-            <td class="property-name">tags.orchestrator</td>
-            <td class="before-value">codepipeline</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags">
-            <td class="property-name">tags.site</td>
-            <td class="before-value">primary</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags_all">
-            <td class="property-name">tags_all.Name</td>
-            <td class="before-value">isp-awispsbxdb01-login-wlz-sbx-us-east-2</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags_all">
-            <td class="property-name">tags_all.Terraform</td>
-            <td class="before-value">true</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags_all">
-            <td class="property-name">tags_all.architecture</td>
-            <td class="before-value">standard</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags_all">
-            <td class="property-name">tags_all.backup</td>
-            <td class="before-value">true</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags_all">
-            <td class="property-name">tags_all.backupplan</td>
-            <td class="before-value">standard-sbx-useast2-30d</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags_all">
-            <td class="property-name">tags_all.built_by</td>
-            <td class="before-value">terraform</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags_all">
-            <td class="property-name">tags_all.category</td>
-            <td class="before-value">wlz</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags_all">
-            <td class="property-name">tags_all.cost_center</td>
-            <td class="before-value">181579366464</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags_all">
-            <td class="property-name">tags_all.customer</td>
-            <td class="before-value">isp</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags_all">
-            <td class="property-name">tags_all.environment</td>
-            <td class="before-value">sbx-us-east-2</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags_all">
-            <td class="property-name">tags_all.iac_version</td>
-            <td class="before-value">1</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags_all">
-            <td class="property-name">tags_all.orchestrator</td>
-            <td class="before-value">codepipeline</td>
-            <td class="after-value"></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="tags_all">
-            <td class="property-name">tags_all.site</td>
-            <td class="before-value">primary</td>
-            <td class="after-value"></td>
-        </tr>
-        
-                </tbody>
-            </table>
-        </div>
-        
-            </div>
-        </div>
-        
-            </div>
-        </div>
-        
-        <div class="resource-group" data-resource-type="aws_ecs_service">
-            <div class="group-header">
-                <h3>aws_ecs_service (1 resources)</h3>
-            </div>
-            <div class="group-resources">
-                
-        <div class="resource-change update" data-action="update" data-address="module.ecs_service[&quot;gstream-svc-03&quot;].aws_ecs_service.this[0]">
-            <div class="resource-header" onclick="toggleResource(this)">
-                <span class="resource-address">module.ecs_service[&quot;gstream-svc-03&quot;].aws_ecs_service.this[0]</span>
-                <span class="toggle-indicator">▼</span>
-            </div>
-            <div class="resource-details">
-                
-        <div class="property-changes">
-            <table class="properties-table">
-                <thead>
-                    <tr>
-                        <th>Property</th>
-                        <th>Before</th>
-                        <th>After</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    
-        <tr class="property-change removal" data-property="task_definition">
-            <td class="property-name">task_definition</td>
-            <td class="before-value">arn:aws:ecs:us-east-2:181579366464:task-definition/gstream-svc-03:4</td>
-            <td class="after-value"></td>
-        </tr>
-        
-                </tbody>
-            </table>
-        </div>
-        
-            </div>
-        </div>
-        
-            </div>
-        </div>
-        
         <div class="resource-group" data-resource-type="aws_ecs_task_definition">
             <div class="group-header">
                 <h3>aws_ecs_task_definition (1 resources)</h3>
@@ -1133,15 +855,15 @@
                 </thead>
                 <tbody>
                     
-        <tr class="property-change removal" data-property="enable_fault_injection">
-            <td class="property-name">enable_fault_injection</td>
-            <td class="before-value">False</td>
-            <td class="after-value"></td>
-        </tr>
-        
         <tr class="property-change removal" data-property="id">
             <td class="property-name">id</td>
             <td class="before-value">gstream-svc-03</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="enable_fault_injection">
+            <td class="property-name">enable_fault_injection</td>
+            <td class="before-value">False</td>
             <td class="after-value"></td>
         </tr>
         
@@ -1251,15 +973,15 @@
 ]</pre></td>
         </tr>
         
-        <tr class="property-change removal" data-property="arn_without_revision">
-            <td class="property-name">arn_without_revision</td>
-            <td class="before-value">arn:aws:ecs:us-east-2:181579366464:task-definition/gstream-svc-03</td>
-            <td class="after-value"></td>
-        </tr>
-        
         <tr class="property-change removal" data-property="revision">
             <td class="property-name">revision</td>
             <td class="before-value">4</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="arn_without_revision">
+            <td class="property-name">arn_without_revision</td>
+            <td class="before-value">arn:aws:ecs:us-east-2:181579366464:task-definition/gstream-svc-03</td>
             <td class="after-value"></td>
         </tr>
         
@@ -1283,388 +1005,6 @@
         
             
             
-        <div class="resource-groups">
-            <div class="resource-group" data-resource-type="outputs">
-                <div class="group-header">
-                    <h3>Outputs (11 items)</h3>
-                </div>
-                <div class="group-resources">
-                    
-            <div class="resource-change read collapsed" data-action="read" data-address="output_current_account">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">current_account</span>
-                    <span class="toggle-indicator">▼</span>
-                </div>
-                <div class="resource-details">
-                    
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="property-name">string</td>
-                                <td class="after-value">181579366464</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                </div>
-            </div>
-            
-            <div class="resource-change read collapsed" data-action="read" data-address="output_current_region">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">current_region</span>
-                    <span class="toggle-indicator">▼</span>
-                </div>
-                <div class="resource-details">
-                    
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="property-name">string</td>
-                                <td class="after-value">us-east-2</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                </div>
-            </div>
-            
-            <div class="resource-change read collapsed" data-action="read" data-address="output_dashboard_env_region_pairs_debug">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">dashboard_env_region_pairs_debug</span>
-                    <span class="toggle-indicator">▼</span>
-                </div>
-                <div class="resource-details">
-                    
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="property-name">list(object)</td>
-                                <td class="after-value"><pre class="complex-value">[
-  {
-    &quot;dashboard_name&quot;: &quot;EC2Dashboard1&quot;,
-    &quot;environment&quot;: &quot;sbx-us-east-2&quot;,
-    &quot;region&quot;: &quot;us-east-2&quot;
-  },
-  {
-    &quot;dashboard_name&quot;: &quot;EC2Dashboard1&quot;,
-    &quot;environment&quot;: &quot;sbx-us-west-2&quot;,
-    &quot;region&quot;: &quot;us-west-2&quot;
-  },
-  {
-    &quot;dashboard_name&quot;: &quot;EC2Dashboard2&quot;,
-    &quot;environment&quot;: &quot;sbx-us-east-2&quot;,
-    &quot;region&quot;: &quot;us-east-2&quot;
-  },
-  {
-    &quot;dashboard_name&quot;: &quot;EC2Dashboard2&quot;,
-    &quot;environment&quot;: &quot;sbx-us-west-2&quot;,
-    &quot;region&quot;: &quot;us-west-2&quot;
-  }
-]</pre></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                </div>
-            </div>
-            
-            <div class="resource-change read collapsed" data-action="read" data-address="output_instance_ids">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">instance_ids</span>
-                    <span class="toggle-indicator">▼</span>
-                </div>
-                <div class="resource-details">
-                    
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="property-name">object</td>
-                                <td class="after-value"><pre class="complex-value">{
-  &quot;awispspesju01-01&quot;: &quot;i-0ee0aace69727125d&quot;,
-  &quot;awispspesnms01-01&quot;: &quot;i-0c02dbc53966c921f&quot;,
-  &quot;awispspessdi01-01&quot;: &quot;i-06cea3680abf78d71&quot;
-}</pre></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                </div>
-            </div>
-            
-            <div class="resource-change read collapsed" data-action="read" data-address="output_instance_map_debug">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">instance_map_debug</span>
-                    <span class="toggle-indicator">▼</span>
-                </div>
-                <div class="resource-details">
-                    
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="property-name">object</td>
-                                <td class="after-value"><pre class="complex-value">{
-  &quot;EC2Dashboard1_sbx-us-east-2_us-east-2&quot;: [
-    &quot;i-0ee0aace69727125d&quot;,
-    &quot;i-0c02dbc53966c921f&quot;,
-    &quot;i-06cea3680abf78d71&quot;
-  ],
-  &quot;EC2Dashboard1_sbx-us-west-2_us-west-2&quot;: [
-    &quot;i-078bee5a928c01087&quot;,
-    &quot;i-0da128d1c6297792f&quot;
-  ],
-  &quot;EC2Dashboard2_sbx-us-east-2_us-east-2&quot;: [
-    &quot;i-0ee0aace69727125d&quot;,
-    &quot;i-0c02dbc53966c921f&quot;,
-    &quot;i-06cea3680abf78d71&quot;
-  ],
-  &quot;EC2Dashboard2_sbx-us-west-2_us-west-2&quot;: [
-    &quot;i-078bee5a928c01087&quot;,
-    &quot;i-0da128d1c6297792f&quot;
-  ]
-}</pre></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                </div>
-            </div>
-            
-            <div class="resource-change read collapsed" data-action="read" data-address="output_instance_names_list_us_east_2">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">instance_names_list_us_east_2</span>
-                    <span class="toggle-indicator">▼</span>
-                </div>
-                <div class="resource-details">
-                    
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="property-name">list(string)</td>
-                                <td class="after-value"><pre class="complex-value">[
-  &quot;awispspessdi01&quot;,
-  &quot;awispspesnms01&quot;,
-  &quot;awispspesju01&quot;
-]</pre></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                </div>
-            </div>
-            
-            <div class="resource-change read collapsed" data-action="read" data-address="output_instance_names_list_us_west_2">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">instance_names_list_us_west_2</span>
-                    <span class="toggle-indicator">▼</span>
-                </div>
-                <div class="resource-details">
-                    
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="property-name">list(string)</td>
-                                <td class="after-value"><pre class="complex-value">[
-  &quot;awispspesju02&quot;,
-  &quot;awispspesju03&quot;
-]</pre></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                </div>
-            </div>
-            
-            <div class="resource-change read collapsed" data-action="read" data-address="output_secrets_manager_arn">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">secrets_manager_arn</span>
-                    <span class="toggle-indicator">▼</span>
-                </div>
-                <div class="resource-details">
-                    
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="property-name">string</td>
-                                <td class="after-value">arn:aws:secretsmanager:us-east-2:181579366464:secret:prod/log-forwarder/ibm-cloud-api-key-x91-RwQlSI</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                </div>
-            </div>
-            
-            <div class="resource-change read collapsed" data-action="read" data-address="output_ssm_parameters">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">ssm_parameters</span>
-                    <span class="toggle-indicator">▼</span>
-                </div>
-                <div class="resource-details">
-                    
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="property-name">object</td>
-                                <td class="after-value"><pre class="complex-value">{
-  &quot;ibm_api_url&quot;: &quot;/prod/log-forwarder/ibm-logs-api-url&quot;,
-  &quot;qradar_host&quot;: &quot;/prod/log-forwarder/qradar-syslog-host&quot;,
-  &quot;qradar_port&quot;: &quot;/prod/log-forwarder/qradar-syslog-port&quot;
-}</pre></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                </div>
-            </div>
-            
-            <div class="resource-change read collapsed" data-action="read" data-address="output_volume_map_debug">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">volume_map_debug</span>
-                    <span class="toggle-indicator">▼</span>
-                </div>
-                <div class="resource-details">
-                    
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="property-name">object</td>
-                                <td class="after-value"><pre class="complex-value">{
-  &quot;EC2Dashboard1_sbx-us-east-2_us-east-2&quot;: [
-    &quot;vol-009bd3bbc7bba458d&quot;,
-    &quot;vol-0b3179113eafba4a9&quot;,
-    &quot;vol-0d732baa54eb5afb2&quot;
-  ],
-  &quot;EC2Dashboard1_sbx-us-west-2_us-west-2&quot;: [
-    &quot;vol-01716cb12dc1d71c4&quot;,
-    &quot;vol-0d93a485f6fa7867e&quot;
-  ],
-  &quot;EC2Dashboard2_sbx-us-east-2_us-east-2&quot;: [
-    &quot;vol-009bd3bbc7bba458d&quot;,
-    &quot;vol-0b3179113eafba4a9&quot;,
-    &quot;vol-0d732baa54eb5afb2&quot;
-  ],
-  &quot;EC2Dashboard2_sbx-us-west-2_us-west-2&quot;: [
-    &quot;vol-01716cb12dc1d71c4&quot;,
-    &quot;vol-0d93a485f6fa7867e&quot;
-  ]
-}</pre></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                </div>
-            </div>
-            
-            <div class="resource-change read collapsed" data-action="read" data-address="output_volume_tags_passed">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">volume_tags_passed</span>
-                    <span class="toggle-indicator">▼</span>
-                </div>
-                <div class="resource-details">
-                    
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="property-name">object</td>
-                                <td class="after-value"></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                </div>
-            </div>
-            
-                </div>
-            </div>
-        </div>
-        
             
         <div class="terminal-section">
             <div class="terminal-header">
@@ -1693,7 +1033,7 @@
         
         <script>
             // Embedded plan data
-            const planData = {"summary": {"create": 1, "update": 1, "delete": 2, "has_changes": true}, "actions": ["update", "recreate", "delete"], "properties": ["revision", "name_prefix", "pid_mode", "major_engine_version", "enable_fault_injection", "option_group_description", "id", "engine_name", "tags_all", "name", "container_definitions", "arn", "ipc_mode", "arn_without_revision", "tags", "skip_destroy", "task_definition"]};
+            const planData = {"summary": {"create": 1, "update": 0, "delete": 1, "has_changes": true}, "actions": ["recreate"], "properties": ["tags", "tags_all", "container_definitions", "revision", "id", "enable_fault_injection", "pid_mode", "arn_without_revision", "ipc_mode", "arn"]};
             
             
         // Initialize the application

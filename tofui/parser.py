@@ -33,7 +33,10 @@ class ResourceChange:
     before_sensitive: Any  # Can be list, dict, or other structure from Terraform
     after_sensitive: Any   # Can be list, dict, or other structure from Terraform
     replace_paths: List[List[str]]
-    
+    after_unknown: Optional[Dict[str, Any]] = None 
+
+###
+
     @property
     def is_creation(self) -> bool:
         return self.action == ActionType.CREATE
@@ -210,7 +213,9 @@ class TerraformPlanParser:
             after=change_info.get("after"),
             before_sensitive=change_info.get("before_sensitive", []),
             after_sensitive=change_info.get("after_sensitive", []),
-            replace_paths=change_info.get("replace_paths", [])
+            replace_paths=change_info.get("replace_paths", []),
+            after_unknown=change_info.get("after_unknown", {})
+
         )
     
     def _parse_action(self, actions: List[str]) -> ActionType:

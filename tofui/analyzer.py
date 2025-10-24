@@ -183,7 +183,8 @@ class PlanAnalyzer:
                 resource_change.after or {},
                 "",
                 resource_change.before_sensitive or [],
-                resource_change.after_sensitive or []
+                resource_change.after_sensitive or [],
+                resource_change.after_unknown or {} 
             )
         
         return AnalyzedResourceChange(
@@ -315,19 +316,19 @@ class PlanAnalyzer:
         # Any other value (False, None, etc.) means not sensitive
         return False
     
-    def _is_path_sensitive(self, path: str, sensitive_paths: List[str]) -> bool:
-        """
-        Legacy method - kept for backward compatibility but should not be used
-        with the new sensitive structure handling.
-        """
-        if not sensitive_paths:
-            return False
+    # def _is_path_sensitive(self, path: str, sensitive_paths: List[str]) -> bool:
+    #     """
+    #     Legacy method - kept for backward compatibility but should not be used
+    #     with the new sensitive structure handling.
+    #     """
+    #     if not sensitive_paths:
+    #         return False
             
-        # Direct path match
-        if path in sensitive_paths:
-            return True
+    #     # Direct path match
+    #     if path in sensitive_paths:
+    #         return True
             
-        return False
+    #     return False
     
     def _compare_objects(
         self, 
@@ -336,6 +337,7 @@ class PlanAnalyzer:
         prefix: str,
         before_sensitive: Any,
         after_sensitive: Any,
+        after_unknown: Dict[str, Any] = None,  # Add this parameter
         depth: int = 0
     ) -> List[PropertyChange]:
         """Compare two objects and extract the differences"""
@@ -370,14 +372,15 @@ class PlanAnalyzer:
             if before_value == after_value:
                 continue
 
-            # 🔽 Handle Terraform "known after apply"
-            if isinstance(after_value, dict) and after_value.get("after_unknown") is True:
+            is_computed = self._is_property_unknown(current_path, after_unknown)
+
+            if is_computed:
                 changes.append(PropertyChange(
                     property_path=current_path,
                     before_value=before_value,
                     after_value=None,
                     is_sensitive=is_sensitive,
-                    is_computed=True,   # <-- mark it here
+                    is_computed=True
                 ))
                 continue
 
@@ -388,6 +391,7 @@ class PlanAnalyzer:
                     current_path,
                     before_sensitive_for_key,
                     after_sensitive_for_key,
+                    self._get_nested_after_unknown(after_unknown, key),  # Add this
                     depth + 1
                 )
                 changes.extend(nested_changes)
@@ -396,8 +400,7 @@ class PlanAnalyzer:
                     property_path=current_path,
                     before_value=before_value,
                     after_value=after_value,
-                    is_sensitive=is_sensitive,
-                    is_computed=False
+                    is_sensitive=is_sensitive
                 ))
         
         return changes
@@ -418,6 +421,55 @@ class PlanAnalyzer:
         resource_groups.sort(key=lambda g: g.resource_type)
         return resource_groups
     
+    def _is_property_unknown(self, property_path: str, after_unknown: Dict[str, Any]) -> bool:
+        """
+        Check if a property path is marked as unknown (known after apply) in the after_unknown structure.
+        
+        Args:
+            property_path: The full property path (e.g., "tags.Name" or "container_definitions")
+            after_unknown: The after_unknown structure from the resource change
+            
+        Returns:
+            bool: True if the property will be known after apply
+        """
+        if not after_unknown:
+            return False
+        
+        # Check for direct path match
+        if after_unknown.get(property_path) is True:
+            return True
+        
+        # Check for parent path match (for nested properties)
+        path_parts = property_path.split('.')
+        for i in range(len(path_parts)):
+            parent_path = '.'.join(path_parts[:i+1])
+            if after_unknown.get(parent_path) is True:
+                return True
+        
+        return False
+
+    def _get_nested_after_unknown(self, after_unknown: Dict[str, Any], key: str) -> Dict[str, Any]:
+        """
+        Get the nested after_unknown structure for a specific key.
+        
+        Args:
+            after_unknown: The parent after_unknown structure
+            key: The key to look up
+            
+        Returns:
+            Dict[str, Any]: The nested after_unknown structure for the key
+        """
+        if not after_unknown:
+            return {}
+        
+        # If the after_unknown structure contains nested objects for this key, return it
+        nested = after_unknown.get(key, {})
+        if isinstance(nested, dict):
+            return nested
+        
+        # Otherwise return empty dict
+        return {}
+
     def _calculate_action_counts(self, analyzed_changes: List[AnalyzedResourceChange]) -> Dict[ActionType, int]:
         """Calculate counts of each action type"""
         counts = defaultdict(int)

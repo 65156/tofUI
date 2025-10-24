@@ -309,7 +309,6 @@ class HTMLGenerator:
         known_after_apply = (
             action in (ActionType.UPDATE, ActionType.RECREATE)
             and prop_change.is_computed
-            and not prop_change.is_removal
         )
 
         # after
@@ -1656,7 +1655,7 @@ class HTMLGenerator:
         }
         
         .properties-table td {
-            padding: 0.75rem; #decrease this to decrease padding between properties
+            padding: 0.5rem; #decrease this to decrease padding between properties
             border-bottom: 1px solid #dee2e6;
             vertical-align: top;
         }
