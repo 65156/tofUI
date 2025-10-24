@@ -348,7 +348,7 @@ class HTMLGenerator:
         before_html = generate_value_html(before_value, before_mode, "before-value")
 
         if known_after_apply:
-            after_html = '<td class="after-value"><em class="known-after-apply">known after apply</em></td>'
+            after_html = '<td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>'
         else:
             after_html = generate_value_html(after_value, after_mode, "after-value")
         return f"""
@@ -1255,9 +1255,14 @@ class HTMLGenerator:
         }
         
         .known-after-apply {
-            color: #6c757d;
+            color: #a3c5a8;
             font-style: italic;
-            opacity: 0.7;
+            opacity: 0.8;
+        }
+
+        .known-after-apply-cell {
+            background: #d4edda !important;
+            color: #155724;
         }
 
         .plan-name {
