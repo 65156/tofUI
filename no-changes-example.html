@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Terraplan Report - no-changes-example</title>
+        <title>tofUI - no-changes-example</title>
         <style>
             
         * {
@@ -35,6 +35,12 @@
             text-align: center;
         }
         
+        .known-after-apply {
+            color: #6c757d;
+            font-style: italic;
+            opacity: 0.7;
+        }
+
         .plan-name {
             margin: 0;
             font-size: 1.2rem;
@@ -231,17 +237,6 @@
             flex: 1;
         }
         
-        .dependency-indicator {
-            font-size: 1.1rem;
-            margin-left: 0.5rem;
-            cursor: help;
-            opacity: 0.8;
-        }
-        
-        .dependency-indicator:hover {
-            opacity: 1;
-        }
-        
         .toggle-indicator {
             transition: transform 0.2s;
         }
@@ -428,6 +423,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.9rem;
+            table-layout: fixed; /* Use fixed layout for better column control */
         }
         
         .properties-table th {
@@ -440,7 +436,7 @@
         }
         
         .properties-table td {
-            padding: 0.75rem;
+            padding: 0.75rem; #decrease this to decrease padding between properties
             border-bottom: 1px solid #dee2e6;
             vertical-align: top;
         }
@@ -454,6 +450,8 @@
         
         .before-value, .after-value {
             width: 37.5%;
+            max-width: 37.5%;
+            min-width: 0; /* Allow shrinking */
         }
         
         .before-value pre, .after-value pre {
@@ -462,6 +460,112 @@
             font-size: 0.85rem;
             white-space: pre-wrap;
             word-break: break-all;
+            /* Apply consistent constraints to ALL pre elements */
+            max-height: 200px;
+            max-width: 100%;
+            overflow: auto;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 0.5rem;
+        }
+        
+        /* Styling for long values - additional styling for complex content */
+        .before-value pre.long-value, .after-value pre.long-value {
+            font-size: 0.68rem; /* 20% smaller than 0.85rem */
+            white-space: pre;
+            word-break: normal;
+        }
+        
+        /* Custom scrollbar styling for long values */
+        .before-value pre.long-value::-webkit-scrollbar, .after-value pre.long-value::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .before-value pre.long-value::-webkit-scrollbar-track, .after-value pre.long-value::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .before-value pre.long-value::-webkit-scrollbar-thumb, .after-value pre.long-value::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .before-value pre.long-value::-webkit-scrollbar-thumb:hover, .after-value pre.long-value::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Long simple values - horizontal scroll only for ARNs, URLs, etc */
+        .long-simple-value {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            max-width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+        
+        /* Custom scrollbar for long simple values */
+        .long-simple-value::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .long-simple-value::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .long-simple-value::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        .long-simple-value::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Complex content - 5-line container with both scrolls for JSON, multiline */
+        .complex-value {
+            margin: 0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.75rem;
+            white-space: pre-wrap;
+            word-break: normal;
+            max-height: 100px; /* Exactly 5 lines with line-height 1.2 */
+            min-height: 60px;  /* Ensure it shows as a container even for short content */
+            max-width: 100%;
+            overflow: auto;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 0.5rem;
+            line-height: 1.2;
+        }
+        
+        /* Custom scrollbar styling for complex values */
+        .complex-value::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .complex-value::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .complex-value::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .complex-value::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
         }
         
         .property-change.addition .after-value {
@@ -489,6 +593,7 @@
             background: #dee2e6;
             height: 4rem;
             margin: 0 1rem;
+            visibility: hidden;
         }
         
         .control-section {
@@ -667,7 +772,7 @@
             
         <div class="header">
             <div class="plan-name"><strong>no-changes-example</strong></div>
-            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-17 03:40:05 UTC</div>
+            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-23 20:53:10 UTC</div>
         </div>
         
             
@@ -681,7 +786,7 @@
         <div class="resource-groups">
             <div class="resource-group" data-resource-type="outputs">
                 <div class="group-header">
-                    <h3>Outputs (1 items)</h3>
+                    <h3>Outputs (2 items)</h3>
                 </div>
                 <div class="group-resources">
                     
@@ -702,8 +807,35 @@
                         </thead>
                         <tbody>
                             <tr class="property-change">
-                                <td class="property-name">unknown</td>
-                                <td class="after-value"><pre></pre></td>
+                                <td class="property-name">string</td>
+                                <td class="after-value">https://app.example.com</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                </div>
+            </div>
+            
+            <div class="resource-change read collapsed" data-action="read" data-address="output_vpc_id">
+                <div class="resource-header" onclick="toggleResource(this)">
+                    <span class="resource-address">vpc_id</span>
+                    <span class="toggle-indicator">▼</span>
+                </div>
+                <div class="resource-details">
+                    
+                <div class="property-changes">
+                    <table class="properties-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="property-change">
+                                <td class="property-name">string</td>
+                                <td class="after-value">vpc-12345</td>
                             </tr>
                         </tbody>
                     </table>
@@ -863,13 +995,12 @@
             
             const resourceGroups = Array.from(resourceGroupsContainer.querySelectorAll('.resource-group'));
             
-            // Always use priority-based sorting: delete → recreate → update → create → read
+            // Always use priority-based sorting: delete → recreate → update → create
             const actionPriority = {
                 'delete': 1,
                 'recreate': 2, 
                 'update': 3,
-                'create': 4,
-                'read': 5
+                'create': 4
             };
             
             // Collect all resources from all groups

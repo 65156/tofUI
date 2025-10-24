@@ -358,21 +358,33 @@ class PlanAnalyzer:
             after_sensitive_for_key = self._get_sensitive_for_key(after_sensitive, key)
             
             # Check if either value is marked as sensitive
-            is_sensitive = (self._is_value_sensitive(before_value, before_sensitive_for_key) or 
-                          self._is_value_sensitive(after_value, after_sensitive_for_key))
+            is_sensitive = (
+                self._is_value_sensitive(before_value, before_sensitive_for_key) 
+                or self._is_value_sensitive(after_value, after_sensitive_for_key)
+                )
             
             # Skip empty values unless they're sensitive or there's an actual change
             if not is_sensitive and before_value == after_value and self._should_skip_empty_value(after_value):
                 continue
             
             if before_value == after_value:
-                # No change
                 continue
+
+            # 🔽 Handle Terraform "known after apply"
+            if isinstance(after_value, dict) and after_value.get("after_unknown") is True:
+                changes.append(PropertyChange(
+                    property_path=current_path,
+                    before_value=before_value,
+                    after_value=None,
+                    is_sensitive=is_sensitive,
+                    is_computed=True,   # <-- mark it here
+                ))
+                continue
+
             elif isinstance(before_value, dict) and isinstance(after_value, dict) and not is_sensitive:
-                # Both are dicts, compare recursively
                 nested_changes = self._compare_objects(
-                    before_value, 
-                    after_value, 
+                    before_value,
+                    after_value,
                     current_path,
                     before_sensitive_for_key,
                     after_sensitive_for_key,
@@ -380,12 +392,12 @@ class PlanAnalyzer:
                 )
                 changes.extend(nested_changes)
             else:
-                # Value changed
                 changes.append(PropertyChange(
                     property_path=current_path,
                     before_value=before_value,
                     after_value=after_value,
-                    is_sensitive=is_sensitive
+                    is_sensitive=is_sensitive,
+                    is_computed=False
                 ))
         
         return changes
@@ -415,34 +427,63 @@ class PlanAnalyzer:
         
         return dict(counts)
     
-    def format_value_for_display(self, value: Any) -> tuple[str, bool]:
+    def format_value_for_display(self, value: Any) -> tuple[str, str]:
         """
         Format a value for display in the HTML report.
         
         Returns:
-            tuple: (formatted_value, is_long_value)
+            tuple: (formatted_value, display_mode)
                 - formatted_value: The formatted string to display
-                - is_long_value: True if this should be displayed in a scrollable container
+                - display_mode: 'simple', 'long_simple', 'complex', or 'empty'
         """
-        if value is None:
-            return "<null>", False
-        elif isinstance(value, bool):
-            return "true" if value else "false", False
-        elif isinstance(value, (dict, list)):
-            # Pretty print JSON - never truncate
-            json_str = json.dumps(value, indent=2, default=str)
-            # Consider it "long" if it has multiple lines or is over 150 characters
-            is_long = '\n' in json_str or len(json_str) > 150
-            return json_str, is_long
-        elif isinstance(value, str):
-            # Escape HTML but never truncate
-            escaped = value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-            # Consider it "long" if it's over 100 characters or has multiple lines
-            is_long = len(escaped) > 100 or '\n' in escaped
-            return escaped, is_long
-        else:
-            # Convert to string but never truncate
-            str_value = str(value)
-            # Consider it "long" if it's over 100 characters
-            is_long = len(str_value) > 100
-            return str_value, is_long
+        # Treat true empties as empty
+        if value is None or value == "":
+            return "", "empty"
+
+        # Native containers
+        if isinstance(value, (dict, list)):
+            if not value:  # {} or []
+                return "", "empty"
+            json_str = json.dumps(value, indent=2, ensure_ascii=False, default=str)
+            return json_str, "complex"
+
+        # Strings (may contain JSON)
+        if isinstance(value, str):
+            s = value.strip()
+
+            # String forms of empties / null
+            if s in ("", "{}", "[]", "null", "None"):
+                return "", "empty"
+
+            # Try to parse JSON-in-strings
+            if (s.startswith("{") and s.endswith("}")) or (s.startswith("[") and s.endswith("]")):
+                try:
+                    parsed = json.loads(s)
+                    # If parsed to empty container or null → empty
+                    if parsed is None:
+                        return "", "empty"
+                    if isinstance(parsed, (dict, list)) and not parsed:
+                        return "", "empty"
+                    if isinstance(parsed, (dict, list)):
+                        return json.dumps(parsed, indent=2, ensure_ascii=False), "complex"
+                except Exception:
+                    pass  # not actually JSON—fall through
+
+            # Non-JSON strings: normal handling
+            escaped = (value
+                    .replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;"))
+            if "\n" in escaped:
+                return escaped, "complex"
+            if len(escaped) > 100:
+                return escaped, "long_simple"
+            return escaped, "simple"
+
+        # Fallback scalars
+        s = str(value)
+        if s in ("", "None"):
+            return "", "empty"
+        if len(s) > 100:
+            return s, "long_simple"
+        return s, "simple"

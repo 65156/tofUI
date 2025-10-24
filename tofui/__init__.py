@@ -1,12 +1,12 @@
 """
-tofUI - Beautiful Terraform Plan Reports
+tofUI - Beautiful Infrastructure Plans
 
-A Python package for generating beautiful, interactive HTML reports from terraform JSON plans.
+A Python package for generating beautiful, interactive HTML reports from openTofu and terraform JSON plans.
 """
 
-__version__ = "0.8.0"
+__version__ = "0.8.2"
 __author__ = "tofUI"
-__description__ = "Better Terraform Plan Reports"
+__description__ = "Beautiful OpenTofu and Terraform Infrastructure Plans"
 
 from .parser import TerraformPlanParser
 from .generator import HTMLGenerator
