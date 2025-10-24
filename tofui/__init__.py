@@ -4,7 +4,7 @@ tofUI - Beautiful Infrastructure Plans
 A Python package for generating beautiful, interactive HTML reports from openTofu and terraform JSON plans.
 """
 
-__version__ = "0.8.2"
+__version__ = "0.8.5"
 __author__ = "tofUI"
 __description__ = "Beautiful OpenTofu and Terraform Infrastructure Plans"
 
