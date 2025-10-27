@@ -567,33 +567,49 @@ class HTMLGenerator:
     
     def _extract_errors_from_text(self, text: str) -> List[Dict[str, str]]:
         """Extract error messages from text output"""
-        errors = []
-        lines = text.split('\n')
+        # First try to parse Terraform-style blocks
+        terraform_blocks = self._parse_terraform_blocks(text)
         
-        for line in lines:
-            line = line.strip()
-            if any(keyword in line.lower() for keyword in ['error:', 'failed:', 'fatal:']):
-                errors.append({
-                    'type': 'error',
-                    'message': line,
-                    'detail': ''
-                })
+        errors = []
+        for block in terraform_blocks:
+            if block['type'] == 'error':
+                errors.append(block)
+        
+        # If no Terraform blocks found, fall back to generic parsing
+        if not errors:
+            lines = text.split('\n')
+            for line in lines:
+                line = line.strip()
+                if any(keyword in line.lower() for keyword in ['error:', 'failed:', 'fatal:']):
+                    errors.append({
+                        'type': 'error',
+                        'message': line,
+                        'detail': ''
+                    })
         
         return errors
     
     def _extract_warnings_from_text(self, text: str) -> List[Dict[str, str]]:
         """Extract warning messages from text output"""
-        warnings = []
-        lines = text.split('\n')
+        # First try to parse Terraform-style blocks
+        terraform_blocks = self._parse_terraform_blocks(text)
         
-        for line in lines:
-            line = line.strip()
-            if any(keyword in line.lower() for keyword in ['warning:', 'warn:']):
-                warnings.append({
-                    'type': 'warning',
-                    'message': line,
-                    'detail': ''
-                })
+        warnings = []
+        for block in terraform_blocks:
+            if block['type'] == 'warning':
+                warnings.append(block)
+        
+        # If no Terraform blocks found, fall back to generic parsing
+        if not warnings:
+            lines = text.split('\n')
+            for line in lines:
+                line = line.strip()
+                if any(keyword in line.lower() for keyword in ['warning:', 'warn:']):
+                    warnings.append({
+                        'type': 'warning',
+                        'message': line,
+                        'detail': ''
+                    })
         
         return warnings
     
@@ -644,6 +660,116 @@ class HTMLGenerator:
                     })
         
         return warnings
+    
+    def _parse_terraform_blocks(self, text: str) -> List[Dict[str, str]]:
+        """Parse Terraform-style error/warning blocks with box-drawing characters"""
+        blocks = []
+        lines = text.split('\n')
+        
+        i = 0
+        while i < len(lines):
+            line = lines[i].rstrip()
+            
+            # Look for start of Terraform block (╷)
+            if line == '╷':
+                block_lines = []
+                i += 1
+                
+                # Collect all lines until we hit the end marker (╵) or end of text
+                while i < len(lines):
+                    current_line = lines[i].rstrip()
+                    if current_line == '╵':
+                        # End of block found
+                        break
+                    block_lines.append(current_line)
+                    i += 1
+                
+                # Parse the collected block
+                if block_lines:
+                    parsed_block = self._parse_single_terraform_block(block_lines)
+                    if parsed_block:
+                        blocks.append(parsed_block)
+            
+            i += 1
+        
+        return blocks
+    
+    def _parse_single_terraform_block(self, block_lines: List[str]) -> Optional[Dict[str, str]]:
+        """Parse a single Terraform error/warning block"""
+        if not block_lines:
+            return None
+        
+        # Remove box-drawing characters and clean up lines
+        cleaned_lines = []
+        for line in block_lines:
+            # Remove leading │ and whitespace
+            cleaned = line.lstrip('│ ').rstrip()
+            if cleaned:  # Skip empty lines
+                cleaned_lines.append(cleaned)
+        
+        if not cleaned_lines:
+            return None
+        
+        # Determine if this is an error or warning
+        first_line = cleaned_lines[0].lower()
+        block_type = 'error'
+        if 'warning:' in first_line:
+            block_type = 'warning'
+        elif 'error:' in first_line:
+            block_type = 'error'
+        
+        # Extract the main message (first line after removing Error:/Warning: prefix)
+        message = cleaned_lines[0]
+        if ':' in message:
+            message = message.split(':', 1)[1].strip()
+        
+        # Extract context information
+        file_info = ""
+        line_number = ""
+        resource_info = ""
+        detail_lines = []
+        
+        # Look for context lines (with, on, etc.)
+        detail_start_idx = 1
+        for i, line in enumerate(cleaned_lines[1:], 1):
+            if line.strip().startswith('with '):
+                resource_info = line.strip()
+                detail_start_idx = i + 1
+            elif line.strip().startswith('on '):
+                # Extract file and line info: "on main.tf line 15, in ..."
+                file_info = line.strip()
+                if ' line ' in file_info:
+                    parts = file_info.split(' line ')
+                    if len(parts) >= 2:
+                        file_path = parts[0].replace('on ', '').strip()
+                        line_part = parts[1].split(',')[0].strip()
+                        if line_part.isdigit():
+                            line_number = line_part
+                            file_info = f"{file_path}:{line_number}"
+                detail_start_idx = i + 1
+            elif line.strip() and not line.strip().startswith(('with ', 'on ')):
+                break
+        
+        # Collect remaining lines as detail
+        detail_lines = cleaned_lines[detail_start_idx:]
+        detail = '\n'.join(detail_lines).strip()
+        
+        # Create structured error info
+        result = {
+            'type': block_type,
+            'message': message,
+            'detail': detail
+        }
+        
+        # Add metadata if available
+        if file_info:
+            result['file'] = file_info
+        if resource_info:
+            result['resource'] = resource_info
+        if line_number:
+            result['line'] = line_number
+        
+        return result
     
     def _generate_error_html(self, processed_errors: Dict[str, Any]) -> str:
         """Generate complete HTML for error report"""
@@ -701,9 +827,9 @@ class HTMLGenerator:
         if processed_errors['has_errors']:
             content += self._generate_errors_section(processed_errors['errors'])
         
-        # Add warnings section  
-        if processed_errors['has_warnings']:
-            content += self._generate_warnings_section(processed_errors['warnings'])
+        # Note: Warnings are not displayed in error reports as requested
+        # if processed_errors['has_warnings']:
+        #     content += self._generate_warnings_section(processed_errors['warnings'])
         
         # Add raw output section
         if processed_errors['raw_output']:
