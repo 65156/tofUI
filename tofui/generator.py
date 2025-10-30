@@ -17,7 +17,7 @@ class HTMLGenerator:
     """Generates interactive HTML reports from terraform plan analysis"""
     
     def __init__(self):
-        self.plan_name = "Terraform Plan"
+        self.plan_name = "Infrastructure Plan"
         self.timestamp = datetime.utcnow()
     
     def generate_report(
@@ -30,7 +30,7 @@ class HTMLGenerator:
     ) -> str:
         """Generate a complete HTML report from plan analysis"""
         
-        self.plan_name = plan_name or "Terraform Plan"
+        self.plan_name = plan_name or "Infrastructure Plan"
         self.config = config or {}
         
         # Generate the complete HTML content
@@ -54,7 +54,7 @@ class HTMLGenerator:
     ) -> str:
         """Generate an error report for terraform failures"""
         
-        self.plan_name = plan_name or "Terraform Error Report"
+        self.plan_name = plan_name or "tofUI Error Report"
         self.config = config or {}
         
         # Process error data
@@ -780,7 +780,7 @@ class HTMLGenerator:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terraform Error Report - {html.escape(self.plan_name)}</title>
+    <title>tofUI Error Report - {html.escape(self.plan_name)}</title>
     <style>
         {self._get_embedded_css()}
         {self._get_error_specific_css()}
