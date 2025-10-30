@@ -50,6 +50,7 @@ setup(
     ],
     extras_require={
         "s3": ["boto3>=1.26.0"],
+        "ghpages": ["requests>=2.28.0"],
         "dev": [
             "pytest>=7.0.0",
             "pytest-cov>=4.0.0",

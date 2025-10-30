@@ -2,54 +2,51 @@
 
 **Better OpenTofu & Terraform Plan **
 
-Generate stunning, interactive HTML reports from your terraform JSON plans. Lightweight core with optional S3 integration.
+Generate beautiful interactive HTML reports from your OpenTofu & Terraform JSON plan outputs. Lightweight core with optional S3 and GitHub Pages integration.
 
 ## Interactive Examples
 - https://65156.github.io/tofUI/has-changes-example.html
 - https://65156.github.io/tofUI/has-errors-example.html
 - https://65156.github.io/tofUI/no-changes-example.html
 
-## Features ✨
-
-- **🔍 Interactive Analysis** - Expandable/collapsible sections, action filtering, property hiding
-- **📊 Smart Grouping** - Resources organized by action priority with visual indicators  
-- **🚀 Minimal Dependencies** - Lightweight core with optional S3 support
-- **☁️ S3 Integration** - Optional direct upload to S3 buckets
-- **💻 CLI Ready** - Simple command-line interface
-- **📱 Mobile Friendly** - Works perfectly on all device sizes
-- **⚡ Fast & Lightweight** - Pure Python with embedded CSS/JS
-
 ## Installation
 
+### From Source
+
 ```bash
-# Basic installation
-pip install tofui
-
-# With S3 support
-pip install tofui[s3]
-
-# With GitHub Pages support
-pip install tofui[ghpages]
-
-# With both S3 and GitHub Pages support
-pip install tofui[s3,ghpages]
-
-# Development version (basic)
+# Basic installation from GitHub
 pip install git+https://github.com/65156/tofUI.git
 
-# Development version with S3 support
-pip install git+https://github.com/65156/tofUI.git[s3]
+# With S3 support
+pip install "git+https://github.com/65156/tofUI.git#egg=tofui[s3]"
 
-# Development version with GitHub Pages support
-pip install git+https://github.com/65156/tofUI.git[ghpages]
+# With GitHub Pages support  
+pip install "git+https://github.com/65156/tofUI.git#egg=tofui[ghpages]"
+
+# With both S3 and GitHub Pages support
+pip install "git+https://github.com/65156/tofUI.git#egg=tofui[s3,ghpages]"
+```
+
+### Development Installation
+
+For local development:
+
+```bash
+# Clone and install in development mode
+git clone https://github.com/65156/tofUI.git
+cd tofUI
+pip install -e .
+
+# With optional dependencies
+pip install -e .[ghpages]
 ```
 
 ## Quick Start
 
 1. **Generate terraform plan JSON:**
 ```bash
-terraform plan -out=plan.tfplan
-terraform show -json plan.tfplan > plan.json
+terraform plan -out=plan
+terraform show -json plan > plan.json
 ```
 
 2. **Create beautiful report:**
@@ -57,28 +54,7 @@ terraform show -json plan.tfplan > plan.json
 tofui plan.json
 ```
 
-3. **Open in browser:**
-```bash
-# Opens plan.html
-open plan.html
-```
-
 ## Usage Examples
-
-### Basic Usage
-```bash
-# Generate report with default settings
-tofui plan.json
-
-# Custom plan name and output
-tofui plan.json --name "Production Deploy"
-
-# With configuration file
-tofui plan.json --name "Staging" --config tofui-config.json
-
-# Verbose output
-tofui plan.json --verbose
-```
 
 ### S3 Integration
 ```bash
@@ -100,14 +76,14 @@ tofui plan.json \
   --batch-folder "batch-2024-10-13" \
   --build-name "production"
 
-# With custom GitHub token
+# With direct GitHub token passthrough
 tofui plan.json \
   --github-pages owner/terraform-reports \
   --github-token "ghp_xxxxxxxxxxxx" \
   --batch-folder "nightly-tests" \
   --build-name "integration-suite"
 
-# Using environment variable for token
+# Using environment variable for GitHub token
 export GITHUB_TOKEN="ghp_xxxxxxxxxxxx"
 tofui plan.json \
   --github-pages owner/terraform-reports \
@@ -115,26 +91,55 @@ tofui plan.json \
   --build-name "staging"
 ```
 
-### CI/CD Pipeline Integration
+### Complete CI/CD Pipeline Integration using Bash
 ```bash
-# Complete CI/CD example with S3
-tofui plan.json \
-  --name "Build ${BUILD_NUMBER}" \
-  --s3-bucket company-terraform-reports \
-  --s3-prefix builds/ \
-  --build-url "https://jenkins.company.com/job/123" \
-  --verbose
-
-# Complete CI/CD example with GitHub Pages
-tofui plan.json \
-  --github-pages company/terraform-reports \
-  --batch-folder "build-$(date +%Y-%m-%d)" \
-  --build-name "${CI_JOB_NAME}-${BUILD_NUMBER}" \
-  --build-url "https://jenkins.company.com/job/123" \
-  --verbose
+  set +e  # Don't exit on error
+  #set terraform plan name based on env var, else default to plan
+  export TERRAFORM_PLAN_FILE=${TERRAFORM_PLAN_FILE:-"plan"}
+  #set terraform log file name for ingestion to tofui
+  tf_log="terraform.log"
+  # run terraform and save the output to a log file
+  terraform plan -out="${TERRAFORM_PLAN_FILE}" -input=false -lock=false -detailed-exitcode 2>&1 | tee $tf_log
+  terraform_exit_code=${PIPESTATUS[0]} # Use pipestatus to get the exit code from the first command above, instead of the tee command.
+  export TERRAFORM_EXIT_CODE=$terraform_exit_code
+  echo ">>> Terraform Plan Exit Code: $terraform_exit_code"
+  if [ -n "$TOFUI_VERSION" ]; then
+      echo ""
+      echo ">>"    
+      echo ">>>>>"
+      echo "Generating a nice HTML plan with tofUI"
+      export JSON_PLAN_FILE=${JSON_PLAN_FILE:-"plan.json"}
+      # Use terraform to generate the json file from the original plan file.
+      terraform show -json $TERRAFORM_PLAN_FILE > $JSON_PLAN_FILE
+      # prepare arguments array
+      args=(
+          "${JSON_PLAN_FILE}" 
+          --display-name "${CODEBUILD_BUILD_ID}-${FOLDER}" 
+          --build-name "${CODEBUILD_BUILD_ID}" 
+          --build-url "${CODEBUILD_BUILD_URL}" 
+          --github-repo "${GITHUB_REPOSITORY}" 
+          --github-enterprise-url "${GITHUB_ENTERPISE_URL}" 
+          --github-token "${GITHUB_TOKEN}" 
+          --terraform-exit-code "${terraform_exit_code}" 
+          --stdout-tf-log "${tf_log}" 
+          --export-vars-file "tofui_vars.sh" 
+          --config "$GIT_ROOT/.build/tofui_config.json"
+      )
+      # append optional args
+      if [ "${FOLDER}" != "${FOLDER_VAL}" ]; then
+          args+=(--folder "${FOLDER}")
+      fi
+      # execute tofui with finalized args.
+      python -m tofui "${args[@]}"
+      tofui_exit_code=$?
+      if [ -f "./tofui_vars.sh" ]; then 
+          source ./tofui_vars.sh #>&-  # Load TOFUI_HTML_URL and TOFUI_JSON_URL variables, suppress output
+      else
+          echo " Error - Tofui vars file not found, cannot source TOFUI_HTML_URL and TOFUI_JSON_URL variables."
+      fi
 ```
 
-## Configuration
+## Configuration File
 
 Use `tofui-config.json` file for customization:
 
@@ -197,18 +202,6 @@ GitHub Pages Options:
 
 ## Testing
 
-### Basic Testing
-```bash
-# Test with sample plan
-tofui example_plan.json --name "Test Report" --verbose
-
-# Test with configuration
-tofui example_plan.json --config tofui-config.json --verbose
-
-# Test S3 integration (requires AWS credentials)
-tofui example_plan.json --s3-bucket test-bucket --verbose
-```
-
 ### Using the Test Suite
 ```bash
 # Clone and run tests
@@ -220,17 +213,11 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install with dev dependencies  
-pip install -e .[dev,s3]
+pip install -e .[dev]
 
 # Run test suite
 python test_tofui.py
 ```
-
-## Requirements
-
-- **Python 3.8+** - Modern Python version
-- **No core dependencies** - Everything included out of the box
-- **Optional: boto3** - Only for S3 upload functionality
 
 ## Supported Terraform Versions
 
@@ -239,38 +226,6 @@ tofUI supports terraform plan JSON format versions:
 - **1.1** - Terraform 1.0+  
 - **1.2** - Terraform 1.5+
 - **2.0** - Terraform 1.8+ (latest)
-
-### Core Components
-
-- **🔍 Parser** - Extracts data from terraform JSON plans
-- **📊 Analyzer** - Processes changes and groups resources by action priority
-- **🎨 Generator** - Creates interactive HTML with embedded CSS/JS  
-- **💻 CLI** - Command-line interface with S3 integration
-- **⚙️ Config** - Flexible JSON-based configuration
-
-## Development
-
-```bash
-# Clone repository
-git clone https://github.com/65156/tofUI.git
-cd tofUI
-
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate
-
-# Install in development mode
-pip install -e .[dev,s3]
-
-# Run tests
-python test_tofui.py
-
-# Format code
-black tofui/
-
-# Type checking
-mypy tofui/
-```
 
 ## Contributing
 
@@ -284,7 +239,8 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Feel free to do whatever you want with this.
+
 
 ## Acknowledgments
 
