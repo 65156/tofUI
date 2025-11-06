@@ -17,7 +17,7 @@ class HTMLGenerator:
     """Generates interactive HTML reports from terraform plan analysis"""
     
     def __init__(self):
-        self.plan_name = "Terraform Plan"
+        self.plan_name = "Tofui Plan"
         self.timestamp = datetime.utcnow()
     
     def generate_report(
@@ -30,7 +30,7 @@ class HTMLGenerator:
     ) -> str:
         """Generate a complete HTML report from plan analysis"""
         
-        self.plan_name = plan_name or "Terraform Plan"
+        self.plan_name = plan_name or "Tofui Plan"
         self.config = config or {}
         
         # Generate the complete HTML content
@@ -54,7 +54,7 @@ class HTMLGenerator:
     ) -> str:
         """Generate an error report for terraform failures"""
         
-        self.plan_name = plan_name or "Terraform Error Report"
+        self.plan_name = plan_name or "Tofui Error Report"
         self.config = config or {}
         
         # Process error data
@@ -80,7 +80,7 @@ class HTMLGenerator:
     ) -> str:
         """Generate an apply report for terraform apply results"""
         
-        self.plan_name = plan_name or "Terraform Apply Report"
+        self.plan_name = plan_name or "Tofui Apply Report"
         self.config = config or {}
         
         # Generate the complete HTML content for apply report
@@ -803,7 +803,7 @@ class HTMLGenerator:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terraform Error Report - {html.escape(self.plan_name)}</title>
+    <title>Tofui Error Report - {html.escape(self.plan_name)}</title>
     <style>
         {self._get_embedded_css()}
         {self._get_error_specific_css()}
@@ -1067,7 +1067,7 @@ class HTMLGenerator:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terraform Apply Report - {html.escape(self.plan_name)}</title>
+    <title>Tofui Apply Report - {html.escape(self.plan_name)}</title>
     <style>
         {self._get_embedded_css()}
         {self._get_apply_specific_css()}
@@ -1135,7 +1135,7 @@ class HTMLGenerator:
             css_class = "success-summary"
         elif apply_result.result == ApplyResult.SUCCESS_NO_CHANGES:
             icon = "✅"
-            title = "Apply Success"
+            title = "No Changes"
             subtitle = "No changes were required. Infrastructure is up to date."
             css_class = "no-changes-summary"
         elif apply_result.result == ApplyResult.FAILED:
@@ -1467,6 +1467,36 @@ class HTMLGenerator:
             tryLoadLog(logUrls, 0);
         }
         
+        function filterTerraformLogs(logContent) {
+            const lines = logContent.split('\\n');
+            
+            // Look for trigger lines to start from
+            const triggerPatterns = [
+                'Terraform will perform the following actions:',
+                'Terraform planned the following actions, but then encountered a problem:'
+            ];
+            
+            let startIndex = -1;
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                for (const pattern of triggerPatterns) {
+                    if (line.includes(pattern)) {
+                        startIndex = i;
+                        break;
+                    }
+                }
+                if (startIndex !== -1) break;
+            }
+            
+            // If no trigger found, return original content
+            if (startIndex === -1) {
+                return logContent;
+            }
+            
+            // Return content starting from the trigger line
+            return lines.slice(startIndex).join('\\n');
+        }
+        
         function tryLoadLog(urls, index) {
             if (index >= urls.length) {
                 document.getElementById('terminal-output').textContent = 
@@ -1480,7 +1510,8 @@ class HTMLGenerator:
                     return response.text();
                 })
                 .then(data => {
-                    document.getElementById('terminal-output').textContent = data;
+                    const filteredData = filterTerraformLogs(data);
+                    document.getElementById('terminal-output').textContent = filteredData;
                 })
                 .catch(() => tryLoadLog(urls, index + 1));
         }
@@ -1740,10 +1771,40 @@ class HTMLGenerator:
             tryLoadLog(logUrls, 0);
         }
         
+        function filterTerraformLogs(logContent) {
+            const lines = logContent.split('\\\\n');
+            
+            // Look for trigger lines to start from
+            const triggerPatterns = [
+                'Terraform will perform the following actions:',
+                'Terraform planned the following actions, but then encountered a problem:'
+            ];
+            
+            let startIndex = -1;
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                for (const pattern of triggerPatterns) {
+                    if (line.includes(pattern)) {
+                        startIndex = i;
+                        break;
+                    }
+                }
+                if (startIndex !== -1) break;
+            }
+            
+            // If no trigger found, return original content
+            if (startIndex === -1) {
+                return logContent;
+            }
+            
+            // Return content starting from the trigger line
+            return lines.slice(startIndex).join('\\\\n');
+        }
+        
         function tryLoadLog(urls, index) {
             if (index >= urls.length) {
                 document.getElementById('terminal-output').textContent = 
-                    'Error: Log file not found in any expected location\\nTried:\\n' + urls.join('\\n');
+                    'Error: Log file not found in any expected location\\\\nTried:\\\\n' + urls.join('\\\\n');
                 return;
             }
             
@@ -1753,7 +1814,8 @@ class HTMLGenerator:
                     return response.text();
                 })
                 .then(data => {
-                    document.getElementById('terminal-output').textContent = data;
+                    const filteredData = filterTerraformLogs(data);
+                    document.getElementById('terminal-output').textContent = filteredData;
                 })
                 .catch(() => tryLoadLog(urls, index + 1));
         }

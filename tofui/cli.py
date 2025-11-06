@@ -111,7 +111,38 @@ def clean_terraform_logs(log_content):
     # Remove excessive blank lines
     cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
     
-    return cleaned.strip()
+    # Apply terraform log filtering to start from trigger lines
+    filtered = filter_terraform_logs(cleaned)
+    
+    return filtered.strip()
+
+
+def filter_terraform_logs(log_content):
+    """Filter terraform logs to start from specific trigger lines and ignore read operations"""
+    lines = log_content.split('\n')
+    
+    # Look for trigger lines to start from
+    trigger_patterns = [
+        'Terraform will perform the following actions:',
+        'Terraform planned the following actions, but then encountered a problem:'
+    ]
+    
+    start_index = -1
+    for i, line in enumerate(lines):
+        line_stripped = line.strip()
+        for pattern in trigger_patterns:
+            if pattern in line_stripped:
+                start_index = i
+                break
+        if start_index != -1:
+            break
+    
+    # If no trigger found, return original content
+    if start_index == -1:
+        return log_content
+    
+    # Return content starting from the trigger line
+    return '\n'.join(lines[start_index:])
 
 
 def handle_no_changes_scenario(args):
@@ -917,7 +948,7 @@ def get_github_pages_url(owner: str, repo: str, headers: dict, api_base_url: str
         print(f"⚠️ Warning: Could not retrieve GitHub Pages URL: {e}")
         return None
 
-def write_export_vars_file(file_path: str, html_url: str, json_url: str, log_url: str = None):
+def write_export_vars_file(file_path: str, html_url: str, json_url: str, log_url: Optional[str] = None):
     """Write environment variable exports to a file"""
     import os
     
