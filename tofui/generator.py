@@ -17,7 +17,7 @@ class HTMLGenerator:
     """Generates interactive HTML reports from terraform plan analysis"""
     
     def __init__(self):
-        self.plan_name = "Tofui Plan"
+        self.plan_name = "tofUI Plan"
         self.timestamp = datetime.utcnow()
     
     def generate_report(
@@ -30,7 +30,7 @@ class HTMLGenerator:
     ) -> str:
         """Generate a complete HTML report from plan analysis"""
         
-        self.plan_name = plan_name or "Tofui Plan"
+        self.plan_name = plan_name or "tofUI Plan"
         self.config = config or {}
         
         # Generate the complete HTML content
@@ -54,7 +54,7 @@ class HTMLGenerator:
     ) -> str:
         """Generate an error report for terraform failures"""
         
-        self.plan_name = plan_name or "Tofui Error Report"
+        self.plan_name = plan_name or "tofUI Error Report"
         self.config = config or {}
         
         # Process error data
@@ -80,7 +80,7 @@ class HTMLGenerator:
     ) -> str:
         """Generate an apply report for terraform apply results"""
         
-        self.plan_name = plan_name or "Tofui Apply Report"
+        self.plan_name = plan_name or "tofUI Apply Report"
         self.config = config or {}
         
         # Generate the complete HTML content for apply report
@@ -803,7 +803,7 @@ class HTMLGenerator:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tofui Error Report - {html.escape(self.plan_name)}</title>
+    <title>tofUI Error Report - {html.escape(self.plan_name)}</title>
     <style>
         {self._get_embedded_css()}
         {self._get_error_specific_css()}
@@ -1067,7 +1067,7 @@ class HTMLGenerator:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tofui Apply Report - {html.escape(self.plan_name)}</title>
+    <title>tofUI Apply Report - {html.escape(self.plan_name)}</title>
     <style>
         {self._get_embedded_css()}
         {self._get_apply_specific_css()}
