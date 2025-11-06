@@ -15,6 +15,7 @@ from . import __version__
 from .parser import TerraformPlanParser
 from .analyzer import PlanAnalyzer
 from .generator import HTMLGenerator
+from .apply_parser import TerraformApplyParser
 
 
 def sanitize_build_name(name: str) -> str:
@@ -212,6 +213,123 @@ def handle_no_changes_scenario(args):
     return 0
 
 
+def handle_terraform_apply_mode(args):
+    """Handle terraform apply mode and generate apply reports"""
+    print("🔧 Handling Terraform Apply Mode...")
+    
+    # Validate required parameters for apply mode
+    if not args.stdout_tf_log:
+        print("❌ Error: --stdout-tf-log is required for apply mode", file=sys.stderr)
+        return 1
+    
+    # Validate terraform exit code
+    terraform_exit_code = getattr(args, 'terraform_exit_code', None)
+    if terraform_exit_code is None:
+        print("❌ Error: --terraform-exit-code is required for apply mode", file=sys.stderr)
+        return 1
+    
+    # Read apply log content
+    apply_log_content = None
+    if args.stdout_tf_log == '-':
+        # Read from stdin
+        if not sys.stdin.isatty():
+            try:
+                apply_log_content = sys.stdin.read()
+                print("📝 Read terraform apply logs from stdin")
+            except Exception as e:
+                print(f"❌ Error reading apply logs from stdin: {e}", file=sys.stderr)
+                return 1
+        else:
+            print("❌ Error: No stdin data available for apply logs", file=sys.stderr)
+            return 1
+    else:
+        # Read from file
+        try:
+            with open(args.stdout_tf_log, 'r', encoding='utf-8', errors='replace') as f:
+                apply_log_content = f.read()
+                print(f"📝 Read terraform apply logs from: {args.stdout_tf_log}")
+        except Exception as e:
+            print(f"❌ Error reading apply log file '{args.stdout_tf_log}': {e}", file=sys.stderr)
+            return 1
+    
+    if not apply_log_content:
+        print("❌ Error: No apply log content available", file=sys.stderr)
+        return 1
+    
+    # Parse the apply logs
+    print("🔍 Parsing terraform apply logs...")
+    apply_parser = TerraformApplyParser()
+    apply_result = apply_parser.parse_apply_log(apply_log_content, terraform_exit_code)
+    
+    # Sanitize build name
+    original_build_name = args.build_name
+    sanitized_build_name = sanitize_build_name(args.build_name)
+    
+    if sanitized_build_name != original_build_name:
+        print(f"🔧 Sanitized build name: '{original_build_name}' → '{sanitized_build_name}'")
+    
+    # Load configuration if provided
+    config = {}
+    if args.config:
+        if not os.path.exists(args.config):
+            print(f"❌ Error: Config file '{args.config}' not found.", file=sys.stderr)
+            return 1
+        try:
+            import json
+            with open(args.config, 'r') as f:
+                config = json.load(f)
+            print(f"📋 Loaded configuration from: {args.config}")
+        except Exception as e:
+            print(f"❌ Error: Failed to load config file: {e}", file=sys.stderr)
+            return 1
+    
+    # Add build_url from CLI if provided
+    if args.build_url:
+        config['build_url'] = args.build_url
+    
+    display_name = args.display_name or original_build_name
+    file_name = sanitized_build_name
+    output_file = f"{file_name}.html"
+    
+    # Process terraform logs for report display
+    log_file_available = False
+    if args.stdout_tf_log and args.stdout_tf_log != '-':
+        log_output_file = f"{file_name}.log"
+        log_file_available = process_terraform_logs(args.stdout_tf_log, log_output_file)
+    
+    print("🎨 Generating apply report...")
+    
+    # Generate HTML report
+    from .generator import HTMLGenerator
+    generator = HTMLGenerator()
+    html_content = generator.generate_apply_report(
+        apply_result=apply_result,
+        plan_name=display_name,
+        output_file=output_file,
+        config=config,
+        log_file_available=log_file_available
+    )
+    
+    # Write the HTML file
+    with open(output_file, 'w', encoding='utf-8') as f:
+        f.write(html_content)
+    
+    # Print summary
+    print_apply_summary(apply_result, output_file, args)
+    
+    print(f"✅ Apply report generated: {output_file}")
+    print(f"🌐 Open in browser: file://{os.path.abspath(output_file)}")
+    
+    # Handle uploads if requested
+    if args.s3_bucket:
+        upload_to_s3(html_content, args, output_file, "terraform-apply.log")
+    
+    if args.github_repo:
+        upload_to_github_pages(html_content, args, output_file, "terraform-apply.log", display_name)
+    
+    return 0
+
+
 def handle_terraform_error(args):
     """Handle terraform error scenarios and generate error reports"""
     print("🚨 Handling Terraform Error Scenario...")
@@ -303,6 +421,10 @@ def main():
     args = parser.parse_args()
     
     try:        
+        # Check if apply mode is requested
+        if getattr(args, 'apply_mode', False):
+            return handle_terraform_apply_mode(args)
+        
         # Handle terraform exit codes and validate input accordingly
         terraform_exit_code = getattr(args, 'terraform_exit_code', None)
         
@@ -509,7 +631,7 @@ Examples:
     parser.add_argument(
         "plan_file",
         nargs="?",
-        help="Path to terraform plan JSON file (from 'terraform show -json plan.tfplan')"
+        help="Path to terraform plan JSON file (from 'terraform show -json plan.tfplan'). Not required in --apply-mode."
     )
     
     parser.add_argument(
@@ -543,6 +665,12 @@ Examples:
     parser.add_argument(
         "--stdout-tf-log",
         help="Terraform stdout log file or '-' for stdin. Creates a separate .log file for dynamic loading in the HTML report."
+    )
+    
+    parser.add_argument(
+        "--apply-mode",
+        action="store_true",
+        help="Generate apply report based on terraform apply logs and exit code instead of plan JSON. Requires --stdout-tf-log and --terraform-exit-code."
     )
 
     # S3 options
@@ -629,6 +757,46 @@ Examples:
     )
     
     return parser
+
+
+def print_apply_summary(apply_result, output_file: str, args):
+    """Print a summary of the generated apply report"""
+    from .apply_parser import ApplyResult
+    
+    print("\n✅ Apply report generated successfully!")
+    print(f"📄 Output: {output_file}")
+    
+    # Print result status
+    if apply_result.result == ApplyResult.SUCCESS_WITH_CHANGES:
+        print("🎉 Apply completed successfully with changes")
+    elif apply_result.result == ApplyResult.SUCCESS_NO_CHANGES:
+        print("✅ Apply completed successfully with no changes")
+    elif apply_result.result == ApplyResult.FAILED:
+        print("❌ Apply failed")
+    else:
+        print("❓ Apply completed with unknown status")
+    
+    # Print statistics if available
+    if apply_result.statistics:
+        stats = apply_result.statistics
+        if stats.resources_created or stats.resources_modified or stats.resources_destroyed:
+            print(f"📊 Summary: {stats.resources_created} created, {stats.resources_modified} modified, {stats.resources_destroyed} destroyed")
+        
+        if hasattr(stats, 'resources_total') and stats.resources_total:
+            print(f"📈 Total resources: {stats.resources_total}")
+    
+    # Print timing if available
+    if apply_result.timing and apply_result.timing.total_duration:
+        print(f"⏱️ Duration: {apply_result.timing.total_duration}")
+    
+    # Print errors if any
+    if apply_result.errors:
+        print(f"⚠️ Errors: {len(apply_result.errors)} error(s) encountered")
+        if args.verbose:
+            for error in apply_result.errors[:3]:  # Show first 3 errors
+                print(f"  • {error.message}")
+            if len(apply_result.errors) > 3:
+                print(f"  • ... and {len(apply_result.errors) - 3} more errors")
 
 
 def print_summary(analysis, output_file: str, args):
@@ -729,7 +897,7 @@ def upload_to_s3(html_content: str, args, local_file: str, plan_file: str):
     except Exception as e:
         print(f"❌ Error uploading to S3: {e}", file=sys.stderr)
 
-def get_github_pages_url(owner: str, repo: str, headers: dict, api_base_url: str) -> str:
+def get_github_pages_url(owner: str, repo: str, headers: dict, api_base_url: str) -> Optional[str]:
     """Get GitHub Pages URL for the repository using the API"""
     import requests
     
@@ -888,7 +1056,9 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
             
             # Write export vars file if requested
             if args.export_vars_file:
-                write_export_vars_file(args.export_vars_file, html_url, json_url, log_url)
+                # Use empty string for json_url if debug_json is not enabled
+                json_url_for_export = json_url if getattr(args, 'debug_json', False) else ""
+                write_export_vars_file(args.export_vars_file, html_url, json_url_for_export, log_url)
             
     except Exception as e:
         print(f"❌ Error uploading to GitHub Pages: {e}", file=sys.stderr)
