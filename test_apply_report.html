@@ -1,0 +1,959 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terraform Apply Report - Test Apply Report</title>
+    <style>
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        .known-after-apply {
+            color: #a3c5a8;
+            font-style: italic;
+            opacity: 0.8;
+        }
+
+        .known-after-apply-cell {
+            background: #d4edda !important;
+            color: #155724;
+        }
+
+        .plan-name {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 300;
+            margin-bottom: 0.3rem;
+        }
+        
+        .meta-info {
+            opacity: 0.9;
+            font-size: 0.85rem;
+            font-weight: 300;
+        }
+        
+        .summary {
+            padding: 0.8rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .summary h2 {
+            margin: 0 0 0.4rem 0;
+            color: #495057;
+        }
+        
+        .summary-stats {
+            display: flex;
+            gap: 0.8rem;
+            justify-content: center;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 0.4rem;
+            border-radius: 4px;
+            background: #f8f9fa;
+            min-width: 48px;
+        }
+        
+        .stat-item.create {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .stat-item.update {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .stat-item.delete {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .stat-number {
+            display: block;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 0.54rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        
+        .filters {
+            padding: 1.5rem 2rem;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        
+        .filter-section h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem;
+            color: #495057;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        
+        .filter-checkbox input {
+            margin: 0;
+        }
+        
+        .btn {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .btn:hover {
+            background: #4b5563;
+        }
+        
+        .sort-dropdown {
+            padding: 0.5rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .resource-groups {
+            padding: 1.2rem;
+        }
+        
+        .resource-group {
+            margin-bottom: 0.4rem;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .group-header {
+            background: #f8f9fa;
+            padding: 0.6rem;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .group-header h3 {
+            margin: 0;
+            color: #495057;
+        }
+        
+        .group-resources {
+            padding: 1rem;
+        }
+        
+        .resource-change {
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        
+        .resource-change.create {
+            border-left: 16px solid #28a745;
+        }
+        
+        .resource-change.update {
+            border-left: 16px solid #ffc107;
+        }
+        
+        .resource-change.delete {
+            border-left: 16px solid #dc3545;
+        }
+        
+        .resource-change.recreate {
+            border-left: 16px solid #6f42c1;
+        }
+        
+        .resource-change.read {
+            border-left: 16px solid #6c757d;
+        }
+        
+        .resource-header {
+            padding: 1rem;
+            background: #f8f9fa;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            user-select: none;
+        }
+        
+        .resource-header:hover {
+            background: #e9ecef;
+        }
+        
+        .resource-address {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-weight: 500;
+            flex: 1;
+        }
+        
+        .toggle-indicator {
+            transition: transform 0.2s;
+        }
+        
+        .resource-change.collapsed .toggle-indicator {
+            transform: rotate(-90deg);
+        }
+        
+        .resource-details {
+            padding: 1rem;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .resource-change.collapsed .resource-details {
+            display: none;
+        }
+        
+        /* Outputs Section Styling */
+        .outputs-section {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .outputs-section h2 {
+            margin: 0 0 1rem 0;
+            color: #495057;
+            font-size: 1.4rem;
+        }
+
+        .outputs-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+
+        .output-item {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .output-name {
+            background: #e9ecef;
+            padding: 0.75rem;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-weight: 500;
+            color: #495057;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .output-details {
+            padding: 0.75rem;
+        }
+
+        .output-value {
+            margin: 0 0 0.5rem 0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            overflow-x: auto;
+        }
+
+        .output-type {
+            font-size: 0.8rem;
+            color: #6c757d;
+            display: block;
+            margin-top: 0.5rem;
+        }
+
+        .sensitive-value {
+            color: #6c757d;
+            font-style: italic;
+            background: #f1f3f5;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+        }
+
+        .no-changes-summary {
+            padding: 2rem;
+            text-align: center;
+            background: #d4edda;
+            color: #155724;
+            border-bottom: 1px solid #d4edda;
+        }
+
+        .no-changes-summary h2 {
+            margin: 0 0 1rem 0;
+            color: #155724;
+        }
+
+        .no-changes-icon {
+            font-size: 2.5rem;
+            color: #28a745;
+        }
+
+        .command-box {
+            background: #f1f3f5;
+            border-radius: 6px;
+            padding: 0.2rem;
+            margin: 0.2rem 0;
+        }
+
+        .command {
+            background: #212529;
+            color: #f8f9fa;
+            padding: 0.6rem 0.8rem;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            margin-top: 0.75rem;
+        }
+        
+        /* Terminal Section Styling */
+        .terminal-section {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .terminal-header h3 {
+            margin: 0;
+            color: #495057;
+        }
+        
+        .load-logs-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-right: 0.5rem;
+        }
+        
+        .load-logs-btn:hover {
+            background: #5a6268;
+        }
+        
+        .copy-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .copy-btn:hover {
+            background: #5a6268;
+        }
+        
+        .terminal-container {
+            background: #1e1e1e;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .terminal-output {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 1.5rem;
+            margin: 0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-word;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .properties-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            table-layout: fixed; /* Use fixed layout for better column control */
+        }
+        
+        .properties-table th {
+            background: #f8f9fa;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+        }
+        
+        .properties-table td {
+            padding: 0.5rem; #decrease this to decrease padding between properties
+            border-bottom: 1px solid #dee2e6;
+            vertical-align: top;
+        }
+        
+        .property-name {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-weight: 500;
+            color: #495057;
+            width: 25%;
+        }
+        
+        .before-value, .after-value {
+            width: 37.5%;
+            max-width: 37.5%;
+            min-width: 0; /* Allow shrinking */
+        }
+        
+        .before-value pre, .after-value pre {
+            margin: 0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            /* Apply consistent constraints to ALL pre elements */
+            max-height: 200px;
+            max-width: 100%;
+            overflow: auto;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 0.5rem;
+        }
+        
+        /* Styling for long values - additional styling for complex content */
+        .before-value pre.long-value, .after-value pre.long-value {
+            font-size: 0.68rem; /* 20% smaller than 0.85rem */
+            white-space: pre;
+            word-break: normal;
+        }
+        
+        /* Custom scrollbar styling for long values */
+        .before-value pre.long-value::-webkit-scrollbar, .after-value pre.long-value::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .before-value pre.long-value::-webkit-scrollbar-track, .after-value pre.long-value::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .before-value pre.long-value::-webkit-scrollbar-thumb, .after-value pre.long-value::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .before-value pre.long-value::-webkit-scrollbar-thumb:hover, .after-value pre.long-value::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Long simple values - horizontal scroll only for ARNs, URLs, etc */
+        .long-simple-value {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            overflow-x: auto;
+            overflow-y: hidden;
+            max-width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+        
+        /* Custom scrollbar for long simple values */
+        .long-simple-value::-webkit-scrollbar {
+            height: 6px;
+        }
+        
+        .long-simple-value::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .long-simple-value::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        .long-simple-value::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Complex content - 5-line container with both scrolls for JSON, multiline */
+        .complex-value {
+            margin: 0;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.75rem;
+            white-space: pre-wrap;
+            word-break: normal;
+            max-height: 100px; /* Exactly 5 lines with line-height 1.2 */
+            min-height: 60px;  /* Ensure it shows as a container even for short content */
+            max-width: 100%;
+            overflow: auto;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 0.5rem;
+            line-height: 1.2;
+        }
+        
+        /* Custom scrollbar styling for complex values */
+        .complex-value::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        .complex-value::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .complex-value::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .complex-value::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        .property-change.addition .after-value {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .property-change.removal .before-value {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .property-change.modification .before-value {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .property-change.modification .after-value {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .filter-divider {
+            width: 1px;
+            background: #dee2e6;
+            height: 4rem;
+            margin: 0 1rem;
+            visibility: hidden;
+        }
+        
+        .control-section {
+            display: flex;
+            align-items: flex-start;
+            padding-top: 0.25rem;
+        }
+        
+        .resource-change.recreate .property-change .before-value {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 1.5rem 2rem;
+            color: #6c757d;
+            font-size: 0.9rem;
+            border-top: 1px solid #e9ecef;
+            margin-top: auto;
+        }
+        
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .footer-text {
+            text-align: left;
+        }
+        
+        .footer-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .footer-btn {
+            background: #dc3545;
+            color: white;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+        
+        .footer-btn:hover {
+            background: #721c24;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        @media (max-width: 768px) {
+            .header {
+                padding: 1.5rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .summary-stats {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .filters {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .resource-groups {
+                padding: 1rem;
+            }
+            
+            .properties-table {
+                font-size: 0.8rem;
+            }
+            
+            .property-name {
+                width: 30%;
+            }
+            
+            .before-value, .after-value {
+                width: 35%;
+            }
+        }
+        
+        
+        /* Apply Report Specific Styles */
+        .header.apply-header {
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%) !important;
+        }
+        
+        .apply-summary {
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .apply-summary.success-summary {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .apply-summary.no-changes-summary {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .apply-summary.error-summary {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .apply-summary.unknown-summary {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .apply-summary h2 {
+            margin: 0 0 1rem 0;
+        }
+        
+        .apply-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .status-info {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.95;
+        }
+        
+        .status-icon {
+            margin-right: 0.5rem;
+        }
+        
+        .status-icon.completed {
+            color: #28a745;
+        }
+        
+        .status-icon.in_progress {
+            color: #ffc107;
+        }
+        
+        .status-icon.failed {
+            color: #dc3545;
+        }
+        
+        .status-icon.unknown {
+            color: #6c757d;
+        }
+        
+        .action-label {
+            font-size: 0.8rem;
+            background: #f8f9fa;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            color: #495057;
+            margin-left: auto;
+            margin-right: 0.5rem;
+        }
+        
+        .operation-duration {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-left: 0.5rem;
+        }
+        
+        .operation-details {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.9rem;
+        }
+        
+        .timing-section {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .timing-section h3 {
+            margin: 0 0 1rem 0;
+            color: #495057;
+        }
+        
+        .timing-details {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        /* Red Theme for Failed Apply */
+        .theme-red .header.apply-header {
+            background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%) !important;
+        }
+        
+        .theme-red .footer-btn {
+            background: #dc3545;
+        }
+        
+        .theme-red .footer-btn:hover {
+            background: #b02a37;
+        }
+        
+        .theme-red .load-logs-btn {
+            background: #dc3545;
+            color: white;
+        }
+        
+    </style>
+</head>
+<body class="theme-green">
+    <div class="container">
+        
+        <div class="header apply-header">
+            <div class="plan-name"><strong>Test Apply Report</strong></div>
+            <div class="meta-info"><strong>Generated:</strong> 2025-11-06 14:15:33 UTC</div>
+        </div>
+        
+        
+        <div class="apply-summary success-summary">
+            <h2>🎉 Apply Success</h2>
+            <p>Infrastructure changes have been applied successfully.</p>
+            
+                <div class="summary-stats">
+                    <div class="stat-item create">
+                        <span class="stat-number">2</span>
+                        <span class="stat-label">created</span>
+                    </div>
+                    <div class="stat-item update">
+                        <span class="stat-number">1</span>
+                        <span class="stat-label">modified</span>
+                    </div>
+                    <div class="stat-item delete">
+                        <span class="stat-number">0</span>
+                        <span class="stat-label">destroyed</span>
+                    </div>
+                </div>
+                
+        </div>
+        
+        <div class="timing-section">
+            <h3>⏱️ Timing Information</h3>
+            <div class="timing-details">
+                <p><strong>Total Duration:</strong> 45s</p>
+            </div>
+        </div>
+        
+        
+        <div class="terminal-section">
+            <div class="terminal-header">
+                <h3>Logs</h3>
+                <button class="copy-btn" onclick="copyToClipboard('terminal-output')">Copy to Clipboard</button>
+            </div>
+            <div class="terminal-container">
+                <pre id="terminal-output" class="terminal-output">Loading logs...</pre>
+            </div>
+        </div>
+        
+        
+        <div class="footer">
+            <div class="footer-content">
+                <div class="footer-text">
+                    Generated by <strong>tofUI</strong> • 
+                    Better OpenTofu & Terraform Plans
+                </div>
+                <div class="footer-buttons">
+                    
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <script>
+        
+        // Initialize the apply page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize collapsible elements
+            collapseAllResources();
+            
+            // Auto-load logs
+            autoLoadLogs();
+        });
+        
+        function autoLoadLogs() {
+            // Try different log locations based on environment
+            const baseName = window.location.pathname.split('/').pop().replace('.html', '');
+            
+            const logUrls = [
+                `${baseName}.log`,  // Local: same directory
+                `../logs/${baseName}.log`,  // GitHub Pages: logs folder
+                `logs/${baseName}.log`  // Alternative GitHub Pages path
+            ];
+            
+            tryLoadLog(logUrls, 0);
+        }
+        
+        function tryLoadLog(urls, index) {
+            if (index >= urls.length) {
+                document.getElementById('terminal-output').textContent = 
+                    'Error: Log file not found in any expected location\nTried:\n' + urls.join('\n');
+                return;
+            }
+            
+            fetch(urls[index])
+                .then(response => {
+                    if (!response.ok) throw new Error('Not found');
+                    return response.text();
+                })
+                .then(data => {
+                    document.getElementById('terminal-output').textContent = data;
+                })
+                .catch(() => tryLoadLog(urls, index + 1));
+        }
+        
+        function toggleResource(header) {
+            const resourceChange = header.closest('.resource-change');
+            resourceChange.classList.toggle('collapsed');
+        }
+        
+        function collapseAllResources() {
+            const resources = document.querySelectorAll('.resource-change');
+            resources.forEach(resource => {
+                resource.classList.add('collapsed');
+            });
+        }
+        
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                // Show feedback
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.background = '#6c757d';
+                
+                setTimeout(function() {
+                    btn.textContent = originalText;
+                    btn.style.background = '#6c757d';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Could not copy text: ', err);
+                alert('Failed to copy to clipboard');
+            });
+        }
+        
+    </script>
+</body>
+</html>

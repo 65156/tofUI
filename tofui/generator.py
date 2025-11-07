@@ -17,7 +17,7 @@ class HTMLGenerator:
     """Generates interactive HTML reports from terraform plan analysis"""
     
     def __init__(self):
-        self.plan_name = "Terraform Plan"
+        self.plan_name = "tofUI Plan"
         self.timestamp = datetime.utcnow()
     
     def generate_report(
@@ -30,7 +30,7 @@ class HTMLGenerator:
     ) -> str:
         """Generate a complete HTML report from plan analysis"""
         
-        self.plan_name = plan_name or "Terraform Plan"
+        self.plan_name = plan_name or "tofUI Plan"
         self.config = config or {}
         
         # Generate the complete HTML content
@@ -54,7 +54,7 @@ class HTMLGenerator:
     ) -> str:
         """Generate an error report for terraform failures"""
         
-        self.plan_name = plan_name or "Terraform Error Report"
+        self.plan_name = plan_name or "tofUI Error Report"
         self.config = config or {}
         
         # Process error data
@@ -62,6 +62,29 @@ class HTMLGenerator:
         
         # Generate the complete HTML content for error report
         html_content = self._generate_error_html(processed_errors)
+        
+        # Write to file if specified
+        if output_file:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+        
+        return html_content
+    
+    def generate_apply_report(
+        self,
+        apply_result,
+        plan_name: Optional[str] = None,
+        output_file: Optional[str] = None,
+        config: Optional[Dict[str, Any]] = None,
+        log_file_available: bool = False
+    ) -> str:
+        """Generate an apply report for terraform apply results"""
+        
+        self.plan_name = plan_name or "tofUI Apply Report"
+        self.config = config or {}
+        
+        # Generate the complete HTML content for apply report
+        html_content = self._generate_apply_html(apply_result)
         
         # Write to file if specified
         if output_file:
@@ -780,7 +803,7 @@ class HTMLGenerator:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terraform Error Report - {html.escape(self.plan_name)}</title>
+    <title>tofUI Error Report - {html.escape(self.plan_name)}</title>
     <style>
         {self._get_embedded_css()}
         {self._get_error_specific_css()}
@@ -1022,6 +1045,510 @@ class HTMLGenerator:
             color: white;
         }
         """
+    
+    def _generate_apply_html(self, apply_result) -> str:
+        """Generate complete HTML for apply report"""
+        from .apply_parser import ApplyResult
+        
+        # Determine theme based on apply result
+        theme_class = ""
+        if apply_result.result == ApplyResult.SUCCESS_WITH_CHANGES:
+            theme_class = "theme-green"
+        elif apply_result.result == ApplyResult.SUCCESS_NO_CHANGES:
+            theme_class = "theme-green"
+        elif apply_result.result == ApplyResult.FAILED:
+            theme_class = "theme-red"
+        else:
+            theme_class = "theme-yellow"
+        
+        # Generate the complete HTML content
+        html_content = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tofUI Apply Report - {html.escape(self.plan_name)}</title>
+    <style>
+        {self._get_embedded_css()}
+        {self._get_apply_specific_css()}
+    </style>
+</head>
+<body class="{theme_class}">
+    <div class="container">
+        {self._generate_apply_header(apply_result)}
+        {self._generate_apply_content(apply_result)}
+        {self._generate_terminal_section_placeholder()}
+        {self._generate_footer()}
+    </div>
+    
+    <script>
+        {self._get_apply_specific_javascript()}
+    </script>
+</body>
+</html>"""
+        
+        return html_content
+    
+    def _generate_apply_header(self, apply_result) -> str:
+        """Generate the apply report header"""
+        from .apply_parser import ApplyResult
+        formatted_time = self.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC")
+        
+        return f"""
+        <div class="header apply-header">
+            <div class="plan-name"><strong>{html.escape(self.plan_name)}</strong></div>
+            <div class="meta-info"><strong>Generated:</strong> {formatted_time}</div>
+        </div>
+        """
+    
+    def _generate_apply_content(self, apply_result) -> str:
+        """Generate the main apply content section"""
+        from .apply_parser import ApplyResult
+        
+        content = ""
+        
+        # Add apply summary section
+        content += self._generate_apply_summary_section(apply_result)
+        
+        # Add resource operations section if there are operations
+        if apply_result.resource_operations:
+            content += self._generate_resource_operations_section(apply_result.resource_operations)
+        
+        # Add errors section if there are errors
+        if apply_result.errors:
+            content += self._generate_apply_errors_section(apply_result.errors)
+        
+        # Add timing section if available
+        if apply_result.timing and apply_result.timing.total_duration:
+            content += self._generate_timing_section(apply_result.timing)
+        
+        return content
+    
+    def _generate_apply_summary_section(self, apply_result) -> str:
+        """Generate the apply summary section"""
+        from .apply_parser import ApplyResult
+        
+        if apply_result.result == ApplyResult.SUCCESS_WITH_CHANGES:
+            icon = "🎉"
+            title = "Apply Success"
+            subtitle = "Infrastructure changes have been applied successfully."
+            css_class = "success-summary"
+        elif apply_result.result == ApplyResult.SUCCESS_NO_CHANGES:
+            icon = "✅"
+            title = "No Changes"
+            subtitle = "No changes were required. Infrastructure is up to date."
+            css_class = "no-changes-summary"
+        elif apply_result.result == ApplyResult.FAILED:
+            icon = "❌"
+            title = "Apply Failed"
+            subtitle = "There were errors during the apply operation."
+            css_class = "error-summary"
+        else:
+            icon = "❓"
+            title = "Apply Status Unknown"
+            subtitle = "The apply operation completed with unknown status."
+            css_class = "unknown-summary"
+        
+        stats_html = ""
+        if apply_result.statistics:
+            stats = apply_result.statistics
+            if stats.resources_created > 0 or stats.resources_modified > 0 or stats.resources_destroyed > 0:
+                stats_html = f"""
+                <div class="summary-stats">
+                    <div class="stat-item create">
+                        <span class="stat-number">{stats.resources_created}</span>
+                        <span class="stat-label">created</span>
+                    </div>
+                    <div class="stat-item update">
+                        <span class="stat-number">{stats.resources_modified}</span>
+                        <span class="stat-label">modified</span>
+                    </div>
+                    <div class="stat-item delete">
+                        <span class="stat-number">{stats.resources_destroyed}</span>
+                        <span class="stat-label">destroyed</span>
+                    </div>
+                </div>
+                """
+        
+        return f"""
+        <div class="apply-summary {css_class}">
+            <h2>{icon} {title}</h2>
+            <p>{subtitle}</p>
+            {stats_html}
+        </div>
+        """
+    
+    def _generate_resource_operations_section(self, resource_operations) -> str:
+        """Generate the resource operations section"""
+        if not resource_operations:
+            return ""
+        
+        operations_html = ""
+        for op in resource_operations:
+            # Determine status styling
+            if op.status == "completed":
+                status_class = "completed"
+                status_icon = "✅"
+            elif op.status == "in_progress":
+                status_class = "in_progress"
+                status_icon = "⏳"
+            elif op.status == "failed":
+                status_class = "failed"
+                status_icon = "❌"
+            else:
+                status_class = "unknown"
+                status_icon = "❓"
+            
+            # Format duration
+            duration_html = ""
+            if op.duration:
+                duration_html = f"<span class='operation-duration'>({op.duration})</span>"
+            
+            operations_html += f"""
+            <div class="resource-change {op.action.value} collapsed" data-action="{op.action.value}" data-address="{html.escape(op.resource_address)}">
+                <div class="resource-header" onclick="toggleResource(this)">
+                    <span class="status-icon {status_class}">{status_icon}</span>
+                    <span class="resource-address">{html.escape(op.resource_address)}</span>
+                    <span class="action-label">{op.action.value}</span>
+                    {duration_html}
+                    <span class="toggle-indicator">▼</span>
+                </div>
+                <div class="resource-details">
+                    <div class="operation-details">
+                        <p><strong>Action:</strong> {op.action.value}</p>
+                        <p><strong>Status:</strong> {op.status}</p>
+                        {f"<p><strong>Duration:</strong> {op.duration}</p>" if op.duration else ""}
+                    </div>
+                </div>
+            </div>
+            """
+        
+        return f"""
+        <div class="resource-groups">
+            <div class="resource-group" data-resource-type="operations">
+                <div class="group-header">
+                    <h3>Resource Operations ({len(resource_operations)} items)</h3>
+                </div>
+                <div class="group-resources">
+                    {operations_html}
+                </div>
+            </div>
+        </div>
+        """
+    
+    def _generate_apply_errors_section(self, errors) -> str:
+        """Generate the errors section for apply reports"""
+        if not errors:
+            return ""
+        
+        errors_html = ""
+        for i, error in enumerate(errors):
+            error_message = html.escape(error.message) if hasattr(error, 'message') else html.escape(str(error))
+            error_details = html.escape(error.details) if hasattr(error, 'details') and error.details else ""
+            
+            details_html = ""
+            if error_details:
+                details_html = f"""
+                <div class="property-changes">
+                    <table class="properties-table">
+                        <thead>
+                            <tr>
+                                <th>Error Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="property-change">
+                                <td class="error-detail-content">{error_details}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                """
+            else:
+                details_html = "<p>No additional details available.</p>"
+            
+            errors_html += f"""
+            <div class="resource-change delete collapsed" data-action="delete" data-address="error_{i+1}">
+                <div class="resource-header" onclick="toggleResource(this)">
+                    <span class="resource-address">Error {i+1}: {error_message}</span>
+                    <span class="toggle-indicator">▼</span>
+                </div>
+                <div class="resource-details">
+                    {details_html}
+                </div>
+            </div>
+            """
+        
+        return f"""
+        <div class="resource-groups">
+            <div class="resource-group" data-resource-type="errors">
+                <div class="group-header">
+                    <h3>Errors ({len(errors)} items)</h3>
+                </div>
+                <div class="group-resources">
+                    {errors_html}
+                </div>
+            </div>
+        </div>
+        """
+    
+    def _generate_timing_section(self, timing) -> str:
+        """Generate the timing section"""
+        if not timing:
+            return ""
+        
+        timing_html = ""
+        if timing.total_duration:
+            timing_html += f"<p><strong>Total Duration:</strong> {timing.total_duration}</p>"
+        if hasattr(timing, 'start_time') and timing.start_time:
+            timing_html += f"<p><strong>Started:</strong> {timing.start_time}</p>"
+        if hasattr(timing, 'end_time') and timing.end_time:
+            timing_html += f"<p><strong>Completed:</strong> {timing.end_time}</p>"
+        
+        if not timing_html:
+            return ""
+        
+        return f"""
+        <div class="timing-section">
+            <h3>⏱️ Timing Information</h3>
+            <div class="timing-details">
+                {timing_html}
+            </div>
+        </div>
+        """
+    
+    def _get_apply_specific_css(self) -> str:
+        """Get CSS specific to apply reports"""
+        return """
+        /* Apply Report Specific Styles */
+        .header.apply-header {
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%) !important;
+        }
+        
+        .apply-summary {
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .apply-summary.success-summary {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .apply-summary.no-changes-summary {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .apply-summary.error-summary {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .apply-summary.unknown-summary {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .apply-summary h2 {
+            margin: 0 0 1rem 0;
+        }
+        
+        .apply-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .status-info {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.95;
+        }
+        
+        .status-icon {
+            margin-right: 0.5rem;
+        }
+        
+        .status-icon.completed {
+            color: #28a745;
+        }
+        
+        .status-icon.in_progress {
+            color: #ffc107;
+        }
+        
+        .status-icon.failed {
+            color: #dc3545;
+        }
+        
+        .status-icon.unknown {
+            color: #6c757d;
+        }
+        
+        .action-label {
+            font-size: 0.8rem;
+            background: #f8f9fa;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            color: #495057;
+            margin-left: auto;
+            margin-right: 0.5rem;
+        }
+        
+        .operation-duration {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-left: 0.5rem;
+        }
+        
+        .operation-details {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.9rem;
+        }
+        
+        .timing-section {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .timing-section h3 {
+            margin: 0 0 1rem 0;
+            color: #495057;
+        }
+        
+        .timing-details {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        
+        /* Red Theme for Failed Apply */
+        .theme-red .header.apply-header {
+            background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%) !important;
+        }
+        
+        .theme-red .footer-btn {
+            background: #dc3545;
+        }
+        
+        .theme-red .footer-btn:hover {
+            background: #b02a37;
+        }
+        
+        .theme-red .load-logs-btn {
+            background: #dc3545;
+            color: white;
+        }
+        """
+    
+    def _get_apply_specific_javascript(self) -> str:
+        """Get JavaScript specific to apply reports"""
+        return """
+        // Initialize the apply page
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize collapsible elements
+            collapseAllResources();
+            
+            // Auto-load logs
+            autoLoadLogs();
+        });
+        
+        function autoLoadLogs() {
+            // Try different log locations based on environment
+            const baseName = window.location.pathname.split('/').pop().replace('.html', '');
+            
+            const logUrls = [
+                `${baseName}.log`,  // Local: same directory
+                `../logs/${baseName}.log`,  // GitHub Pages: logs folder
+                `logs/${baseName}.log`  // Alternative GitHub Pages path
+            ];
+            
+            tryLoadLog(logUrls, 0);
+        }
+        
+        function filterTerraformLogs(logContent) {
+            const lines = logContent.split('\\n');
+            
+            // Look for trigger lines to start from
+            const triggerPatterns = [
+                'Terraform will perform the following actions:',
+                'Terraform planned the following actions, but then encountered a problem:'
+            ];
+            
+            let startIndex = -1;
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                for (const pattern of triggerPatterns) {
+                    if (line.includes(pattern)) {
+                        startIndex = i;
+                        break;
+                    }
+                }
+                if (startIndex !== -1) break;
+            }
+            
+            // If no trigger found, return original content
+            if (startIndex === -1) {
+                return logContent;
+            }
+            
+            // Return content starting from the trigger line
+            return lines.slice(startIndex).join('\\n');
+        }
+        
+        function tryLoadLog(urls, index) {
+            if (index >= urls.length) {
+                document.getElementById('terminal-output').textContent = 
+                    'Error: Log file not found in any expected location\\nTried:\\n' + urls.join('\\n');
+                return;
+            }
+            
+            fetch(urls[index])
+                .then(response => {
+                    if (!response.ok) throw new Error('Not found');
+                    return response.text();
+                })
+                .then(data => {
+                    const filteredData = filterTerraformLogs(data);
+                    document.getElementById('terminal-output').textContent = filteredData;
+                })
+                .catch(() => tryLoadLog(urls, index + 1));
+        }
+        
+        function toggleResource(header) {
+            const resourceChange = header.closest('.resource-change');
+            resourceChange.classList.toggle('collapsed');
+        }
+        
+        function collapseAllResources() {
+            const resources = document.querySelectorAll('.resource-change');
+            resources.forEach(resource => {
+                resource.classList.add('collapsed');
+            });
+        }
+        
+        function copyToClipboard(elementId) {
+            const element = document.getElementById(elementId);
+            const text = element.textContent;
+            
+            navigator.clipboard.writeText(text).then(function() {
+                // Show feedback
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                btn.style.background = '#6c757d';
+                
+                setTimeout(function() {
+                    btn.textContent = originalText;
+                    btn.style.background = '#6c757d';
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Could not copy text: ', err);
+                alert('Failed to copy to clipboard');
+            });
+        }
+        """
 
     def _get_error_specific_css(self) -> str:
         """Get CSS specific to error reports"""
@@ -1244,10 +1771,40 @@ class HTMLGenerator:
             tryLoadLog(logUrls, 0);
         }
         
+        function filterTerraformLogs(logContent) {
+            const lines = logContent.split('\\\\n');
+            
+            // Look for trigger lines to start from
+            const triggerPatterns = [
+                'Terraform will perform the following actions:',
+                'Terraform planned the following actions, but then encountered a problem:'
+            ];
+            
+            let startIndex = -1;
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                for (const pattern of triggerPatterns) {
+                    if (line.includes(pattern)) {
+                        startIndex = i;
+                        break;
+                    }
+                }
+                if (startIndex !== -1) break;
+            }
+            
+            // If no trigger found, return original content
+            if (startIndex === -1) {
+                return logContent;
+            }
+            
+            // Return content starting from the trigger line
+            return lines.slice(startIndex).join('\\\\n');
+        }
+        
         function tryLoadLog(urls, index) {
             if (index >= urls.length) {
                 document.getElementById('terminal-output').textContent = 
-                    'Error: Log file not found in any expected location\\nTried:\\n' + urls.join('\\n');
+                    'Error: Log file not found in any expected location\\\\nTried:\\\\n' + urls.join('\\\\n');
                 return;
             }
             
@@ -1257,7 +1814,8 @@ class HTMLGenerator:
                     return response.text();
                 })
                 .then(data => {
-                    document.getElementById('terminal-output').textContent = data;
+                    const filteredData = filterTerraformLogs(data);
+                    document.getElementById('terminal-output').textContent = filteredData;
                 })
                 .catch(() => tryLoadLog(urls, index + 1));
         }
