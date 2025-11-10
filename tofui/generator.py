@@ -1338,13 +1338,9 @@ class HTMLGenerator:
         }
         
         .apply-summary.error-summary {
-            background: #f8d7da;
-            color: #721c24;
         }
         
         .apply-summary.unknown-summary {
-            background: #fff3cd;
-            color: #856404;
         }
         
         .apply-summary h2 {
