@@ -201,7 +201,7 @@ def handle_no_changes_scenario(args):
     )
     
     minimal_plan = TerraformPlan(
-        terraform_version="1.0.0",  # Default version
+        terraform_version="99.99",  # fake default version for evaluation
         format_version="1.0",
         planned_values={},
         resource_changes=[],

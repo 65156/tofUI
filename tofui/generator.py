@@ -158,7 +158,7 @@ class HTMLGenerator:
         return f"""
         <div class="header">
             <div class="plan-name"><strong>{html.escape(self.plan_name)}</strong></div>
-            <div class="meta-info"><strong>Terraform Version:</strong> {html.escape(analysis.plan.terraform_version)} • <strong>Generated:</strong> {formatted_time}</div>
+            <div class="meta-info"><strong>Version:</strong> {html.escape(analysis.plan.terraform_version)} • <strong>Generated:</strong> {formatted_time}</div>
         </div>
         """
     
