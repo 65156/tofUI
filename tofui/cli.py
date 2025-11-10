@@ -124,7 +124,8 @@ def filter_terraform_logs(log_content):
     # Look for trigger lines to start from
     trigger_patterns = [
         'Terraform will perform the following actions:',
-        'Terraform planned the following actions, but then encountered a problem:'
+        'Terraform planned the following actions, but then encountered a problem:',
+        'No changes. Your infrastructure matches the configuration.'
     ]
     
     start_index = -1
