@@ -158,7 +158,7 @@ class HTMLGenerator:
         return f"""
         <div class="header">
             <div class="plan-name"><strong>{html.escape(self.plan_name)}</strong></div>
-            <div class="meta-info"><strong>Terraform Version:</strong> {html.escape(analysis.plan.terraform_version)} • <strong>Generated:</strong> {formatted_time}</div>
+            <div class="meta-info"><strong>Version:</strong> {html.escape(analysis.plan.terraform_version)} • <strong>Generated:</strong> {formatted_time}</div>
         </div>
         """
     
@@ -1322,7 +1322,7 @@ class HTMLGenerator:
         return """
         /* Apply Report Specific Styles */
         .header.apply-header {
-            background: linear-gradient(135deg, #28a745 0%, #218838 100%) !important;
+            background: linear-gradient(135deg, #7b28a7 0%, #542188 100%) !important;
         }
         
         .apply-summary {
@@ -1332,23 +1332,15 @@ class HTMLGenerator:
         }
         
         .apply-summary.success-summary {
-            background: #d4edda;
-            color: #155724;
         }
         
         .apply-summary.no-changes-summary {
-            background: #d4edda;
-            color: #155724;
         }
         
         .apply-summary.error-summary {
-            background: #f8d7da;
-            color: #721c24;
         }
         
         .apply-summary.unknown-summary {
-            background: #fff3cd;
-            color: #856404;
         }
         
         .apply-summary h2 {
