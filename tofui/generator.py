@@ -1322,7 +1322,7 @@ class HTMLGenerator:
         return """
         /* Apply Report Specific Styles */
         .header.apply-header {
-            background: linear-gradient(135deg, #28a745 0%, #218838 100%) !important;
+            background: linear-gradient(135deg, #7b28a7 0%, #542188 100%) !important;
         }
         
         .apply-summary {
@@ -1332,13 +1332,9 @@ class HTMLGenerator:
         }
         
         .apply-summary.success-summary {
-            background: #d4edda;
-            color: #155724;
         }
         
         .apply-summary.no-changes-summary {
-            background: #d4edda;
-            color: #155724;
         }
         
         .apply-summary.error-summary {
