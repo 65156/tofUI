@@ -1,0 +1,14 @@
+{
+  "source_repo": "IBM-Sports/infrastructure",
+  "folder": "aws_us_east_2",
+  "build_name": "deploy-124",
+  "display_name": "Production Deploy #124",
+  "html_url": "https://pages.github.ibm.com/IBM-Sports/infrastructure/aws_us_east_2/html_report/deploy-124.html",
+  "statuses": {
+    "terraform_plan": 0,
+    "tfsec": 0,
+    "tflint": 0
+  },
+  "timestamp": "2024-01-15T14:20:00Z",
+  "sanitized_name": "deploy-124"
+}

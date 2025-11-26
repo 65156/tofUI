@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tofUI+ Dashboard</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.4;
+            background-color: #f6f8fa;
+            color: #24292f;
+            font-size: 14px;
+        }
+        
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: #f6f8fa;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #0969da 0%, #0550ae 100%);
+            color: white;
+            padding: 1.5rem 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .header .subtitle {
+            opacity: 0.95;
+            font-size: 0.95rem;
+        }
+        
+        .last-updated {
+            margin-top: 0.25rem;
+            opacity: 0.85;
+            font-size: 0.85rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: #57606a;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0969da;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 0.75rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .content {
+            padding: 1rem;
+            background: white;
+            flex: 1;
+        }
+        
+        .repository-section {
+            margin-bottom: 1.5rem;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            overflow: hidden;
+            background: white;
+        }
+        
+        .repository-header {
+            background: #f6f8fa;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #d0d7de;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .repository-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #24292f;
+        }
+        
+        .folder-stats {
+            font-size: 0.85rem;
+            color: #57606a;
+        }
+        
+        .folder-section {
+            /* No border on section itself */
+        }
+        
+        .folder-section:last-child .folder-header {
+            border-bottom: none;
+        }
+        
+        .folder-header {
+            background: #ffffff;
+            padding: 0.4rem 1rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            border-bottom: 1px solid #d0d7de;
+            user-select: none;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            min-height: 42px;
+        }
+        
+        .folder-header:hover {
+            background: #f6f8fa;
+        }
+        
+        .folder-header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex: 1;
+        }
+        
+        .folder-header-right {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .folder-name {
+            font-weight: 600;
+            color: #0969da;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+        
+        .folder-divider {
+            color: #d0d7de;
+            font-weight: normal;
+        }
+        
+        .toggle-indicator {
+            color: #57606a;
+            font-size: 0.75rem;
+            transition: transform 0.2s;
+            transform: rotate(0deg);
+        }
+        
+        .folder-section .reports-container {
+            display: none;
+        }
+        
+        .folder-section.expanded .reports-container {
+            display: block;
+        }
+        
+        .folder-section.expanded .toggle-indicator {
+            transform: rotate(90deg);
+        }
+        
+        .folder-latest-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .folder-latest-status .status-label {
+            font-weight: 700;
+        }
+        
+        .folder-section.expanded .folder-latest-status {
+            display: none;
+        }
+        
+        .reports-container {
+            background: #ffffff;
+        }
+        
+        .report-type-section {
+            margin-bottom: 0.5rem;
+        }
+        
+        .report-type-header {
+            background: #f6f8fa;
+            padding: 0.5rem 1rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #57606a;
+            border-bottom: 1px solid #d0d7de;
+        }
+        
+        /* Compact single-line report layout */
+        .report-line {
+            display: flex;
+            align-items: center;
+            padding: 0.4rem 1rem;
+            border-bottom: 1px solid #f6f8fa;
+            gap: 1rem;
+            font-size: 0.9rem;
+            min-height: 42px;
+        }
+        
+        .report-line:hover {
+            background: #f6f8fa;
+        }
+        
+        .report-line:last-child {
+            border-bottom: none;
+        }
+        
+        .report-build-name {
+            flex: 0 0 200px;
+            font-weight: 500;
+            color: #24292f;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .report-statuses {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .status-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+        
+        .status-emoji {
+            font-size: 1rem;
+        }
+        
+        .status-label {
+            font-weight: 500;
+        }
+        
+        .report-timestamp {
+            flex: 0 0 140px;
+            color: #57606a;
+            font-size: 0.85rem;
+            text-align: right;
+        }
+        
+        .report-link {
+            flex: 0 0 auto;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: #0969da;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: background 0.2s;
+            white-space: nowrap;
+        }
+        
+        .btn:hover {
+            background: #0550ae;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: #57606a;
+        }
+        
+        .empty-state h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+            color: #24292f;
+        }
+        
+        .footer {
+            background: #f6f8fa;
+            padding: 1.5rem;
+            text-align: center;
+            color: #57606a;
+            border-top: 1px solid #d0d7de;
+            font-size: 0.9rem;
+        }
+        
+        .footer strong {
+            color: #0969da;
+        }
+        
+        .error-message {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1.5rem;
+        }
+        
+        @media (max-width: 1024px) {
+            .report-line {
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            
+            .report-build-name {
+                flex: 1 1 100%;
+            }
+            
+            .report-statuses {
+                flex: 1 1 100%;
+            }
+            
+            .report-timestamp {
+                flex: 0 0 auto;
+                text-align: left;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎨 tofUI+ Dashboard</h1>
+            <div class="subtitle">Centralized Terraform Report Registry</div>
+            <div class="last-updated" id="lastUpdated"></div>
+        </div>
+        
+        <div class="content">
+            <div class="loading" id="loading">
+                <div class="loading-spinner"></div>
+                <p>Loading reports...</p>
+            </div>
+            <div id="dashboard"></div>
+        </div>
+        
+        <div class="footer">
+            <p>Generated by <strong>tofUI+</strong> • Better OpenTofu & Terraform Plans</p>
+        </div>
+    </div>
+    
+    <script>
+        // Configuration
+        const CONFIG_URL = 'config.json';
+        const MAX_SLOTS = 7;  // Fixed number of report slots per folder
+        
+        let config = {
+            status_types: {},
+            repositories: {}  // Map of repo -> {display_name, folders[]}
+        };
+        
+        // Load configuration
+        async function loadConfig() {
+            try {
+                const response = await fetch(CONFIG_URL);
+                if (response.ok) {
+                    config = await response.json();
+                    console.log('Loaded configuration');
+                }
+            } catch (error) {
+                console.warn('Could not load config.json, using defaults');
+            }
+        }
+        
+        // Generate slot filename
+        function getSlotFilename(repo, folder, reportType, slotNumber) {
+            const repoSanitized = repo.replace(/\//g, '-');
+            const folderSanitized = folder || '_root';
+            const typeSanitized = reportType || 'build';
+            const slotPadded = String(slotNumber).padStart(3, '0');
+            return `${repoSanitized}-${folderSanitized}-${typeSanitized}-${slotPadded}.json`;
+        }
+        
+        // Load individual report from slot
+        async function loadReportSlot(repo, folder, reportType, slotNumber) {
+            const filename = getSlotFilename(repo, folder, reportType, slotNumber);
+            try {
+                const response = await fetch(`reports/${filename}`);
+                if (response.ok) {
+                    const report = await response.json();
+                    // Add report_type if missing (for migration of legacy reports)
+                    if (!report.report_type) {
+                        report.report_type = 'build';
+                    }
+                    return report;
+                }
+            } catch (error) {
+                // Slot doesn't exist, that's okay
+            }
+            return null;
+        }
+        
+        // Discover all reports by trying all slots for configured repo/folder combinations
+        async function discoverAllReports() {
+            const allReports = [];
+            const reportTypes = ['test', 'build'];  // Support both test and build types
+            
+            // Iterate through each repository in config
+            for (const [repo, repoConfig] of Object.entries(config.repositories || {})) {
+                const folders = repoConfig.folders || ['_root'];  // Default to _root if no folders specified
+                
+                // Try all folders for this repo
+                for (const folder of folders) {
+                    // Try both report types
+                    for (const reportType of reportTypes) {
+                        // Try all 7 slots for this repo/folder/type combination
+                        for (let slot = 1; slot <= MAX_SLOTS; slot++) {
+                            const report = await loadReportSlot(repo, folder, reportType, slot);
+                            if (report) {
+                                allReports.push(report);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return allReports;
+        }
+        
+        // Format timestamp
+        function formatTimestamp(isoTimestamp) {
+            try {
+                const date = new Date(isoTimestamp);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+                
+                if (diffMins < 1) return 'Just now';
+                if (diffMins < 60) return `${diffMins}m ago`;
+                if (diffHours < 24) return `${diffHours}h ago`;
+                if (diffDays < 7) return `${diffDays}d ago`;
+                
+                return date.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+                });
+            } catch {
+                return '';
+            }
+        }
+        
+        // Get status item HTML with label
+        function getStatusItem(statusType, statusCode) {
+            const typeConfig = config.status_types[statusType];
+            
+            // If status type is not configured, skip it
+            if (!typeConfig) {
+                return '';
+            }
+            
+            const mappings = typeConfig.mappings || {};
+            const statusMapping = mappings[String(statusCode)];
+            
+            // If status code is not configured, skip it
+            if (!statusMapping) {
+                return '';
+            }
+            
+            const emoji = statusMapping.emoji;
+            const color = statusMapping.color;
+            const label = statusMapping.label;
+            const typeName = typeConfig.name;
+            
+            return `<span class="status-item" style="background-color: ${color}20; border: 1px solid ${color}40;" title="${typeName}: ${label}">
+                <span class="status-emoji">${emoji}</span>
+                <span class="status-label" style="color: ${color};">${typeName}</span>
+            </span>`;
+        }
+        
+        // Get all status items
+        function getStatusItems(statuses) {
+            if (!statuses || Object.keys(statuses).length === 0) {
+                return '';
+            }
+            
+            const items = Object.entries(statuses)
+                .map(([type, code]) => getStatusItem(type, code))
+                .filter(item => item !== '')  // Remove empty items
+                .join('');
+            
+            // If no valid status items, return empty string
+            return items || '';
+        }
+        
+        // Toggle folder
+        function toggleFolder(element) {
+            const folderSection = element.closest('.folder-section');
+            folderSection.classList.toggle('expanded');
+        }
+        
+        // Build dashboard HTML
+        function buildDashboard(reports) {
+            if (reports.length === 0) {
+                return `
+                    <div class="empty-state">
+                        <h3>No Reports Yet</h3>
+                        <p>Start publishing tofUI reports to see them here!</p>
+                        <p style="margin-top: 1rem; font-size: 0.9rem;">
+                            Use <code>tofui-publish</code> after generating reports to register them in the dashboard.
+                        </p>
+                    </div>
+                `;
+            }
+            
+            // Organize reports by repository, folder, and type
+            const organized = {};
+            reports.forEach(report => {
+                const repo = report.source_repo || 'Unknown';
+                const folder = report.folder || '_root';
+                const reportType = report.report_type || 'build';
+                
+                if (!organized[repo]) {
+                    organized[repo] = {};
+                }
+                if (!organized[repo][folder]) {
+                    organized[repo][folder] = {};
+                }
+                if (!organized[repo][folder][reportType]) {
+                    organized[repo][folder][reportType] = [];
+                }
+                organized[repo][folder][reportType].push(report);
+            });
+            
+            // Sort reports by timestamp (newest first) and limit to 7 per type
+            Object.values(organized).forEach(repoData => {
+                Object.values(repoData).forEach(folderData => {
+                    Object.values(folderData).forEach(typeReports => {
+                        // Sort by timestamp (newest first)
+                        typeReports.sort((a, b) => {
+                            return new Date(b.timestamp || 0) - new Date(a.timestamp || 0);
+                        });
+                        
+                        // Keep only the 7 most recent reports per type
+                        if (typeReports.length > 7) {
+                            typeReports.splice(7);
+                        }
+                    });
+                });
+            });
+            
+            // Build HTML
+            let html = '';
+            Object.keys(organized).sort().forEach(repo => {
+                const folders = organized[repo];
+                
+                // Get custom display name from config, or use repo name
+                const displayName = config.repositories?.[repo]?.display_name || repo;
+                
+                html += `
+                    <div class="repository-section">
+                        <div class="repository-header">
+                            <div class="repository-name">${displayName}</div>
+                        </div>
+                `;
+                
+                Object.keys(folders).sort().forEach(folder => {
+                    const folderTypes = folders[folder];
+                    const folderDisplay = folder === '_root' ? 'Root' : folder;
+                    
+                    // Get the most recent report across all types for folder header
+                    let latestReport = null;
+                    Object.values(folderTypes).forEach(typeReports => {
+                        if (typeReports.length > 0) {
+                            if (!latestReport || new Date(typeReports[0].timestamp) > new Date(latestReport.timestamp)) {
+                                latestReport = typeReports[0];
+                            }
+                        }
+                    });
+                    
+                    const latestStatuses = latestReport ? latestReport.statuses || {} : {};
+                    const latestTimestamp = latestReport ? latestReport.timestamp || '' : '';
+                    
+                    html += `
+                        <div class="folder-section">
+                            <div class="folder-header" onclick="toggleFolder(this)">
+                                <div class="folder-header-left">
+                                    <div class="folder-name">📁 ${folderDisplay}</div>
+                                    <div class="folder-stats">Latest: ${formatTimestamp(latestTimestamp)}</div>
+                                </div>
+                                <div class="folder-header-right">
+                                    <div class="folder-latest-status">
+                                        ${getStatusItems(latestStatuses)}
+                                    </div>
+                                    <span class="toggle-indicator">▶</span>
+                                </div>
+                            </div>
+                            <div class="reports-container">
+                    `;
+                    
+                    // Show reports grouped by type (test first, then build)
+                    const reportTypes = ['test', 'build'];
+                    reportTypes.forEach(reportType => {
+                        const typeReports = folderTypes[reportType] || [];
+                        if (typeReports.length === 0) return;
+                        
+                        const typeLabel = reportType === 'test' ? '🧪 Test Reports (Pull Requests)' : '🏗️ Build Reports (Merges)';
+                        
+                        html += `
+                            <div class="report-type-section">
+                                <div class="report-type-header">${typeLabel}</div>
+                        `;
+                        
+                        typeReports.forEach(report => {
+                            const buildName = report.build_name || 'Unknown';
+                            const displayName = report.display_name || buildName;
+                            const htmlUrl = report.html_url || '';
+                            const statuses = report.statuses || {};
+                            const timestamp = report.timestamp || '';
+                            
+                            // Only show View link if html_url is provided
+                            const viewLink = htmlUrl ? `<a href="${htmlUrl}" class="btn" target="_blank">📄 View</a>` : '';
+                            
+                            html += `
+                                <div class="report-line">
+                                    <div class="report-build-name" title="${displayName}">${displayName}</div>
+                                    <div class="report-statuses">
+                                        ${getStatusItems(statuses)}
+                                    </div>
+                                    <div class="report-timestamp">${formatTimestamp(timestamp)}</div>
+                                    <div class="report-link">
+                                        ${viewLink}
+                                    </div>
+                                </div>
+                            `;
+                        });
+                        
+                        html += `
+                            </div>
+                        `;
+                    });
+                    
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `</div>`;
+            });
+            
+            return html;
+        }
+        
+        // Main initialization
+        async function init() {
+            try {
+                // Load configuration
+                await loadConfig();
+                
+                // Discover all reports from configured repo/folder combinations
+                console.log('Discovering reports from configured repositories...');
+                const reports = await discoverAllReports();
+                
+                if (reports.length === 0) {
+                    document.getElementById('loading').innerHTML = `
+                        <div class="empty-state">
+                            <h3>No Reports Yet</h3>
+                            <p>Start publishing tofUI reports to see them here!</p>
+                            <p style="margin-top: 1rem; font-size: 0.9rem;">
+                                Configure repositories in <code>config.json</code>
+                            </p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                console.log(`Found ${reports.length} reports`);
+                
+                // Update last updated time
+                const lastUpdated = new Date().toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                document.getElementById('lastUpdated').textContent = `Last updated: ${lastUpdated}`;
+                
+                // Build and display dashboard
+                const dashboardHTML = buildDashboard(reports);
+                document.getElementById('dashboard').innerHTML = dashboardHTML;
+                document.getElementById('loading').style.display = 'none';
+                
+            } catch (error) {
+                console.error('Error initializing dashboard:', error);
+                document.getElementById('loading').innerHTML = `
+                    <div class="error-message">
+                        <strong>Error loading dashboard</strong><br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Start loading
+        init();
+    </script>
+</body>
+</html>

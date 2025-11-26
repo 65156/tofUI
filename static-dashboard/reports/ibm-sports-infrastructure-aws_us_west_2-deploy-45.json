@@ -1,0 +1,13 @@
+{
+  "source_repo": "IBM-Sports/infrastructure",
+  "folder": "aws_us_west_2",
+  "build_name": "deploy-45",
+  "display_name": "West Region Deploy #45",
+  "html_url": "https://pages.github.ibm.com/IBM-Sports/infrastructure/aws_us_west_2/html_report/deploy-45.html",
+  "statuses": {
+    "terraform_plan": 2,
+    "tfsec": 1
+  },
+  "timestamp": "2024-01-15T09:00:00Z",
+  "sanitized_name": "deploy-45"
+}
