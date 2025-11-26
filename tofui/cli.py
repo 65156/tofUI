@@ -447,6 +447,79 @@ def handle_terraform_error(args):
     return 0
 
 
+def parse_statuses(status_args):
+    """
+    Parse status arguments in format: type:code
+    Example: terraform_plan:2 tfsec:0 codebuild:0
+    """
+    if not status_args:
+        return {}
+    
+    statuses = {}
+    for status_arg in status_args:
+        if ':' not in status_arg:
+            print(f"⚠️  Warning: Invalid status format '{status_arg}'. Expected format: type:code", file=sys.stderr)
+            continue
+        
+        status_type, status_code = status_arg.split(':', 1)
+        try:
+            statuses[status_type] = int(status_code)
+        except ValueError:
+            print(f"⚠️  Warning: Invalid status code '{status_code}' for type '{status_type}'. Must be an integer.", file=sys.stderr)
+            continue
+    
+    return statuses
+
+
+def publish_to_dashboard_wrapper(args, sanitized_build_name, display_name, html_url):
+    """Wrapper function to publish report to dashboard"""
+    from .publisher import publish_to_dashboard
+    
+    # Validate required parameters
+    if not args.dashboard_repo:
+        print("❌ Error: --dashboard-repo is required when using --publish-dashboard", file=sys.stderr)
+        return False
+    
+    if not args.github_repo:
+        print("❌ Error: --github-repo is required when using --publish-dashboard", file=sys.stderr)
+        return False
+    
+    # Parse statuses
+    statuses = parse_statuses(getattr(args, 'status', None))
+    if not statuses:
+        print("⚠️  Warning: No status indicators provided. Use --status to add status tracking.", file=sys.stderr)
+    
+    # Construct HTML URL if not provided
+    if not html_url and args.github_repo:
+        if args.github_enterprise_url:
+            pages_url = f"{args.github_enterprise_url.replace('https://', 'https://pages.')}/{args.github_repo}"
+        else:
+            owner, repo = args.github_repo.split('/', 1)
+            pages_url = f"https://{owner}.github.io/{repo}"
+        
+        if args.folder:
+            html_url = f"{pages_url}/{args.folder}/html_report/{sanitized_build_name}.html"
+        else:
+            html_url = f"{pages_url}/html_report/{sanitized_build_name}.html"
+    
+    # Publish to dashboard
+    success = publish_to_dashboard(
+        dashboard_repo=args.dashboard_repo,
+        source_repo=args.github_repo,
+        folder=getattr(args, 'folder', None),
+        report_type=getattr(args, 'report_type', 'build'),
+        build_name=args.build_name,
+        html_url=html_url or '',
+        statuses=statuses,
+        github_token=getattr(args, 'github_token', None),
+        github_enterprise_url=getattr(args, 'github_enterprise_url', None),
+        display_name=display_name,
+        branch=getattr(args, 'github_branch', 'gh-pages')
+    )
+    
+    return success
+
+
 def main():
     """Main CLI entry point"""
     parser = create_argument_parser()
@@ -583,7 +656,13 @@ def main():
                 log_file_available=log_file_available
             )
             
-            upload_to_github_pages(html_content, args, output_file, args.plan_file, display_name)
+            html_url = upload_to_github_pages(html_content, args, output_file, args.plan_file, display_name)
+        else:
+            html_url = ""
+        
+        # Handle dashboard publishing if dashboard-repo is specified
+        if getattr(args, 'dashboard_repo', None):
+            publish_to_dashboard_wrapper(args, sanitized_build_name, display_name, html_url)
         
         return 0
         
@@ -757,10 +836,26 @@ Examples:
         help="File to write environment variable exports (e.g., 'tofui_vars.sh'). Can be sourced in scripts to get TOFUI_HTML_URL and TOFUI_JSON_URL variables."
     )
     
-    # github_group.add_argument(
-    #     "--pages-base-url",
-    #     help="Custom GitHub Pages base URL (e.g., 'https://pages.github.ibm.com' for GitHub Enterprise)"
-    # )
+    # Dashboard publishing options
+    dashboard_group = parser.add_argument_group("Dashboard Publishing Options")
+    
+    dashboard_group.add_argument(
+        "--dashboard-repo",
+        help="Dashboard repository (owner/repo) where reports are tracked. When specified, automatically enables dashboard publishing."
+    )
+    
+    dashboard_group.add_argument(
+        "--report-type",
+        default="build",
+        choices=["test", "build"],
+        help="Report type: 'test' for pull requests, 'build' for merges/deploys (default: build)"
+    )
+    
+    dashboard_group.add_argument(
+        "--status",
+        action="append",
+        help="Status indicator in format type:code (e.g., terraform_plan:2, tfsec:0). Can be specified multiple times."
+    )
     
     # Output options
     parser.add_argument(
@@ -988,8 +1083,12 @@ export TOFUI_JSON_URL='{json_url}'
         return False
 
 
-def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: str, display_name: str):
-    """Upload the HTML report and JSON plan to GitHub Pages"""
+def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: str, display_name: str) -> str:
+    """Upload the HTML report and JSON plan to GitHub Pages
+    
+    Returns:
+        str: The HTML URL if successful, empty string otherwise
+    """
     try:
         import requests
         import json
@@ -997,7 +1096,7 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
         from datetime import datetime
     except ImportError:
         print("❌ Error: requests is required for GitHub Pages upload. Install with: pip install tofui[ghpages]", file=sys.stderr)
-        return
+        return ""
     
     try:
         print("🐙 Uploading to GitHub Pages...")
@@ -1006,12 +1105,12 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
         github_token = args.github_token or os.getenv('GITHUB_TOKEN')
         if not github_token:
             print("❌ Error: GitHub token not found. Use --github-token or set GITHUB_TOKEN environment variable.", file=sys.stderr)
-            return
+            return ""
         
         # Parse repository
         if '/' not in args.github_repo:
             print("❌ Error: GitHub repository must be in format 'owner/repo'", file=sys.stderr)
-            return
+            return ""
             
         owner, repo = args.github_repo.split('/', 1)
         
@@ -1092,11 +1191,16 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
                 json_url_for_export = json_url if getattr(args, 'debug_json', False) else ""
                 write_export_vars_file(args.export_vars_file, html_url, json_url_for_export, log_url)
             
+            return html_url
+        else:
+            return ""
+            
     except Exception as e:
         print(f"❌ Error uploading to GitHub Pages: {e}", file=sys.stderr)
         if hasattr(args, 'debug') and args.debug:
             import traceback
             traceback.print_exc()
+        return ""
 
 
 def github_api_request_with_retry(url: str, headers: dict, data: dict, method: str = "PUT", max_retries: int = 12) -> tuple:

@@ -4,6 +4,7 @@ setup.py
 tofui/__init__.py
 tofui/__main__.py
 tofui/analyzer.py
+tofui/apply_parser.py
 tofui/cli.py
 tofui/generator.py
 tofui/parser.py
