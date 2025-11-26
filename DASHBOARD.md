@@ -24,16 +24,22 @@ Create a repository for your dashboard (e.g., `myorg/tofui-dashboard`) and copy 
 ### 2. Generate Report with Dashboard Publishing
 
 ```bash
-# Generate HTML report AND publish to dashboard
-# Dashboard publishing is automatically enabled when --dashboard-repo is specified
+# Test report (for pull requests) - default when --apply-mode is NOT used
 tofui plan.json \
+  --build-name "pr-456" \
+  --github-repo "myorg/infrastructure" \
+  --folder "aws_us_east_2" \
+  --dashboard-repo "myorg/tofui-dashboard" \
+  --status terraform_plan:2
+
+# Build report (for merges/deploys) - when --apply-mode is used
+tofui apply.json \
+  --apply-mode \
   --build-name "deploy-123" \
   --github-repo "myorg/infrastructure" \
   --folder "aws_us_east_2" \
   --dashboard-repo "myorg/tofui-dashboard" \
-  --report-type "build" \
-  --status terraform_plan:2 \
-  --status tfsec:0
+  --status terraform_apply:0
 ```
 
 ## Parameters
@@ -45,7 +51,7 @@ tofui plan.json \
 
 ### Optional
 
-- `--report-type`: Report type - `test` for PRs, `build` for merges (default: `build`)
+- `--apply-mode`: When present, marks report as "build" type (for merges/deploys). Without it, defaults to "test" type (for PRs)
 - `--status`: Status indicators in format `type:code` (can be specified multiple times)
 - `--folder`: Folder name for organizing reports
 - `--github-enterprise-url`: GitHub Enterprise URL
@@ -54,27 +60,29 @@ tofui plan.json \
 
 - **HTML URL**: Automatically captured from GitHub Pages upload - no need to specify manually
 - **Dashboard Publishing**: Automatically enabled when `--dashboard-repo` is present
+- **Report Type**: Automatically determined by `--apply-mode` flag (build if present, test otherwise)
 
 ## Report Types
 
-### Build Reports (Merges/Deploys)
-```bash
-tofui plan.json \
-  --build-name "deploy-123" \
-  --github-repo "myorg/infrastructure" \
-  --dashboard-repo "myorg/tofui-dashboard" \
-  --report-type "build" \
-  --status terraform_plan:0
-```
-
 ### Test Reports (Pull Requests)
 ```bash
+# Default behavior - no --apply-mode flag
 tofui plan.json \
   --build-name "pr-456" \
   --github-repo "myorg/infrastructure" \
   --dashboard-repo "myorg/tofui-dashboard" \
-  --report-type "test" \
   --status terraform_plan:2
+```
+
+### Build Reports (Merges/Deploys)
+```bash
+# Use --apply-mode to mark as build report
+tofui apply.json \
+  --apply-mode \
+  --build-name "deploy-123" \
+  --github-repo "myorg/infrastructure" \
+  --dashboard-repo "myorg/tofui-dashboard" \
+  --status terraform_apply:0
 ```
 
 ## Status Indicators
@@ -130,28 +138,45 @@ You can use any status type name. Define the display formatting in the dashboard
 #!/bin/bash
 # Complete CI/CD workflow with dashboard publishing
 
-# Run terraform plan
-terraform plan -out=plan.tfplan -detailed-exitcode
-PLAN_EXIT=$?
+# For Pull Requests (test reports)
+if [ "$CI_EVENT_TYPE" = "pull_request" ]; then
+  # Run terraform plan
+  terraform plan -out=plan.tfplan -detailed-exitcode
+  PLAN_EXIT=$?
+  
+  # Convert to JSON
+  terraform show -json plan.tfplan > plan.json
+  
+  # Run security checks
+  tfsec . --format json > tfsec.json
+  TFSEC_EXIT=$?
+  
+  # Generate test report (no --apply-mode)
+  tofui plan.json \
+    --build-name "pr-${PR_NUMBER}" \
+    --display-name "PR #${PR_NUMBER} Validation" \
+    --github-repo "myorg/infrastructure" \
+    --folder "production" \
+    --dashboard-repo "myorg/tofui-dashboard" \
+    --status "terraform_plan:${PLAN_EXIT}" \
+    --status "tfsec:${TFSEC_EXIT}"
 
-# Convert to JSON
-terraform show -json plan.tfplan > plan.json
-
-# Run security checks
-tfsec . --format json > tfsec.json
-TFSEC_EXIT=$?
-
-# Generate report and publish to dashboard
-tofui plan.json \
-  --build-name "deploy-${BUILD_ID}" \
-  --display-name "Production Deploy #${BUILD_ID}" \
-  --github-repo "myorg/infrastructure" \
-  --folder "production" \
-  --github-branch "gh-pages" \
-  --dashboard-repo "myorg/tofui-dashboard" \
-  --report-type "build" \
-  --status "terraform_plan:${PLAN_EXIT}" \
-  --status "tfsec:${TFSEC_EXIT}"
+# For Merges/Deploys (build reports)
+else
+  # Run terraform apply
+  terraform apply -auto-approve -detailed-exitcode
+  APPLY_EXIT=$?
+  
+  # Generate build report (with --apply-mode)
+  tofui apply.json \
+    --apply-mode \
+    --build-name "deploy-${BUILD_ID}" \
+    --display-name "Production Deploy #${BUILD_ID}" \
+    --github-repo "myorg/infrastructure" \
+    --folder "production" \
+    --dashboard-repo "myorg/tofui-dashboard" \
+    --status "terraform_apply:${APPLY_EXIT}"
+fi
 ```
 
 ## Dashboard Configuration
@@ -213,12 +238,22 @@ myorg-infrastructure-production-build-002.json
 ## GitHub Enterprise
 
 ```bash
+# Test report
 tofui plan.json \
-  --build-name "deploy-123" \
+  --build-name "pr-123" \
   --github-repo "myorg/infrastructure" \
   --github-enterprise-url "https://github.company.com" \
   --dashboard-repo "myorg/tofui-dashboard" \
   --status terraform_plan:2
+
+# Build report
+tofui apply.json \
+  --apply-mode \
+  --build-name "deploy-123" \
+  --github-repo "myorg/infrastructure" \
+  --github-enterprise-url "https://github.company.com" \
+  --dashboard-repo "myorg/tofui-dashboard" \
+  --status terraform_apply:0
 ```
 
 ## Troubleshooting
@@ -241,22 +276,34 @@ tofui plan.json \
 
 If you were using the standalone `tofui-publish` command:
 
-**Before:**
+**Before (tofUI+ standalone):**
 ```bash
 tofui plan.json --build-name "deploy-123"
-tofui-publish --dashboard-repo "myorg/dashboard" --source-repo "myorg/infra" ...
+tofui-publish --dashboard-repo "myorg/dashboard" --source-repo "myorg/infra" --report-type build ...
 ```
 
-**After:**
+**After (integrated):**
 ```bash
+# Test report (default)
 tofui plan.json \
-  --build-name "deploy-123" \
+  --build-name "pr-123" \
   --github-repo "myorg/infra" \
   --dashboard-repo "myorg/dashboard" \
   --status terraform_plan:2
+
+# Build report (with --apply-mode)
+tofui apply.json \
+  --apply-mode \
+  --build-name "deploy-123" \
+  --github-repo "myorg/infra" \
+  --dashboard-repo "myorg/dashboard" \
+  --status terraform_apply:0
 ```
 
-Note: `--publish-dashboard` flag has been removed - dashboard publishing is automatically enabled when `--dashboard-repo` is specified.
+**Changes:**
+- ✅ `--publish-dashboard` flag removed - automatically enabled when `--dashboard-repo` is present
+- ✅ `--report-type` parameter removed - automatically determined by `--apply-mode` flag
+- ✅ `--html-url` parameter removed - automatically captured from GitHub Pages upload
 
 ## Dashboard URL
 

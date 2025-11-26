@@ -502,12 +502,16 @@ def publish_to_dashboard_wrapper(args, sanitized_build_name, display_name, html_
         else:
             html_url = f"{pages_url}/html_report/{sanitized_build_name}.html"
     
+    # Determine report type based on --apply-mode flag
+    # --apply-mode indicates a build/deploy report, otherwise it's a test report
+    report_type = 'build' if getattr(args, 'apply_mode', False) else 'test'
+    
     # Publish to dashboard
     success = publish_to_dashboard(
         dashboard_repo=args.dashboard_repo,
         source_repo=args.github_repo,
         folder=getattr(args, 'folder', None),
-        report_type=getattr(args, 'report_type', 'build'),
+        report_type=report_type,
         build_name=args.build_name,
         html_url=html_url or '',
         statuses=statuses,
@@ -842,13 +846,6 @@ Examples:
     dashboard_group.add_argument(
         "--dashboard-repo",
         help="Dashboard repository (owner/repo) where reports are tracked. When specified, automatically enables dashboard publishing."
-    )
-    
-    dashboard_group.add_argument(
-        "--report-type",
-        default="build",
-        choices=["test", "build"],
-        help="Report type: 'test' for pull requests, 'build' for merges/deploys (default: build)"
     )
     
     dashboard_group.add_argument(
