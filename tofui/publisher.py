@@ -227,6 +227,20 @@ def publish_to_dashboard(
         return False
     
     try:
+        print("=" * 60)
+        print("📊 Dashboard Publishing Details")
+        print("=" * 60)
+        print(f"Dashboard Repo: {dashboard_repo}")
+        print(f"Source Repo: {source_repo}")
+        print(f"Folder: {folder or '(root)'}")
+        print(f"Report Type: {report_type}")
+        print(f"Build Name: {build_name}")
+        print(f"Display Name: {display_name or build_name}")
+        print(f"HTML URL: {html_url or '(none)'}")
+        print(f"Statuses: {statuses}")
+        print(f"Branch: {branch}")
+        print("=" * 60)
+        
         # Get GitHub token
         token = github_token or os.getenv('GITHUB_TOKEN')
         if not token:
@@ -243,8 +257,12 @@ def publish_to_dashboard(
         # Determine API URL
         if github_enterprise_url:
             api_base_url = f"{github_enterprise_url.rstrip('/')}/api/v3"
+            print(f"🏢 Using GitHub Enterprise: {github_enterprise_url}")
         else:
             api_base_url = "https://api.github.com"
+            print(f"🌐 Using public GitHub")
+        
+        print(f"🔗 API Base URL: {api_base_url}")
         
         headers = {
             'Authorization': f'token {token}',
@@ -255,6 +273,9 @@ def publish_to_dashboard(
         # Find the oldest slot to overwrite
         folder_key = folder or "_root"
         type_key = report_type or "build"
+        
+        print(f"🔍 Finding slot for: {source_repo}/{folder_key}/{type_key}")
+        
         slot_number, sha, old_report = find_oldest_slot(
             api_base_url, dashboard_repo, source_repo, folder_key, type_key, branch, headers
         )

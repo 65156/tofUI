@@ -475,13 +475,15 @@ def publish_to_dashboard_wrapper(args, sanitized_build_name, display_name, html_
     """Wrapper function to publish report to dashboard"""
     from .publisher import publish_to_dashboard
     
+    print("📊 Publishing to dashboard...")
+    
     # Validate required parameters
     if not args.dashboard_repo:
-        print("❌ Error: --dashboard-repo is required when using --publish-dashboard", file=sys.stderr)
+        print("❌ Error: --dashboard-repo is required for dashboard publishing", file=sys.stderr)
         return False
     
     if not args.github_repo:
-        print("❌ Error: --github-repo is required when using --publish-dashboard", file=sys.stderr)
+        print("❌ Error: --github-repo is required for dashboard publishing", file=sys.stderr)
         return False
     
     # Parse statuses
@@ -506,20 +508,39 @@ def publish_to_dashboard_wrapper(args, sanitized_build_name, display_name, html_
     # --apply-mode indicates a build/deploy report, otherwise it's a test report
     report_type = 'build' if getattr(args, 'apply_mode', False) else 'test'
     
+    print(f"📋 Dashboard: {args.dashboard_repo}")
+    print(f"📦 Source: {args.github_repo}")
+    print(f"📁 Folder: {getattr(args, 'folder', 'root')}")
+    print(f"🏷️  Type: {report_type}")
+    print(f"🔗 URL: {html_url or 'N/A'}")
+    
     # Publish to dashboard
-    success = publish_to_dashboard(
-        dashboard_repo=args.dashboard_repo,
-        source_repo=args.github_repo,
-        folder=getattr(args, 'folder', None),
-        report_type=report_type,
-        build_name=args.build_name,
-        html_url=html_url or '',
-        statuses=statuses,
-        github_token=getattr(args, 'github_token', None),
-        github_enterprise_url=getattr(args, 'github_enterprise_url', None),
-        display_name=display_name,
-        branch=getattr(args, 'github_branch', 'gh-pages')
-    )
+    try:
+        success = publish_to_dashboard(
+            dashboard_repo=args.dashboard_repo,
+            source_repo=args.github_repo,
+            folder=getattr(args, 'folder', None),
+            report_type=report_type,
+            build_name=args.build_name,
+            html_url=html_url or '',
+            statuses=statuses,
+            github_token=getattr(args, 'github_token', None),
+            github_enterprise_url=getattr(args, 'github_enterprise_url', None),
+            display_name=display_name,
+            branch=getattr(args, 'github_branch', 'gh-pages')
+        )
+        
+        if success:
+            print("✅ Dashboard publishing successful")
+        else:
+            print("❌ Dashboard publishing failed", file=sys.stderr)
+            
+        return success
+    except Exception as e:
+        print(f"❌ Dashboard publishing error: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc()
+        return False
     
     return success
 
