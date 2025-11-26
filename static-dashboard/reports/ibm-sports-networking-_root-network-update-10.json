@@ -1,0 +1,13 @@
+{
+  "source_repo": "IBM-Sports/networking",
+  "folder": "_root",
+  "build_name": "network-update-10",
+  "display_name": "Network Update #10",
+  "html_url": "https://pages.github.ibm.com/IBM-Sports/networking/html_report/network-update-10.html",
+  "statuses": {
+    "terraform_plan": 2,
+    "tfsec": 2
+  },
+  "timestamp": "2024-01-15T08:00:00Z",
+  "sanitized_name": "network-update-10"
+}

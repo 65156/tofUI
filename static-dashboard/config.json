@@ -1,0 +1,55 @@
+{
+  "status_types": {
+    "terraform_plan": {
+      "name": "Terraform Plan",
+      "mappings": {
+        "0": {"label": "No Changes", "emoji": "✅", "color": "#1a7f37"},
+        "1": {"label": "Error", "emoji": "❌", "color": "#cf222e"},
+        "2": {"label": "Has Changes", "emoji": "🔄", "color": "#0969da"}
+      }
+    },
+    "terraform_apply": {
+      "name": "Terraform Apply",
+      "mappings": {
+        "0": {"label": "Success", "emoji": "✅", "color": "#1a7f37"},
+        "1": {"label": "Failed", "emoji": "❌", "color": "#cf222e"}
+      }
+    },
+    "tfsec": {
+      "name": "TFSec",
+      "mappings": {
+        "0": {"label": "Passed", "emoji": "✅", "color": "#1a7f37"},
+        "1": {"label": "Failed", "emoji": "❌", "color": "#cf222e"},
+        "2": {"label": "Warnings", "emoji": "⚠️", "color": "#bf8700"}
+      }
+    },
+    "tflint": {
+      "name": "TFLint",
+      "mappings": {
+        "0": {"label": "Passed", "emoji": "✅", "color": "#1a7f37"},
+        "1": {"label": "Failed", "emoji": "❌", "color": "#cf222e"}
+      }
+    },
+    "codebuild": {
+      "name": "CodeBuild",
+      "mappings": {
+        "0": {"label": "Success", "emoji": "✅", "color": "#1a7f37"},
+        "1": {"label": "Failed", "emoji": "❌", "color": "#cf222e"},
+        "2": {"label": "In Progress", "emoji": "🔄", "color": "#0969da"}
+      }
+    }
+  },
+  "repositories": {
+    "IBM-Sports/infrastructure": {
+      "display_name": "🏗️ Infrastructure",
+      "folders": ["aws_us_east_1", "aws_us_east_2", "aws_us_west_2", "aws_eu_west_1"]
+    },
+    "IBM-Sports/networking": {
+      "display_name": "🌐 Networking"
+    },
+    "IBM-Sports/application": {
+      "display_name": "📱 Application",
+      "folders": ["production"]
+    }
+  }
+}

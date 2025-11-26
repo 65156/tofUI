@@ -46,7 +46,7 @@ setup(
     ],
     python_requires=">=3.8",
     install_requires=[
-        # Core dependencies (no external dependencies!)
+        "requests>=2.25.0",  # Required for dashboard publishing
     ],
     extras_require={
         "s3": ["boto3>=1.26.0"],

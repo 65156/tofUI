@@ -1,8 +1,8 @@
-# tofUI �
+# tofUI 🎨
 
-**Better OpenTofu & Terraform Plan **
+**Better OpenTofu & Terraform Plan Visualization**
 
-Generate stunning, interactive HTML reports from your terraform JSON plans. Lightweight core with optional S3 integration.
+Generate stunning, interactive HTML reports from your terraform JSON plans. Lightweight core with optional S3 integration and centralized dashboard tracking.
 
 ## Interactive Examples
 - https://65156.github.io/tofUI/has-changes-example.html
@@ -12,9 +12,10 @@ Generate stunning, interactive HTML reports from your terraform JSON plans. Ligh
 ## Features ✨
 
 - **🔍 Interactive Analysis** - Expandable/collapsible sections, action filtering, property hiding
-- **📊 Smart Grouping** - Resources organized by action priority with visual indicators  
+- **📊 Smart Grouping** - Resources organized by action priority with visual indicators
 - **🚀 Minimal Dependencies** - Lightweight core with optional S3 support
 - **☁️ S3 Integration** - Optional direct upload to S3 buckets
+- **📈 Dashboard Publishing** - Track all reports across repositories in a centralized dashboard
 - **💻 CLI Ready** - Simple command-line interface
 - **📱 Mobile Friendly** - Works perfectly on all device sizes
 - **⚡ Fast & Lightweight** - Pure Python with embedded CSS/JS
@@ -134,6 +135,30 @@ tofui plan.json \
   --verbose
 ```
 
+### Dashboard Publishing
+```bash
+# Generate report and publish to centralized dashboard
+# Dashboard publishing is automatically enabled when --dashboard-repo is specified
+tofui plan.json \
+  --build-name "deploy-123" \
+  --github-repo "myorg/infrastructure" \
+  --folder "aws_us_east_2" \
+  --dashboard-repo "myorg/tofui-dashboard" \
+  --report-type "build" \
+  --status terraform_plan:2 \
+  --status tfsec:0
+
+# Test report (for PRs)
+tofui plan.json \
+  --build-name "pr-456" \
+  --github-repo "myorg/infrastructure" \
+  --dashboard-repo "myorg/tofui-dashboard" \
+  --report-type "test" \
+  --status terraform_plan:2
+```
+
+**📖 See [DASHBOARD.md](DASHBOARD.md) for complete dashboard documentation**
+
 ## Configuration
 
 Use `tofui-config.json` file for customization:
@@ -192,8 +217,18 @@ GitHub Pages Options:
   --github-token GITHUB_TOKEN
                         GitHub Personal Access Token (default: uses GITHUB_TOKEN environment variable)
 
+Dashboard Publishing Options:
+  --dashboard-repo DASHBOARD_REPO
+                        Dashboard repository (owner/repo) for tracking reports.
+                        When specified, automatically enables dashboard publishing.
+  --report-type {test,build}
+                        Report type: 'test' for PRs, 'build' for merges (default: build)
+  --status STATUS       Status indicator in format type:code (can be specified multiple times)
+                        Examples: terraform_plan:2, tfsec:0, terraform_apply:0
 
 ```
+
+**📖 For detailed dashboard documentation, see [DASHBOARD.md](DASHBOARD.md)**
 
 ## Testing
 
