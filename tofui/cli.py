@@ -239,8 +239,13 @@ def handle_no_changes_scenario(args):
     if args.s3_bucket:
         upload_to_s3(html_content, args, output_file, args.plan_file or "terraform-no-changes.json")
     
+    html_url = ""
     if args.github_repo:
-        upload_to_github_pages(html_content, args, output_file, args.plan_file or "terraform-no-changes.json", display_name)
+        html_url = upload_to_github_pages(html_content, args, output_file, args.plan_file or "terraform-no-changes.json", display_name)
+    
+    # Handle dashboard publishing if dashboard-repo is specified
+    if getattr(args, 'dashboard_repo', None):
+        publish_to_dashboard_wrapper(args, sanitized_build_name, display_name, html_url)
     
     return 0
 
@@ -356,8 +361,13 @@ def handle_terraform_apply_mode(args):
     if args.s3_bucket:
         upload_to_s3(html_content, args, output_file, "terraform-apply.log")
     
+    html_url = ""
     if args.github_repo:
-        upload_to_github_pages(html_content, args, output_file, "terraform-apply.log", display_name)
+        html_url = upload_to_github_pages(html_content, args, output_file, "terraform-apply.log", display_name)
+    
+    # Handle dashboard publishing if dashboard-repo is specified
+    if getattr(args, 'dashboard_repo', None):
+        publish_to_dashboard_wrapper(args, sanitized_build_name, display_name, html_url)
     
     return 0
 
@@ -441,8 +451,13 @@ def handle_terraform_error(args):
     if args.s3_bucket:
         upload_to_s3(html_content, args, output_file, args.plan_file or "terraform-error.log")
     
+    html_url = ""
     if args.github_repo:
-        upload_to_github_pages(html_content, args, output_file, args.plan_file or "terraform-error.log", display_name)
+        html_url = upload_to_github_pages(html_content, args, output_file, args.plan_file or "terraform-error.log", display_name)
+    
+    # Handle dashboard publishing if dashboard-repo is specified
+    if getattr(args, 'dashboard_repo', None):
+        publish_to_dashboard_wrapper(args, sanitized_build_name, display_name, html_url)
     
     return 0
 
