@@ -3,39 +3,39 @@
     "terraform_plan": {
       "name": "Terraform Plan",
       "mappings": {
-        "0": {"label": "No Changes", "emoji": "✅", "color": "#1a7f37"},
-        "1": {"label": "Error", "emoji": "❌", "color": "#cf222e"},
-        "2": {"label": "Has Changes", "emoji": "🔄", "color": "#0969da"}
+        "0": {"label": "No Changes", "emoji": "✅", "color": "#1a7f37", "status": "passing"},
+        "1": {"label": "Error", "emoji": "❌", "color": "#cf222e", "status": "failing"},
+        "2": {"label": "Has Changes", "emoji": "🔄", "color": "#0969da", "status": "passing"}
       }
     },
     "terraform_apply": {
       "name": "Terraform Apply",
       "mappings": {
-        "0": {"label": "Success", "emoji": "✅", "color": "#1a7f37"},
-        "1": {"label": "Failed", "emoji": "❌", "color": "#cf222e"}
+        "0": {"label": "Success", "emoji": "✅", "color": "#1a7f37", "status": "passing"},
+        "1": {"label": "Failed", "emoji": "❌", "color": "#cf222e", "status": "failing"}
       }
     },
     "tfsec": {
       "name": "TFSec",
       "mappings": {
-        "0": {"label": "Passed", "emoji": "✅", "color": "#1a7f37"},
-        "1": {"label": "Failed", "emoji": "❌", "color": "#cf222e"},
-        "2": {"label": "Warnings", "emoji": "⚠️", "color": "#bf8700"}
+        "0": {"label": "Passed", "emoji": "✅", "color": "#1a7f37", "status": "passing"},
+        "1": {"label": "Failed", "emoji": "❌", "color": "#cf222e", "status": "failing"},
+        "2": {"label": "Warnings", "emoji": "⚠️", "color": "#bf8700", "status": "failing"}
       }
     },
     "tflint": {
       "name": "TFLint",
       "mappings": {
-        "0": {"label": "Passed", "emoji": "✅", "color": "#1a7f37"},
-        "1": {"label": "Failed", "emoji": "❌", "color": "#cf222e"}
+        "0": {"label": "Passed", "emoji": "✅", "color": "#1a7f37", "status": "passing"},
+        "1": {"label": "Failed", "emoji": "❌", "color": "#cf222e", "status": "failing"}
       }
     },
     "codebuild": {
       "name": "CodeBuild",
       "mappings": {
-        "0": {"label": "Success", "emoji": "✅", "color": "#1a7f37"},
-        "1": {"label": "Failed", "emoji": "❌", "color": "#cf222e"},
-        "2": {"label": "In Progress", "emoji": "🔄", "color": "#0969da"}
+        "0": {"label": "Success", "emoji": "✅", "color": "#1a7f37", "status": "passing"},
+        "1": {"label": "Failed", "emoji": "❌", "color": "#cf222e", "status": "failing"},
+        "2": {"label": "In Progress", "emoji": "🔄", "color": "#0969da", "status": "passing"}
       }
     }
   },
