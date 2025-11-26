@@ -270,6 +270,39 @@
             text-align: right;
         }
         
+        .report-overall-status {
+            flex: 0 0 95px;
+            margin-left: 0.5rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            border: 2px solid;
+            white-space: nowrap;
+            text-align: center;
+        }
+        
+        .report-overall-status.status-passing {
+            background-color: #1a7f37;
+            color: white;
+            border-color: #146c2e;
+        }
+        
+        .report-overall-status.status-failing {
+            background-color: #cf222e;
+            color: white;
+            border-color: #a40e26;
+        }
+        
+        .report-overall-status .status-emoji {
+            font-size: 1rem;
+        }
+        
         .report-link {
             flex: 0 0 auto;
         }
@@ -517,6 +550,50 @@
             return items || '';
         }
         
+        // Calculate overall status from all status indicators (binary: passing or failing)
+        function calculateOverallStatus(statuses) {
+            if (!statuses || Object.keys(statuses).length === 0) {
+                return null;
+            }
+            
+            // Check each status indicator - if ANY is failing, overall is failing
+            for (const [statusType, statusCode] of Object.entries(statuses)) {
+                const typeConfig = config.status_types[statusType];
+                if (!typeConfig) continue;
+                
+                const mapping = typeConfig.mappings[String(statusCode)];
+                if (!mapping) continue;
+                
+                const status = mapping.status || 'passing';
+                
+                if (status === 'failing') {
+                    return 'failing';  // One failure = overall failing
+                }
+            }
+            
+            // All checks passed
+            return 'passing';
+        }
+        
+        // Get compact binary status badge HTML
+        function getOverallStatusBadge(overallStatus) {
+            if (!overallStatus) return '';
+            
+            // Binary status labels
+            const statusConfig = {
+                'passing': { emoji: '✅', label: 'PASSING' },
+                'failing': { emoji: '❌', label: 'FAILING' }
+            };
+            
+            const statusInfo = statusConfig[overallStatus];
+            if (!statusInfo) return '';
+            
+            return `<div class="report-overall-status status-${overallStatus}">
+                <span class="status-emoji">${statusInfo.emoji}</span>
+                <span>${statusInfo.label}</span>
+            </div>`;
+        }
+        
         // Toggle folder
         function toggleFolder(element) {
             const folderSection = element.closest('.folder-section');
@@ -605,6 +682,10 @@
                     const latestStatuses = latestReport ? latestReport.statuses || {} : {};
                     const latestTimestamp = latestReport ? latestReport.timestamp || '' : '';
                     
+                    // Calculate overall status for folder header
+                    const latestOverallStatus = calculateOverallStatus(latestStatuses);
+                    const folderStatusBadge = getOverallStatusBadge(latestOverallStatus);
+                    
                     html += `
                         <div class="folder-section">
                             <div class="folder-header" onclick="toggleFolder(this)">
@@ -614,7 +695,7 @@
                                 </div>
                                 <div class="folder-header-right">
                                     <div class="folder-latest-status">
-                                        ${getStatusItems(latestStatuses)}
+                                        ${folderStatusBadge}
                                     </div>
                                     <span class="toggle-indicator">▶</span>
                                 </div>
@@ -642,6 +723,10 @@
                             const statuses = report.statuses || {};
                             const timestamp = report.timestamp || '';
                             
+                            // Calculate overall status
+                            const overallStatus = calculateOverallStatus(statuses);
+                            const overallStatusBadge = getOverallStatusBadge(overallStatus);
+                            
                             // Only show View link if html_url is provided
                             const viewLink = htmlUrl ? `<a href="${htmlUrl}" class="btn" target="_blank">📄 View</a>` : '';
                             
@@ -652,6 +737,7 @@
                                         ${getStatusItems(statuses)}
                                     </div>
                                     <div class="report-timestamp">${formatTimestamp(timestamp)}</div>
+                                    ${overallStatusBadge}
                                     <div class="report-link">
                                         ${viewLink}
                                     </div>
