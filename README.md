@@ -137,24 +137,23 @@ tofui plan.json \
 
 ### Dashboard Publishing
 ```bash
-# Generate report and publish to centralized dashboard
-# Dashboard publishing is automatically enabled when --dashboard-repo is specified
+# Test report (for PRs) - default behavior
 tofui plan.json \
+  --build-name "pr-456" \
+  --github-repo "myorg/infrastructure" \
+  --folder "aws_us_east_2" \
+  --dashboard-repo "myorg/tofui-dashboard" \
+  --status terraform_plan:2
+
+# Build report (for merges/deploys) - use --apply-mode
+tofui apply.json \
+  --apply-mode \
   --build-name "deploy-123" \
   --github-repo "myorg/infrastructure" \
   --folder "aws_us_east_2" \
   --dashboard-repo "myorg/tofui-dashboard" \
-  --report-type "build" \
-  --status terraform_plan:2 \
+  --status terraform_apply:0 \
   --status tfsec:0
-
-# Test report (for PRs)
-tofui plan.json \
-  --build-name "pr-456" \
-  --github-repo "myorg/infrastructure" \
-  --dashboard-repo "myorg/tofui-dashboard" \
-  --report-type "test" \
-  --status terraform_plan:2
 ```
 
 **📖 See [DASHBOARD.md](DASHBOARD.md) for complete dashboard documentation**
@@ -221,10 +220,12 @@ Dashboard Publishing Options:
   --dashboard-repo DASHBOARD_REPO
                         Dashboard repository (owner/repo) for tracking reports.
                         When specified, automatically enables dashboard publishing.
-  --report-type {test,build}
-                        Report type: 'test' for PRs, 'build' for merges (default: build)
   --status STATUS       Status indicator in format type:code (can be specified multiple times)
                         Examples: terraform_plan:2, tfsec:0, terraform_apply:0
+                        
+Note: Report type is automatically determined by --apply-mode flag:
+  - Without --apply-mode: "test" report (for pull requests)
+  - With --apply-mode: "build" report (for merges/deploys)
 
 ```
 
