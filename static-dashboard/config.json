@@ -40,6 +40,10 @@
     }
   },
   "repositories": {
+    "IBM-Sports/sports-cloud-sandbox-x81js": {
+      "display_name": "Cloud Infrastructure - Sandbox",
+      "folders": ["aws_us_east_2", "aws_us_east_2_wld", "aws_us_west_2", "aws_us_west_2_wld", "ibm_us_south", "ibm_us_east"]
+    },
     "IBM-Sports/infrastructure": {
       "display_name": "🏗️ Infrastructure",
       "folders": ["aws_us_east_1", "aws_us_east_2", "aws_us_west_2", "aws_eu_west_1"]

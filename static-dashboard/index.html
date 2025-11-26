@@ -229,7 +229,7 @@
         }
         
         .report-build-name {
-            flex: 0 0 200px;
+            flex: 0 0 400px;
             font-weight: 500;
             color: #24292f;
             white-space: nowrap;
@@ -431,11 +431,15 @@
                 for (const folder of folders) {
                     // Try both report types
                     for (const reportType of reportTypes) {
-                        // Try all 7 slots for this repo/folder/type combination
+                        // Try slots sequentially, stop at first gap
                         for (let slot = 1; slot <= MAX_SLOTS; slot++) {
                             const report = await loadReportSlot(repo, folder, reportType, slot);
                             if (report) {
                                 allReports.push(report);
+                            } else {
+                                // Slot doesn't exist, stop checking subsequent slots
+                                // (slots are filled sequentially, so if N is missing, N+1 won't exist)
+                                break;
                             }
                         }
                     }
