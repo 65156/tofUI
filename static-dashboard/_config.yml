@@ -1,0 +1,32 @@
+# Jekyll configuration for GitHub Pages
+# This enables Jekyll processing which rebuilds the site whenever files change
+
+# Basic settings
+title: "tofUI+ Dashboard"
+description: "Better OpenTofu & Terraform Plans"
+
+# Build settings
+markdown: kramdown
+
+# Exclude files from processing (but they'll still be copied to _site)
+exclude:
+  - README.md
+  - .gitignore
+
+# Keep these directories in the output without processing them
+# This prevents Jekyll from trying to process JSON files as templates
+keep_files:
+  - reports
+
+# Include these patterns (JSON files should be copied, not processed)
+include:
+  - reports/*.json
+
+# Disable automatic processing of data files
+# This prevents Jekyll from loading all JSON files into memory
+safe: true
+
+# GitHub Pages will automatically rebuild when any file changes
+# JSON files in reports/ will trigger rebuilds but won't be processed
+
+# Made with Bob

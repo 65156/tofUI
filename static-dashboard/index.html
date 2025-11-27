@@ -1,9 +1,13 @@
+---
+layout: none
+---
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>tofUI+ Dashboard</title>
+    <!-- Cache-busting: {{ site.time | date: '%s' }} -->
     <style>
         * {
             box-sizing: border-box;
@@ -427,7 +431,8 @@
     
     <script>
         // Configuration
-        const CONFIG_URL = 'config.json';
+        const CACHE_BUST = '{{ site.time | date: "%s" }}';  // Jekyll build timestamp for cache busting
+        const CONFIG_URL = `config.json?v=${CACHE_BUST}`;
         const MAX_SLOTS = 7;  // Fixed number of report slots per folder
         
         let config = {
@@ -461,7 +466,7 @@
         async function loadReportSlot(repo, folder, reportType, slotNumber) {
             const filename = getSlotFilename(repo, folder, reportType, slotNumber);
             try {
-                const response = await fetch(`reports/${filename}`);
+                const response = await fetch(`reports/${filename}?v=${CACHE_BUST}`);
                 if (response.ok) {
                     const report = await response.json();
                     // Add report_type if missing (for migration of legacy reports)
