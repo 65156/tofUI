@@ -277,6 +277,7 @@
             border-radius: 4px;
             font-weight: 500;
             font-size: 0.85rem;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             display: inline-flex;
             align-items: center;
             justify-content: center;
@@ -286,22 +287,42 @@
             transition: background 0.2s;
         }
         
-        .report-overall-status.status-passing {
+        /* Folder-level badges (PASSING/FAILING) - keep original dark colors */
+        .report-overall-status.status-passing.folder-status {
             background-color: #1a7f37;
             color: white;
         }
         
-        .report-overall-status.status-passing:hover {
+        .report-overall-status.status-passing.folder-status:hover {
             background-color: #146c2e;
         }
         
-        .report-overall-status.status-failing {
+        .report-overall-status.status-failing.folder-status {
             background-color: #cf222e;
             color: white;
         }
         
-        .report-overall-status.status-failing:hover {
+        .report-overall-status.status-failing.folder-status:hover {
             background-color: #a40e26;
+        }
+        
+        /* Build-level badges (PASS/FAIL) - lighter green and pink */
+        .report-overall-status.status-passing.build-status {
+            background-color: #dcfce7;
+            color: #1a7f37;
+        }
+        
+        .report-overall-status.status-passing.build-status:hover {
+            background-color: #bbf7d0;
+        }
+        
+        .report-overall-status.status-failing.build-status {
+            background-color: #fb7185;
+            color: #881337;
+        }
+        
+        .report-overall-status.status-failing.build-status:hover {
+            background-color: #f43f5e;
         }
         
         .report-overall-status .status-emoji {
@@ -387,15 +408,14 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎨 tofUI+ Dashboard</h1>
-            <div class="subtitle">Centralized Terraform Report Registry</div>
+            <h1>Sports Pipeline Dashboard</h1>
             <div class="last-updated" id="lastUpdated"></div>
         </div>
         
         <div class="content">
             <div class="loading" id="loading">
                 <div class="loading-spinner"></div>
-                <p>Loading reports...</p>
+                <p>Knocking on pipes...</p>
             </div>
             <div id="dashboard"></div>
         </div>
@@ -580,11 +600,11 @@
             return 'passing';
         }
         
-        // Get compact binary status badge HTML
+        // Get compact binary status badge HTML for folder-level (PASSING/FAILING)
         function getOverallStatusBadge(overallStatus) {
             if (!overallStatus) return '';
             
-            // Binary status labels
+            // Binary status labels for folder level
             const statusConfig = {
                 'passing': { emoji: '✅', label: 'PASSING' },
                 'failing': { emoji: '❌', label: 'FAILING' }
@@ -593,7 +613,26 @@
             const statusInfo = statusConfig[overallStatus];
             if (!statusInfo) return '';
             
-            return `<div class="report-overall-status status-${overallStatus}">
+            return `<div class="report-overall-status status-${overallStatus} folder-status">
+                <span class="status-emoji">${statusInfo.emoji}</span>
+                <span>${statusInfo.label}</span>
+            </div>`;
+        }
+        
+        // Get compact binary status badge HTML for build-level (PASS/FAIL)
+        function getBuildStatusBadge(overallStatus) {
+            if (!overallStatus) return '';
+            
+            // Binary status labels for individual builds
+            const statusConfig = {
+                'passing': { emoji: '✅', label: 'PASS' },
+                'failing': { emoji: '❌', label: 'FAIL' }
+            };
+            
+            const statusInfo = statusConfig[overallStatus];
+            if (!statusInfo) return '';
+            
+            return `<div class="report-overall-status status-${overallStatus} build-status">
                 <span class="status-emoji">${statusInfo.emoji}</span>
                 <span>${statusInfo.label}</span>
             </div>`;
@@ -674,15 +713,21 @@
                     const folderTypes = folders[folder];
                     const folderDisplay = folder === '_root' ? 'Root' : folder;
                     
-                    // Get the most recent report across all types for folder header
+                    // Get the most recent report for folder header
+                    // Priority: most recent build report, fallback to most recent test report
                     let latestReport = null;
-                    Object.values(folderTypes).forEach(typeReports => {
-                        if (typeReports.length > 0) {
-                            if (!latestReport || new Date(typeReports[0].timestamp) > new Date(latestReport.timestamp)) {
-                                latestReport = typeReports[0];
-                            }
+                    
+                    // First, check for build reports
+                    const buildReports = folderTypes['build'] || [];
+                    if (buildReports.length > 0) {
+                        latestReport = buildReports[0]; // Most recent build
+                    } else {
+                        // No build reports, fallback to most recent test report
+                        const testReports = folderTypes['test'] || [];
+                        if (testReports.length > 0) {
+                            latestReport = testReports[0]; // Most recent test
                         }
-                    });
+                    }
                     
                     const latestStatuses = latestReport ? latestReport.statuses || {} : {};
                     const latestTimestamp = latestReport ? latestReport.timestamp || '' : '';
@@ -695,7 +740,7 @@
                         <div class="folder-section">
                             <div class="folder-header" onclick="toggleFolder(this)">
                                 <div class="folder-header-left">
-                                    <div class="folder-name">📁 ${folderDisplay}</div>
+                                    <div class="folder-name">${folderDisplay}</div>
                                     <div class="folder-stats">Latest: ${formatTimestamp(latestTimestamp)}</div>
                                 </div>
                                 <div class="folder-header-right">
@@ -714,7 +759,7 @@
                         const typeReports = folderTypes[reportType] || [];
                         if (typeReports.length === 0) return;
                         
-                        const typeLabel = reportType === 'test' ? '🧪 Test Reports (Pull Requests)' : '🏗️ Build Reports (Merges)';
+                        const typeLabel = reportType === 'test' ? '🧪 Integration Tests' : '🚀 Builds ';
                         
                         html += `
                             <div class="report-type-section">
@@ -730,7 +775,7 @@
                             
                             // Calculate overall status
                             const overallStatus = calculateOverallStatus(statuses);
-                            const overallStatusBadge = getOverallStatusBadge(overallStatus);
+                            const overallStatusBadge = getBuildStatusBadge(overallStatus);
                             
                             // Only show View link if html_url is provided
                             const viewLink = htmlUrl ? `<a href="${htmlUrl}" class="btn" target="_blank">📄 View</a>` : '';
