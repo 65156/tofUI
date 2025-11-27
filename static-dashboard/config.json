@@ -3,16 +3,17 @@
     "terraform_plan": {
       "name": "Terraform Plan",
       "mappings": {
-        "0": {"label": "No Changes", "emoji": "✅", "color": "#1a7f37", "status": "passing"},
-        "1": {"label": "Error", "emoji": "❌", "color": "#cf222e", "status": "failing"},
-        "2": {"label": "Has Changes", "emoji": "🔄", "color": "#0969da", "status": "passing"}
+        "0": {"label": "No Changes", "emoji": "🅿️", "color": "#0969da", "status": "passing"},
+        "1": {"label": "Error", "emoji": "❌", "color": "#cf222e", "status": "passing"},
+        "2": {"label": "Has Changes", "emoji": "⚠️", "color": "#bf8700", "status": "passing"}
       }
     },
     "terraform_apply": {
       "name": "Terraform Apply",
       "mappings": {
-        "0": {"label": "Success", "emoji": "✅", "color": "#1a7f37", "status": "passing"},
-        "1": {"label": "Failed", "emoji": "❌", "color": "#cf222e", "status": "failing"}
+        "0": {"label": "No Changes", "emoji": "🅿️", "color": "#0969da", "status": "passing"},
+        "1": {"label": "Failed to Apply", "emoji": "❌", "color": "#cf222e", "status": "failing"},
+        "2": {"label": "Changes Applied", "emoji": "✅", "color": "#1a7f37", "status": "passing"}
       }
     },
     "tfsec": {
