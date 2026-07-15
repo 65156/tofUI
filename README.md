@@ -34,6 +34,10 @@ brew tap 65156/tofui
 brew install tofui
 ```
 
+> **Homebrew 6.0+** requires trusting third-party taps. If you see
+> `Refusing to load formula … from untrusted tap`, run `brew trust 65156/tofui`
+> (or `brew trust --formula 65156/tofui/tofui`) and re-run the install.
+
 That's it — every feature (report generation, dashboard publishing, and S3 hosting)
 is included out of the box. There are no optional extras to remember, and the install
 is fully self-contained in its own isolated environment.
