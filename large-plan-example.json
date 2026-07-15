@@ -1,0 +1,1512 @@
+{
+  "format_version": "1.1",
+  "terraform_version": "1.9.5",
+  "timestamp": "2026-07-15T10:30:00Z",
+  "planned_values": {
+    "root_module": {
+      "resources": []
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "module.payments.aws_rds_cluster.gateway_prod",
+      "mode": "managed",
+      "type": "aws_rds_cluster",
+      "name": "gateway_prod",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "cluster_identifier": "gateway-prod",
+          "engine": "aurora-postgresql",
+          "engine_version": "8.0.mysql_aurora.3.05.2",
+          "database_name": "gateway_prod",
+          "master_username": "admin",
+          "backup_retention_period": 30,
+          "storage_encrypted": true,
+          "deletion_protection": true,
+          "tags": {
+            "Name": "gateway-prod",
+            "Environment": "dev",
+            "Team": "data",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "gateway-prod",
+            "Environment": "dev",
+            "Team": "data",
+            "ManagedBy": "terraform"
+          }
+        },
+        "after_unknown": {
+          "id": true,
+          "arn": true,
+          "endpoint": true,
+          "reader_endpoint": true,
+          "cluster_resource_id": true,
+          "cluster_members": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {
+          "cluster_identifier": false,
+          "engine": false,
+          "engine_version": false,
+          "database_name": false,
+          "master_username": false,
+          "backup_retention_period": false,
+          "storage_encrypted": false,
+          "deletion_protection": false,
+          "tags": {},
+          "tags_all": {}
+        },
+        "replace_paths": []
+      },
+      "module_address": "module.payments"
+    },
+    {
+      "address": "module.search.aws_security_group.trace_staging",
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "trace_staging",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "name": "trace-staging",
+          "description": "Security group for trace-staging",
+          "vpc_id": "vpc-0349a7bb",
+          "ingress": [
+            {
+              "from_port": 443,
+              "to_port": 443,
+              "protocol": "tcp",
+              "cidr_blocks": [
+                "0.0.0.0/0"
+              ],
+              "description": "HTTPS"
+            }
+          ],
+          "egress": [
+            {
+              "from_port": 0,
+              "to_port": 0,
+              "protocol": "-1",
+              "cidr_blocks": [
+                "0.0.0.0/0"
+              ]
+            }
+          ],
+          "tags": {
+            "Name": "trace-staging",
+            "Environment": "prod",
+            "Team": "search",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "trace-staging",
+            "Environment": "prod",
+            "Team": "search",
+            "ManagedBy": "terraform"
+          },
+          "id": "trace-staging-3822465"
+        },
+        "after": null,
+        "after_unknown": {},
+        "before_sensitive": {
+          "name": false,
+          "description": false,
+          "vpc_id": false,
+          "ingress": [],
+          "egress": [],
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "after_sensitive": false,
+        "replace_paths": []
+      },
+      "module_address": "module.search"
+    },
+    {
+      "address": "aws_rds_cluster.media_dev",
+      "mode": "managed",
+      "type": "aws_rds_cluster",
+      "name": "media_dev",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "cluster_identifier": "media-dev",
+          "engine": "aurora-mysql",
+          "engine_version": "16.1",
+          "database_name": "media_dev",
+          "master_username": "admin",
+          "backup_retention_period": 14,
+          "storage_encrypted": true,
+          "deletion_protection": true,
+          "tags": {
+            "Name": "media-dev",
+            "Environment": "dev",
+            "Team": "search",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "media-dev",
+            "Environment": "dev",
+            "Team": "search",
+            "ManagedBy": "terraform"
+          },
+          "id": "media-dev-3814464"
+        },
+        "after": null,
+        "after_unknown": {},
+        "before_sensitive": {
+          "cluster_identifier": false,
+          "engine": false,
+          "engine_version": false,
+          "database_name": false,
+          "master_username": false,
+          "backup_retention_period": false,
+          "storage_encrypted": false,
+          "deletion_protection": false,
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "after_sensitive": false,
+        "replace_paths": []
+      }
+    },
+    {
+      "address": "aws_dynamodb_table.recommend_dev",
+      "mode": "managed",
+      "type": "aws_dynamodb_table",
+      "name": "recommend_dev",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "name": "recommend-dev",
+          "billing_mode": "PAY_PER_REQUEST",
+          "hash_key": "pk",
+          "range_key": "sk",
+          "attribute": [
+            {
+              "name": "pk",
+              "type": "S"
+            },
+            {
+              "name": "sk",
+              "type": "S"
+            }
+          ],
+          "point_in_time_recovery": [
+            {
+              "enabled": true
+            }
+          ],
+          "tags": {
+            "Name": "recommend-dev",
+            "Environment": "staging",
+            "Team": "platform",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "recommend-dev",
+            "Environment": "staging",
+            "Team": "platform",
+            "ManagedBy": "terraform"
+          },
+          "id": "recommend-dev-9023423"
+        },
+        "after": {
+          "name": "recommend-dev",
+          "billing_mode": "PAY_PER_REQUEST-v2",
+          "hash_key": "pk",
+          "range_key": "sk-v2",
+          "attribute": [
+            {
+              "name": "pk",
+              "type": "S"
+            },
+            {
+              "name": "sk",
+              "type": "S"
+            }
+          ],
+          "point_in_time_recovery": [
+            {
+              "enabled": true
+            }
+          ],
+          "tags": {
+            "Name": "recommend-dev",
+            "Environment": "staging",
+            "Team": "platform",
+            "ManagedBy": "terraform",
+            "Version": "v2"
+          },
+          "tags_all": {
+            "Name": "recommend-dev",
+            "Environment": "staging",
+            "Team": "platform",
+            "ManagedBy": "terraform",
+            "Version": "v2"
+          },
+          "id": "recommend-dev-9023423"
+        },
+        "after_unknown": {},
+        "before_sensitive": {
+          "name": false,
+          "billing_mode": false,
+          "hash_key": false,
+          "range_key": false,
+          "attribute": [],
+          "point_in_time_recovery": [],
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "after_sensitive": {
+          "name": false,
+          "billing_mode": false,
+          "hash_key": false,
+          "range_key": false,
+          "attribute": [],
+          "point_in_time_recovery": [],
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "replace_paths": []
+      }
+    },
+    {
+      "address": "aws_lambda_function.webhook_staging",
+      "mode": "managed",
+      "type": "aws_lambda_function",
+      "name": "webhook_staging",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "function_name": "webhook-staging",
+          "runtime": "python3.12",
+          "handler": "index.handler",
+          "memory_size": 1024,
+          "timeout": 300,
+          "architectures": [
+            "arm64"
+          ],
+          "environment": [
+            {
+              "variables": {
+                "LOG_LEVEL": "info",
+                "STAGE": "staging"
+              }
+            }
+          ],
+          "tags": {
+            "Name": "webhook-staging",
+            "Environment": "prod",
+            "Team": "streaming",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "webhook-staging",
+            "Environment": "prod",
+            "Team": "streaming",
+            "ManagedBy": "terraform"
+          }
+        },
+        "after_unknown": {
+          "id": true,
+          "arn": true,
+          "qualified_arn": true,
+          "version": true,
+          "last_modified": true,
+          "source_code_hash": true,
+          "invoke_arn": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {
+          "function_name": false,
+          "runtime": false,
+          "handler": false,
+          "memory_size": false,
+          "timeout": false,
+          "architectures": [],
+          "environment": [],
+          "tags": {},
+          "tags_all": {}
+        },
+        "replace_paths": []
+      }
+    },
+    {
+      "address": "aws_security_group.auth_dev",
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "auth_dev",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "name": "auth-dev",
+          "description": "Security group for auth-dev",
+          "vpc_id": "vpc-04f2a492",
+          "ingress": [
+            {
+              "from_port": 443,
+              "to_port": 443,
+              "protocol": "tcp",
+              "cidr_blocks": [
+                "0.0.0.0/0"
+              ],
+              "description": "HTTPS"
+            }
+          ],
+          "egress": [
+            {
+              "from_port": 0,
+              "to_port": 0,
+              "protocol": "-1",
+              "cidr_blocks": [
+                "0.0.0.0/0"
+              ]
+            }
+          ],
+          "tags": {
+            "Name": "auth-dev",
+            "Environment": "staging",
+            "Team": "payments",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "auth-dev",
+            "Environment": "staging",
+            "Team": "payments",
+            "ManagedBy": "terraform"
+          }
+        },
+        "after_unknown": {
+          "id": true,
+          "arn": true,
+          "owner_id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {
+          "name": false,
+          "description": false,
+          "vpc_id": false,
+          "ingress": [],
+          "egress": [],
+          "tags": {},
+          "tags_all": {}
+        },
+        "replace_paths": []
+      }
+    },
+    {
+      "address": "module.streaming.aws_security_group.profile_dev",
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "profile_dev",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "name": "profile-dev",
+          "description": "Security group for profile-dev",
+          "vpc_id": "vpc-01455887",
+          "ingress": [
+            {
+              "from_port": 443,
+              "to_port": 443,
+              "protocol": "tcp",
+              "cidr_blocks": [
+                "0.0.0.0/0"
+              ],
+              "description": "HTTPS"
+            }
+          ],
+          "egress": [
+            {
+              "from_port": 0,
+              "to_port": 0,
+              "protocol": "-1",
+              "cidr_blocks": [
+                "0.0.0.0/0"
+              ]
+            }
+          ],
+          "tags": {
+            "Name": "profile-dev",
+            "Environment": "staging",
+            "Team": "web",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "profile-dev",
+            "Environment": "staging",
+            "Team": "web",
+            "ManagedBy": "terraform"
+          },
+          "id": "profile-dev-2014231"
+        },
+        "after": {
+          "name": "profile-dev",
+          "description": "Security group for profile-dev-v2",
+          "vpc_id": "vpc-01455887-v2",
+          "ingress": [
+            {
+              "from_port": 443,
+              "to_port": 443,
+              "protocol": "tcp",
+              "cidr_blocks": [
+                "0.0.0.0/0"
+              ],
+              "description": "HTTPS"
+            }
+          ],
+          "egress": [
+            {
+              "from_port": 0,
+              "to_port": 0,
+              "protocol": "-1",
+              "cidr_blocks": [
+                "0.0.0.0/0"
+              ]
+            }
+          ],
+          "tags": {
+            "Name": "profile-dev",
+            "Environment": "staging",
+            "Team": "web",
+            "ManagedBy": "terraform",
+            "Version": "v2"
+          },
+          "tags_all": {
+            "Name": "profile-dev",
+            "Environment": "staging",
+            "Team": "web",
+            "ManagedBy": "terraform",
+            "Version": "v2"
+          },
+          "id": "profile-dev-2014231"
+        },
+        "after_unknown": {},
+        "before_sensitive": {
+          "name": false,
+          "description": false,
+          "vpc_id": false,
+          "ingress": [],
+          "egress": [],
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "after_sensitive": {
+          "name": false,
+          "description": false,
+          "vpc_id": false,
+          "ingress": [],
+          "egress": [],
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "replace_paths": []
+      },
+      "module_address": "module.streaming"
+    },
+    {
+      "address": "module.identity.aws_cloudwatch_log_group.orders_dev",
+      "mode": "managed",
+      "type": "aws_cloudwatch_log_group",
+      "name": "orders_dev",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "name": "/ecs/orders-dev",
+          "retention_in_days": 90,
+          "skip_destroy": false,
+          "tags": {
+            "Name": "orders-dev",
+            "Environment": "dev",
+            "Team": "data",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "orders-dev",
+            "Environment": "dev",
+            "Team": "data",
+            "ManagedBy": "terraform"
+          },
+          "id": "orders-dev-4439214"
+        },
+        "after": {
+          "name": "/ecs/orders-dev",
+          "retention_in_days": 45,
+          "skip_destroy": true,
+          "tags": {
+            "Name": "orders-dev",
+            "Environment": "dev",
+            "Team": "data",
+            "ManagedBy": "terraform",
+            "Version": "v2"
+          },
+          "tags_all": {
+            "Name": "orders-dev",
+            "Environment": "dev",
+            "Team": "data",
+            "ManagedBy": "terraform",
+            "Version": "v2"
+          },
+          "id": "orders-dev-4439214"
+        },
+        "after_unknown": {},
+        "before_sensitive": {
+          "name": false,
+          "retention_in_days": false,
+          "skip_destroy": false,
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "after_sensitive": {
+          "name": false,
+          "retention_in_days": false,
+          "skip_destroy": false,
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "replace_paths": []
+      },
+      "module_address": "module.identity"
+    },
+    {
+      "address": "module.web.aws_cloudwatch_log_group.profile_prod",
+      "mode": "managed",
+      "type": "aws_cloudwatch_log_group",
+      "name": "profile_prod",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "delete",
+          "create"
+        ],
+        "before": {
+          "name": "/ecs/profile-prod",
+          "retention_in_days": 90,
+          "skip_destroy": false,
+          "tags": {
+            "Name": "profile-prod",
+            "Environment": "dev",
+            "Team": "platform",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "profile-prod",
+            "Environment": "dev",
+            "Team": "platform",
+            "ManagedBy": "terraform"
+          },
+          "id": "profile-prod-9471750"
+        },
+        "after": {
+          "name": "/ecs/profile-prod",
+          "retention_in_days": 270,
+          "skip_destroy": true,
+          "tags": {
+            "Name": "profile-prod",
+            "Environment": "dev",
+            "Team": "platform",
+            "ManagedBy": "terraform",
+            "Version": "v2"
+          },
+          "tags_all": {
+            "Name": "profile-prod",
+            "Environment": "dev",
+            "Team": "platform",
+            "ManagedBy": "terraform",
+            "Version": "v2"
+          }
+        },
+        "after_unknown": {
+          "id": true,
+          "arn": true,
+          "log_group_class": true
+        },
+        "before_sensitive": {
+          "name": false,
+          "retention_in_days": false,
+          "skip_destroy": false,
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "after_sensitive": {
+          "name": false,
+          "retention_in_days": false,
+          "skip_destroy": false,
+          "tags": {},
+          "tags_all": {}
+        },
+        "replace_paths": [
+          [
+            "name"
+          ]
+        ]
+      },
+      "module_address": "module.web",
+      "action_reason": "replace_because_cannot_update"
+    },
+    {
+      "address": "module.identity.aws_sqs_queue.profile_dev",
+      "mode": "managed",
+      "type": "aws_sqs_queue",
+      "name": "profile_dev",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "name": "profile-dev.fifo",
+          "fifo_queue": true,
+          "visibility_timeout_seconds": 300,
+          "message_retention_seconds": 1209600,
+          "max_message_size": 262144,
+          "tags": {
+            "Name": "profile-dev",
+            "Environment": "staging",
+            "Team": "web",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "profile-dev",
+            "Environment": "staging",
+            "Team": "web",
+            "ManagedBy": "terraform"
+          },
+          "id": "profile-dev-3545708"
+        },
+        "after": null,
+        "after_unknown": {},
+        "before_sensitive": {
+          "name": false,
+          "fifo_queue": false,
+          "visibility_timeout_seconds": false,
+          "message_retention_seconds": false,
+          "max_message_size": false,
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "after_sensitive": false,
+        "replace_paths": []
+      },
+      "module_address": "module.identity"
+    },
+    {
+      "address": "module.streaming.aws_instance.orders_prod",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "orders_prod",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "delete",
+          "create"
+        ],
+        "before": {
+          "ami": "ami-004c6979",
+          "instance_type": "t3.medium",
+          "availability_zone": "us-west-2b",
+          "monitoring": true,
+          "root_block_device": [
+            {
+              "volume_size": 50,
+              "volume_type": "gp3",
+              "encrypted": true
+            }
+          ],
+          "tags": {
+            "Name": "orders-prod",
+            "Environment": "prod",
+            "Team": "payments",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "orders-prod",
+            "Environment": "prod",
+            "Team": "payments",
+            "ManagedBy": "terraform"
+          },
+          "id": "orders-prod-8722104"
+        },
+        "after": {
+          "ami": "ami-004c6979-v2",
+          "instance_type": "t3.medium-v2",
+          "availability_zone": "us-west-2b",
+          "monitoring": true,
+          "root_block_device": [
+            {
+              "volume_size": 50,
+              "volume_type": "gp3",
+              "encrypted": true
+            }
+          ],
+          "tags": {
+            "Name": "orders-prod",
+            "Environment": "prod",
+            "Team": "payments",
+            "ManagedBy": "terraform",
+            "Version": "v2"
+          },
+          "tags_all": {
+            "Name": "orders-prod",
+            "Environment": "prod",
+            "Team": "payments",
+            "ManagedBy": "terraform",
+            "Version": "v2"
+          }
+        },
+        "after_unknown": {
+          "id": true,
+          "arn": true,
+          "private_ip": true,
+          "public_ip": true,
+          "primary_network_interface_id": true
+        },
+        "before_sensitive": {
+          "ami": false,
+          "instance_type": false,
+          "availability_zone": false,
+          "monitoring": false,
+          "root_block_device": [],
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "after_sensitive": {
+          "ami": false,
+          "instance_type": false,
+          "availability_zone": false,
+          "monitoring": false,
+          "root_block_device": [],
+          "tags": {},
+          "tags_all": {}
+        },
+        "replace_paths": [
+          [
+            "availability_zone"
+          ]
+        ]
+      },
+      "module_address": "module.streaming",
+      "action_reason": "replace_because_cannot_update"
+    },
+    {
+      "address": "module.data.aws_security_group.shipping_staging",
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "shipping_staging",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "name": "shipping-staging",
+          "description": "Security group for shipping-staging",
+          "vpc_id": "vpc-0215a2bb",
+          "ingress": [
+            {
+              "from_port": 443,
+              "to_port": 443,
+              "protocol": "tcp",
+              "cidr_blocks": [
+                "0.0.0.0/0"
+              ],
+              "description": "HTTPS"
+            }
+          ],
+          "egress": [
+            {
+              "from_port": 0,
+              "to_port": 0,
+              "protocol": "-1",
+              "cidr_blocks": [
+                "0.0.0.0/0"
+              ]
+            }
+          ],
+          "tags": {
+            "Name": "shipping-staging",
+            "Environment": "dev",
+            "Team": "data",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "shipping-staging",
+            "Environment": "dev",
+            "Team": "data",
+            "ManagedBy": "terraform"
+          },
+          "id": "shipping-staging-3232333"
+        },
+        "after": null,
+        "after_unknown": {},
+        "before_sensitive": {
+          "name": false,
+          "description": false,
+          "vpc_id": false,
+          "ingress": [],
+          "egress": [],
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "after_sensitive": false,
+        "replace_paths": []
+      },
+      "module_address": "module.data"
+    },
+    {
+      "address": "module.identity.aws_iam_role.inventory_prod",
+      "mode": "managed",
+      "type": "aws_iam_role",
+      "name": "inventory_prod",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "name": "inventory-prod",
+          "path": "/",
+          "max_session_duration": 7200,
+          "assume_role_policy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Principal\": {\"Service\": \"ecs-tasks.amazonaws.com\"}, \"Action\": \"sts:AssumeRole\"}]}",
+          "force_detach_policies": false,
+          "tags": {
+            "Name": "inventory-prod",
+            "Environment": "prod",
+            "Team": "platform",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "inventory-prod",
+            "Environment": "prod",
+            "Team": "platform",
+            "ManagedBy": "terraform"
+          },
+          "id": "inventory-prod-8352116"
+        },
+        "after": null,
+        "after_unknown": {},
+        "before_sensitive": {
+          "name": false,
+          "path": false,
+          "max_session_duration": false,
+          "assume_role_policy": false,
+          "force_detach_policies": false,
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "after_sensitive": false,
+        "replace_paths": []
+      },
+      "module_address": "module.identity"
+    },
+    {
+      "address": "module.identity.aws_iam_role.notify_staging",
+      "mode": "managed",
+      "type": "aws_iam_role",
+      "name": "notify_staging",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "name": "notify-staging",
+          "path": "/",
+          "max_session_duration": 3600,
+          "assume_role_policy": "{\"Version\": \"2012-10-17\", \"Statement\": [{\"Effect\": \"Allow\", \"Principal\": {\"Service\": \"ecs-tasks.amazonaws.com\"}, \"Action\": \"sts:AssumeRole\"}]}",
+          "force_detach_policies": false,
+          "tags": {
+            "Name": "notify-staging",
+            "Environment": "prod",
+            "Team": "web",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "notify-staging",
+            "Environment": "prod",
+            "Team": "web",
+            "ManagedBy": "terraform"
+          }
+        },
+        "after_unknown": {
+          "id": true,
+          "arn": true,
+          "unique_id": true,
+          "create_date": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {
+          "name": false,
+          "path": false,
+          "max_session_duration": false,
+          "assume_role_policy": false,
+          "force_detach_policies": false,
+          "tags": {},
+          "tags_all": {}
+        },
+        "replace_paths": []
+      },
+      "module_address": "module.identity"
+    },
+    {
+      "address": "aws_rds_cluster.audit_staging",
+      "mode": "managed",
+      "type": "aws_rds_cluster",
+      "name": "audit_staging",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "delete",
+          "create"
+        ],
+        "before": {
+          "cluster_identifier": "audit-staging",
+          "engine": "aurora-mysql",
+          "engine_version": "15.4",
+          "database_name": "audit_staging",
+          "master_username": "admin",
+          "backup_retention_period": 7,
+          "storage_encrypted": true,
+          "deletion_protection": true,
+          "tags": {
+            "Name": "audit-staging",
+            "Environment": "prod",
+            "Team": "search",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "audit-staging",
+            "Environment": "prod",
+            "Team": "search",
+            "ManagedBy": "terraform"
+          },
+          "id": "audit-staging-9390849"
+        },
+        "after": {
+          "cluster_identifier": "audit-staging",
+          "engine": "aurora-mysql-v2",
+          "engine_version": "15.4",
+          "database_name": "audit_staging",
+          "master_username": "admin",
+          "backup_retention_period": 7,
+          "storage_encrypted": false,
+          "deletion_protection": true,
+          "tags": {
+            "Name": "audit-staging",
+            "Environment": "prod",
+            "Team": "search",
+            "ManagedBy": "terraform",
+            "Version": "v2"
+          },
+          "tags_all": {
+            "Name": "audit-staging",
+            "Environment": "prod",
+            "Team": "search",
+            "ManagedBy": "terraform",
+            "Version": "v2"
+          }
+        },
+        "after_unknown": {
+          "id": true,
+          "arn": true,
+          "endpoint": true,
+          "reader_endpoint": true,
+          "cluster_resource_id": true,
+          "cluster_members": true
+        },
+        "before_sensitive": {
+          "cluster_identifier": false,
+          "engine": false,
+          "engine_version": false,
+          "database_name": false,
+          "master_username": false,
+          "backup_retention_period": false,
+          "storage_encrypted": false,
+          "deletion_protection": false,
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "after_sensitive": {
+          "cluster_identifier": false,
+          "engine": false,
+          "engine_version": false,
+          "database_name": false,
+          "master_username": false,
+          "backup_retention_period": false,
+          "storage_encrypted": false,
+          "deletion_protection": false,
+          "tags": {},
+          "tags_all": {}
+        },
+        "replace_paths": [
+          [
+            "engine"
+          ]
+        ]
+      },
+      "action_reason": "replace_because_cannot_update"
+    },
+    {
+      "address": "module.web.aws_cloudwatch_log_group.recommend_staging",
+      "mode": "managed",
+      "type": "aws_cloudwatch_log_group",
+      "name": "recommend_staging",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "name": "/ecs/recommend-staging",
+          "retention_in_days": 30,
+          "skip_destroy": false,
+          "tags": {
+            "Name": "recommend-staging",
+            "Environment": "prod",
+            "Team": "platform",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "recommend-staging",
+            "Environment": "prod",
+            "Team": "platform",
+            "ManagedBy": "terraform"
+          },
+          "id": "recommend-staging-9352907"
+        },
+        "after": null,
+        "after_unknown": {},
+        "before_sensitive": {
+          "name": false,
+          "retention_in_days": false,
+          "skip_destroy": false,
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "after_sensitive": false,
+        "replace_paths": []
+      },
+      "module_address": "module.web"
+    },
+    {
+      "address": "aws_instance.media_staging",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "media_staging",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "ami": "ami-00696d01",
+          "instance_type": "c5.xlarge",
+          "availability_zone": "us-east-2c",
+          "monitoring": true,
+          "root_block_device": [
+            {
+              "volume_size": 50,
+              "volume_type": "gp3",
+              "encrypted": true
+            }
+          ],
+          "tags": {
+            "Name": "media-staging",
+            "Environment": "staging",
+            "Team": "platform",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "media-staging",
+            "Environment": "staging",
+            "Team": "platform",
+            "ManagedBy": "terraform"
+          },
+          "id": "media-staging-5841591"
+        },
+        "after": {
+          "ami": "ami-00696d01-v2",
+          "instance_type": "c5.xlarge-v2",
+          "availability_zone": "us-east-2c",
+          "monitoring": false,
+          "root_block_device": [
+            {
+              "volume_size": 50,
+              "volume_type": "gp3",
+              "encrypted": true
+            }
+          ],
+          "tags": {
+            "Name": "media-staging",
+            "Environment": "staging",
+            "Team": "platform",
+            "ManagedBy": "terraform",
+            "Version": "v2"
+          },
+          "tags_all": {
+            "Name": "media-staging",
+            "Environment": "staging",
+            "Team": "platform",
+            "ManagedBy": "terraform",
+            "Version": "v2"
+          },
+          "id": "media-staging-5841591"
+        },
+        "after_unknown": {},
+        "before_sensitive": {
+          "ami": false,
+          "instance_type": false,
+          "availability_zone": false,
+          "monitoring": false,
+          "root_block_device": [],
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "after_sensitive": {
+          "ami": false,
+          "instance_type": false,
+          "availability_zone": false,
+          "monitoring": false,
+          "root_block_device": [],
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "replace_paths": []
+      }
+    },
+    {
+      "address": "kubernetes_deployment.analytics_prod",
+      "mode": "managed",
+      "type": "kubernetes_deployment",
+      "name": "analytics_prod",
+      "provider_name": "registry.terraform.io/hashicorp/kubernetes",
+      "change": {
+        "actions": [
+          "delete"
+        ],
+        "before": {
+          "metadata": [
+            {
+              "name": "analytics-prod",
+              "namespace": "apps"
+            }
+          ],
+          "spec": [
+            {
+              "replicas": "2",
+              "selector": [
+                {
+                  "match_labels": {
+                    "app": "analytics-prod"
+                  }
+                }
+              ],
+              "template": [
+                {
+                  "spec": [
+                    {
+                      "container": [
+                        {
+                          "name": "analytics-prod",
+                          "image": "ghcr.io/acme/analytics-prod:1.17.0",
+                          "resources": [
+                            {
+                              "limits": {
+                                "cpu": "500m",
+                                "memory": "512Mi"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "id": "analytics-prod-8703161"
+        },
+        "after": null,
+        "after_unknown": {},
+        "before_sensitive": {
+          "metadata": [],
+          "spec": [],
+          "id": false
+        },
+        "after_sensitive": false,
+        "replace_paths": []
+      }
+    },
+    {
+      "address": "aws_cloudwatch_log_group.fraud_prod",
+      "mode": "managed",
+      "type": "aws_cloudwatch_log_group",
+      "name": "fraud_prod",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "name": "/ecs/fraud-prod",
+          "retention_in_days": 7,
+          "skip_destroy": false,
+          "tags": {
+            "Name": "fraud-prod",
+            "Environment": "prod",
+            "Team": "payments",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "fraud-prod",
+            "Environment": "prod",
+            "Team": "payments",
+            "ManagedBy": "terraform"
+          }
+        },
+        "after_unknown": {
+          "id": true,
+          "arn": true,
+          "log_group_class": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {
+          "name": false,
+          "retention_in_days": false,
+          "skip_destroy": false,
+          "tags": {},
+          "tags_all": {}
+        },
+        "replace_paths": []
+      }
+    },
+    {
+      "address": "module.identity.kubernetes_deployment.auth_prod",
+      "mode": "managed",
+      "type": "kubernetes_deployment",
+      "name": "auth_prod",
+      "provider_name": "registry.terraform.io/hashicorp/kubernetes",
+      "change": {
+        "actions": [
+          "create"
+        ],
+        "before": null,
+        "after": {
+          "metadata": [
+            {
+              "name": "auth-prod",
+              "namespace": "default"
+            }
+          ],
+          "spec": [
+            {
+              "replicas": "3",
+              "selector": [
+                {
+                  "match_labels": {
+                    "app": "auth-prod"
+                  }
+                }
+              ],
+              "template": [
+                {
+                  "spec": [
+                    {
+                      "container": [
+                        {
+                          "name": "auth-prod",
+                          "image": "ghcr.io/acme/auth-prod:1.19.0",
+                          "resources": [
+                            {
+                              "limits": {
+                                "cpu": "500m",
+                                "memory": "512Mi"
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "after_unknown": {
+          "id": true
+        },
+        "before_sensitive": false,
+        "after_sensitive": {
+          "metadata": [],
+          "spec": []
+        },
+        "replace_paths": []
+      },
+      "module_address": "module.identity"
+    },
+    {
+      "address": "aws_lb.loyalty_dev",
+      "mode": "managed",
+      "type": "aws_lb",
+      "name": "loyalty_dev",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": [
+          "update"
+        ],
+        "before": {
+          "name": "loyalty-dev",
+          "internal": false,
+          "load_balancer_type": "application",
+          "idle_timeout": 120,
+          "enable_deletion_protection": true,
+          "enable_http2": true,
+          "tags": {
+            "Name": "loyalty-dev",
+            "Environment": "prod",
+            "Team": "data",
+            "ManagedBy": "terraform"
+          },
+          "tags_all": {
+            "Name": "loyalty-dev",
+            "Environment": "prod",
+            "Team": "data",
+            "ManagedBy": "terraform"
+          },
+          "id": "loyalty-dev-9949518"
+        },
+        "after": {
+          "name": "loyalty-dev",
+          "internal": true,
+          "load_balancer_type": "application",
+          "idle_timeout": 120,
+          "enable_deletion_protection": true,
+          "enable_http2": false,
+          "tags": {
+            "Name": "loyalty-dev",
+            "Environment": "prod",
+            "Team": "data",
+            "ManagedBy": "terraform",
+            "Version": "v2"
+          },
+          "tags_all": {
+            "Name": "loyalty-dev",
+            "Environment": "prod",
+            "Team": "data",
+            "ManagedBy": "terraform",
+            "Version": "v2"
+          },
+          "id": "loyalty-dev-9949518"
+        },
+        "after_unknown": {},
+        "before_sensitive": {
+          "name": false,
+          "internal": false,
+          "load_balancer_type": false,
+          "idle_timeout": false,
+          "enable_deletion_protection": false,
+          "enable_http2": false,
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "after_sensitive": {
+          "name": false,
+          "internal": false,
+          "load_balancer_type": false,
+          "idle_timeout": false,
+          "enable_deletion_protection": false,
+          "enable_http2": false,
+          "tags": {},
+          "tags_all": {},
+          "id": false
+        },
+        "replace_paths": []
+      }
+    }
+  ],
+  "output_changes": {
+    "alb_dns_name": {
+      "actions": [
+        "create"
+      ],
+      "before": null,
+      "after": null,
+      "after_unknown": true,
+      "sensitive": false
+    },
+    "cluster_endpoint": {
+      "actions": [
+        "update"
+      ],
+      "before": "old.cluster.local",
+      "after": "new.cluster.local",
+      "sensitive": false
+    },
+    "db_password": {
+      "actions": [
+        "create"
+      ],
+      "before": null,
+      "after": null,
+      "after_unknown": true,
+      "sensitive": true
+    }
+  },
+  "configuration": {
+    "root_module": {
+      "module_calls": {}
+    }
+  }
+}
