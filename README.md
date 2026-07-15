@@ -1,8 +1,12 @@
 # tofUI 🎨
 
+[![Install](https://img.shields.io/badge/brew%20install-tofui-orange?logo=homebrew&logoColor=white)](https://github.com/65156/homebrew-tofu)
+[![Release](https://img.shields.io/github/v/release/65156/tofUI?label=release)](https://github.com/65156/tofUI/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://opensource.org/licenses/MIT)
+
 **Better OpenTofu & Terraform Plan Visualization**
 
-Generate stunning, interactive HTML reports from your terraform JSON plans. Lightweight core with optional S3 integration and centralized dashboard tracking.
+Generate stunning, interactive HTML reports from your terraform JSON plans. Install in seconds with Homebrew, with S3 integration and centralized dashboard tracking built in.
 
 ## Interactive Examples
 - https://65156.github.io/tofUI/has-changes-example.html
@@ -13,8 +17,8 @@ Generate stunning, interactive HTML reports from your terraform JSON plans. Ligh
 
 - **🔍 Interactive Analysis** - Expandable/collapsible sections, action filtering, property hiding
 - **📊 Smart Grouping** - Resources organized by action priority with visual indicators
-- **🚀 Minimal Dependencies** - Lightweight core with optional S3 support
-- **☁️ S3 Integration** - Optional direct upload to S3 buckets
+- **🍺 One-Command Install** - `brew install tofui` — batteries included, no extras to configure
+- **☁️ S3 Integration** - Direct upload to S3 buckets, built in
 - **📈 Dashboard Publishing** - Track all reports across repositories in a centralized dashboard
 - **💻 CLI Ready** - Simple command-line interface
 - **📱 Mobile Friendly** - Works perfectly on all device sizes
@@ -22,28 +26,43 @@ Generate stunning, interactive HTML reports from your terraform JSON plans. Ligh
 
 ## Installation
 
+The recommended way to install tofUI is with **Homebrew**:
+
 ```bash
-# Basic installation
+brew tap 65156/tofu
+brew install tofui
+```
+
+That's it — every feature (report generation, dashboard publishing, and S3 hosting)
+is included out of the box. There are no optional extras to remember, and the install
+is fully self-contained in its own isolated environment.
+
+To upgrade later:
+
+```bash
+brew upgrade tofui
+```
+
+<details>
+<summary>Other install methods</summary>
+
+**Homebrew, without tapping first:**
+
+```bash
+brew install 65156/tofu/tofui
+```
+
+**pip:**
+
+```bash
+# From PyPI
 pip install tofui
 
-# With S3 support
-pip install tofui[s3]
-
-# With GitHub Pages support
-pip install tofui[ghpages]
-
-# With both S3 and GitHub Pages support
-pip install tofui[s3,ghpages]
-
-# Development version (basic)
+# Latest from GitHub
 pip install git+https://github.com/65156/tofUI.git
-
-# Development version with S3 support
-pip install git+https://github.com/65156/tofUI.git[s3]
-
-# Development version with GitHub Pages support
-pip install git+https://github.com/65156/tofUI.git[ghpages]
 ```
+
+</details>
 
 ## Quick Start
 
