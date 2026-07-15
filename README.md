@@ -1,6 +1,6 @@
 # tofUI 🎨
 
-[![Install](https://img.shields.io/badge/brew%20install-tofui-orange?logo=homebrew&logoColor=white)](https://github.com/65156/homebrew-tofu)
+[![Install](https://img.shields.io/badge/brew%20install-tofui-orange?logo=homebrew&logoColor=white)](https://github.com/65156/homebrew-tofui)
 [![Release](https://img.shields.io/github/v/release/65156/tofUI?label=release)](https://github.com/65156/tofUI/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](https://opensource.org/licenses/MIT)
 
@@ -30,7 +30,7 @@ Generate stunning, interactive HTML reports from your terraform JSON plans. Inst
 The recommended way to install tofUI is with **Homebrew**:
 
 ```bash
-brew tap 65156/tofu
+brew tap 65156/tofui
 brew install tofui
 ```
 
@@ -50,7 +50,7 @@ brew upgrade tofui
 **Homebrew, without tapping first:**
 
 ```bash
-brew install 65156/tofu/tofui
+brew install 65156/tofui/tofui
 ```
 
 **pip:**
