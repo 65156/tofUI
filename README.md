@@ -9,9 +9,10 @@
 Generate stunning, interactive HTML reports from your terraform JSON plans. Install in seconds with Homebrew, with S3 integration and centralized dashboard tracking built in.
 
 ## Interactive Examples
-- https://65156.github.io/tofUI/has-changes-example.html
-- https://65156.github.io/tofUI/has-errors-example.html
-- https://65156.github.io/tofUI/no-changes-example.html
+- [**Large plan**](https://65156.github.io/tofUI/large-plan-example.html) — 21 resources across AWS, Kubernetes, GCP & Helm, with creates, deletes, updates, and replacements, plus the auto-loaded terraform log
+- [Has changes](https://65156.github.io/tofUI/has-changes-example.html) — a simple plan with a single change
+- [Has errors](https://65156.github.io/tofUI/has-errors-example.html) — a plan that failed with errors
+- [No changes](https://65156.github.io/tofUI/no-changes-example.html) — infrastructure already up to date
 
 ## Features ✨
 
