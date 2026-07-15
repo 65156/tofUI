@@ -22,27 +22,30 @@ Generate stunning, interactive HTML reports from your terraform JSON plans. Ligh
 
 ## Installation
 
+All features — report generation, dashboard publishing, and S3 hosting — are
+included out of the box. There are no optional extras to remember.
+
+### Homebrew (recommended)
+
 ```bash
-# Basic installation
+brew tap 65156/tofu
+brew install tofui
+```
+
+Or in a single command without tapping first:
+
+```bash
+brew install 65156/tofu/tofui
+```
+
+### pip
+
+```bash
+# From PyPI
 pip install tofui
 
-# With S3 support
-pip install tofui[s3]
-
-# With GitHub Pages support
-pip install tofui[ghpages]
-
-# With both S3 and GitHub Pages support
-pip install tofui[s3,ghpages]
-
-# Development version (basic)
+# Latest from GitHub
 pip install git+https://github.com/65156/tofUI.git
-
-# Development version with S3 support
-pip install git+https://github.com/65156/tofUI.git[s3]
-
-# Development version with GitHub Pages support
-pip install git+https://github.com/65156/tofUI.git[ghpages]
 ```
 
 ## Quick Start

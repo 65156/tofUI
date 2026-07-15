@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: tofui
-Version: 0.9.0
+Version: 1.0.4
 Summary: Beautiful Terraform Plan Reports
 Home-page: https://github.com/65156/tofUI
 Author: tofUI
@@ -29,10 +29,8 @@ Classifier: Topic :: System :: Systems Administration
 Classifier: Topic :: Utilities
 Requires-Python: >=3.8
 Description-Content-Type: text/markdown
-Provides-Extra: s3
-Requires-Dist: boto3>=1.26.0; extra == "s3"
-Provides-Extra: ghpages
-Requires-Dist: requests>=2.25.0; extra == "ghpages"
+Requires-Dist: requests>=2.25.0
+Requires-Dist: boto3>=1.26.0
 Provides-Extra: dev
 Requires-Dist: pytest>=7.0.0; extra == "dev"
 Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
@@ -43,11 +41,11 @@ Dynamic: author-email
 Dynamic: home-page
 Dynamic: requires-python
 
-# tofUI �
+# tofUI 🎨
 
-**Better OpenTofu & Terraform Plan **
+**Better OpenTofu & Terraform Plan Visualization**
 
-Generate stunning, interactive HTML reports from your terraform JSON plans. Lightweight core with optional S3 integration.
+Generate stunning, interactive HTML reports from your terraform JSON plans. Lightweight core with optional S3 integration and centralized dashboard tracking.
 
 ## Interactive Examples
 - https://65156.github.io/tofUI/has-changes-example.html
@@ -57,9 +55,10 @@ Generate stunning, interactive HTML reports from your terraform JSON plans. Ligh
 ## Features ✨
 
 - **🔍 Interactive Analysis** - Expandable/collapsible sections, action filtering, property hiding
-- **📊 Smart Grouping** - Resources organized by action priority with visual indicators  
+- **📊 Smart Grouping** - Resources organized by action priority with visual indicators
 - **🚀 Minimal Dependencies** - Lightweight core with optional S3 support
 - **☁️ S3 Integration** - Optional direct upload to S3 buckets
+- **📈 Dashboard Publishing** - Track all reports across repositories in a centralized dashboard
 - **💻 CLI Ready** - Simple command-line interface
 - **📱 Mobile Friendly** - Works perfectly on all device sizes
 - **⚡ Fast & Lightweight** - Pure Python with embedded CSS/JS
@@ -179,6 +178,29 @@ tofui plan.json \
   --verbose
 ```
 
+### Dashboard Publishing
+```bash
+# Test report (for PRs) - default behavior
+tofui plan.json \
+  --build-name "pr-456" \
+  --github-repo "myorg/infrastructure" \
+  --folder "aws_us_east_2" \
+  --dashboard-repo "myorg/tofui-dashboard" \
+  --status terraform_plan:2
+
+# Build report (for merges/deploys) - use --apply-mode
+tofui apply.json \
+  --apply-mode \
+  --build-name "deploy-123" \
+  --github-repo "myorg/infrastructure" \
+  --folder "aws_us_east_2" \
+  --dashboard-repo "myorg/tofui-dashboard" \
+  --status terraform_apply:0 \
+  --status tfsec:0
+```
+
+**📖 See [DASHBOARD.md](DASHBOARD.md) for complete dashboard documentation**
+
 ## Configuration
 
 Use `tofui-config.json` file for customization:
@@ -237,8 +259,20 @@ GitHub Pages Options:
   --github-token GITHUB_TOKEN
                         GitHub Personal Access Token (default: uses GITHUB_TOKEN environment variable)
 
+Dashboard Publishing Options:
+  --dashboard-repo DASHBOARD_REPO
+                        Dashboard repository (owner/repo) for tracking reports.
+                        When specified, automatically enables dashboard publishing.
+  --status STATUS       Status indicator in format type:code (can be specified multiple times)
+                        Examples: terraform_plan:2, tfsec:0, terraform_apply:0
+                        
+Note: Report type is automatically determined by --apply-mode flag:
+  - Without --apply-mode: "test" report (for pull requests)
+  - With --apply-mode: "build" report (for merges/deploys)
 
 ```
+
+**📖 For detailed dashboard documentation, see [DASHBOARD.md](DASHBOARD.md)**
 
 ## Testing
 

@@ -46,10 +46,10 @@ setup(
     ],
     python_requires=">=3.8",
     install_requires=[
-        "requests>=2.25.0",  # Required for dashboard publishing
+        "requests>=2.25.0",  # dashboard publishing & GitHub Pages
+        "boto3>=1.26.0",     # S3 dashboard hosting
     ],
     extras_require={
-        "s3": ["boto3>=1.26.0"],
         "dev": [
             "pytest>=7.0.0",
             "pytest-cov>=4.0.0",
