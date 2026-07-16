@@ -2160,16 +2160,13 @@ class HTMLGenerator:
             box-sizing: border-box;
             transition: background 0.12s ease, color 0.12s ease;
         }
-        .chip:hover { background: #f8f9fa; }
-        .chip.active {
-            background: #f8f9fa;
-            color: #212529;
-        }
-        /* left action bar: coloured when active, grey when toggled off */
-        .chip.active[data-action="delete"]  { border-left-color: #dc3545; }
-        .chip.active[data-action="create"]  { border-left-color: #28a745; }
-        .chip.active[data-action="update"]  { border-left-color: #ffc107; }
-        .chip.active[data-action="replace"] { border-left-color: #6f42c1; }
+        .chip:not(.active):hover { background: #f8f9fa; }
+        .chip.active { color: #212529; border-color: transparent; }
+        /* active chips take a light tint of their action colour + a coloured left bar */
+        .chip.active[data-action="delete"]  { background: #fdeaea; border-left-color: #dc3545; color: #9b2c2c; }
+        .chip.active[data-action="replace"] { background: #f2ecfa; border-left-color: #6f42c1; color: #4d2d8a; }
+        .chip.active[data-action="update"]  { background: #fff6db; border-left-color: #ffc107; color: #7a5b00; }
+        .chip.active[data-action="create"]  { background: #e8f6ee; border-left-color: #28a745; color: #1a7f37; }
         .chip-count {
             font-variant-numeric: tabular-nums;
             font-weight: 600;

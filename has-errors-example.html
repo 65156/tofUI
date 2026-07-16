@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terraform Error Report - has-errors-example</title>
+    <title>tofUI Error Report - Plan Error (example)</title>
     <style>
         
         * {
@@ -142,7 +142,134 @@
         .filter-checkbox input {
             margin: 0;
         }
-        
+
+        /* Search + filter toolbar */
+        .toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem 1rem;
+            padding: 1rem 2rem;
+            background: #ffffff;
+            border-bottom: 1px solid #e9ecef;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .toolbar-search {
+            position: relative;
+            flex: 1 1 260px;
+            min-width: 200px;
+        }
+        #resource-search {
+            width: 100%;
+            height: 38px;
+            padding: 0 2.1rem 0 0.85rem;
+            font-size: 0.95rem;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        #resource-search:focus {
+            border-color: #dee2e6;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+        }
+        .search-clear {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: #adb5bd;
+            font-size: 0.85rem;
+            line-height: 1;
+            padding: 0.25rem;
+            display: none;
+        }
+        .search-clear.visible { display: block; }
+        .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            height: 38px;
+            padding: 0 0.9rem;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            border-left: 4px solid #e9ecef;
+            background: #ffffff;
+            color: #adb5bd;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+            box-sizing: border-box;
+            transition: background 0.12s ease, color 0.12s ease;
+        }
+        .chip:not(.active):hover { background: #f8f9fa; }
+        .chip.active { color: #212529; border-color: transparent; }
+        /* active chips take a light tint of their action colour + a coloured left bar */
+        .chip.active[data-action="delete"]  { background: #fdeaea; border-left-color: #dc3545; color: #9b2c2c; }
+        .chip.active[data-action="replace"] { background: #f2ecfa; border-left-color: #6f42c1; color: #4d2d8a; }
+        .chip.active[data-action="update"]  { background: #fff6db; border-left-color: #ffc107; color: #7a5b00; }
+        .chip.active[data-action="create"]  { background: #e8f6ee; border-left-color: #28a745; color: #1a7f37; }
+        .chip-count {
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.06);
+            border-radius: 3px;
+            padding: 0 0.4rem;
+        }
+        .chip.active .chip-count { background: rgba(0, 0, 0, 0.10); }
+        .results-count {
+            margin-left: auto;
+            font-size: 0.85rem;
+            color: #868e96;
+            white-space: nowrap;
+        }
+        .no-results {
+            display: none;
+            padding: 3rem 2rem;
+            text-align: center;
+            color: #868e96;
+            font-size: 0.95rem;
+        }
+        .no-results.visible { display: block; }
+        .filter-notice {
+            display: none;
+            align-items: center;
+            gap: 0.85rem;
+            padding: 1.1rem 2rem;
+            background: #fff8e1;
+            border-bottom: 1px solid #ffe8a3;
+            color: #6b5900;
+            font-size: 1.05rem;
+            font-weight: 500;
+        }
+        .filter-notice.visible { display: flex; }
+        .filter-notice-icon { flex-shrink: 0; }
+        .filter-reset {
+            margin-left: auto;
+            border: 1px solid #e9c46a;
+            background: #ffffff;
+            color: #6b5900;
+            padding: 0.45rem 0.9rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .filter-reset:hover { background: #fffdf5; }
+        .resource-change.highlighted {
+            box-shadow: 0 0 0 3px rgba(75, 85, 99, 0.6);
+            border-radius: 8px;
+        }
+
         .btn {
             background: #6b7280;
             color: white;
@@ -214,7 +341,7 @@
             border-left: 16px solid #dc3545;
         }
         
-        .resource-change.recreate {
+        .resource-change.replace {
             border-left: 16px solid #6f42c1;
         }
         
@@ -251,7 +378,7 @@
         }
         
         .resource-details {
-            padding: 1rem;
+            padding: 0;
             border-top: 1px solid #e9ecef;
         }
         
@@ -607,7 +734,7 @@
             padding-top: 0.25rem;
         }
         
-        .resource-change.recreate .property-change .before-value {
+        .resource-change.replace .property-change .before-value {
             background: #f8d7da;
             color: #721c24;
         }
@@ -894,8 +1021,8 @@
     <div class="container">
         
         <div class="header error-header">
-            <div class="plan-name"><strong>has-errors-example</strong></div>
-            <div class="meta-info"><strong>Generated:</strong> 2025-10-27 20:26:08 UTC</div>
+            <div class="plan-name"><strong>Plan Error (example)</strong></div>
+            <div class="meta-info"><strong>Generated:</strong> 2026-07-16 21:23:35 UTC</div>
         </div>
         
         
@@ -908,51 +1035,36 @@
         <div class="resource-groups">
             <div class="resource-group" data-resource-type="errors">
                 <div class="group-header">
-                    <h3>Errors (3 items)</h3>
+                    <h3>Errors (1 items)</h3>
                 </div>
                 <div class="group-resources">
                     
             <div class="resource-change delete collapsed" data-action="delete" data-address="error_1">
                 <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">Error 1: Error: Failed to validate terraform configuration</span>
+                    <span class="resource-address">Error 1: The plan failed with exit code 1</span>
                     <span class="toggle-indicator">▼</span>
                 </div>
                 <div class="resource-details">
-                    <p>No additional details available.</p>
+                    
+                <div class="property-changes">
+                    <table class="properties-table">
+                        <thead>
+                            <tr>
+                                <th>Error Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="property-change">
+                                <td class="error-detail-content">No specific error details could be extracted from the output.</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-            
-            <div class="resource-change delete collapsed" data-action="delete" data-address="error_2">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">Error 2: Error: Invalid resource type</span>
-                    <span class="toggle-indicator">▼</span>
-                </div>
-                <div class="resource-details">
-                    <p>No additional details available.</p>
-                </div>
-            </div>
-            
-            <div class="resource-change delete collapsed" data-action="delete" data-address="error_3">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">Error 3: Error: Reference to undeclared resource</span>
-                    <span class="toggle-indicator">▼</span>
-                </div>
-                <div class="resource-details">
-                    <p>No additional details available.</p>
+                
                 </div>
             </div>
             
                 </div>
-            </div>
-        </div>
-        
-        <div class="terminal-section">
-            <div class="terminal-header">
-                <h3>Logs</h3>
-                <button class="copy-btn" onclick="copyToClipboard('terminal-output')">Copy to Clipboard</button>
-            </div>
-            <div class="terminal-container">
-                <pre id="terminal-output" class="terminal-output">Loading logs...</pre>
             </div>
         </div>
         
@@ -960,7 +1072,7 @@
         <div class="footer">
             <div class="footer-content">
                 <div class="footer-text">
-                    Generated by <strong>tofUI</strong> • 
+                    Generated by <strong>tofUI v1.4.2</strong> • 
                     Better OpenTofu & Terraform Plans
                 </div>
                 <div class="footer-buttons">
@@ -992,10 +1104,41 @@
             tryLoadLog(logUrls, 0);
         }
         
+        function filterTerraformLogs(logContent) {
+            const lines = logContent.split('\\n');
+            
+            // Look for trigger lines to start from
+            const triggerPatterns = [
+                'Terraform will perform the following actions:',
+                'Terraform planned the following actions, but then encountered a problem:',
+                'No changes. Your infrastructure matches the configuration.'
+            ];
+            
+            let startIndex = -1;
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                for (const pattern of triggerPatterns) {
+                    if (line.includes(pattern)) {
+                        startIndex = i;
+                        break;
+                    }
+                }
+                if (startIndex !== -1) break;
+            }
+            
+            // If no trigger found, return original content
+            if (startIndex === -1) {
+                return logContent;
+            }
+            
+            // Return content starting from the trigger line
+            return lines.slice(startIndex).join('\\n');
+        }
+        
         function tryLoadLog(urls, index) {
             if (index >= urls.length) {
                 document.getElementById('terminal-output').textContent = 
-                    'Error: Log file not found in any expected location\nTried:\n' + urls.join('\n');
+                    'Error: Log file not found in any expected location\\nTried:\\n' + urls.join('\\n');
                 return;
             }
             
@@ -1005,7 +1148,8 @@
                     return response.text();
                 })
                 .then(data => {
-                    document.getElementById('terminal-output').textContent = data;
+                    const filteredData = filterTerraformLogs(data);
+                    document.getElementById('terminal-output').textContent = filteredData;
                 })
                 .catch(() => tryLoadLog(urls, index + 1));
         }

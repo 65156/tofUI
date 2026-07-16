@@ -4,8 +4,7 @@ Detailed usage beyond the basic workflow in the [README](README.md).
 
 ## Live example reports
 
-- [Large plan](https://65156.github.io/tofUI/large-plan-example.html) — 21 resources across AWS, Kubernetes, GCP & Helm, with creates, deletes, updates, and replacements, plus the auto-loaded terraform log
-- [Has changes](https://65156.github.io/tofUI/has-changes-example.html) — a simple plan with a single change
+- [Has changes](https://65156.github.io/tofUI/has-changes-example.html) — 21 resources across AWS, Kubernetes, GCP & Helm with creates, deletes, updates, and replacements, plus search/filter and the auto-loaded terraform log
 - [Has errors](https://65156.github.io/tofUI/has-errors-example.html) — a plan that failed with errors
 - [No changes](https://65156.github.io/tofUI/no-changes-example.html) — infrastructure already up to date
 

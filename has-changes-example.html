@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>tofUI - has-changes-example</title>
+        <title>tofUI - Terraform Plan (example)</title>
         <style>
             
         * {
@@ -142,7 +142,134 @@
         .filter-checkbox input {
             margin: 0;
         }
-        
+
+        /* Search + filter toolbar */
+        .toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem 1rem;
+            padding: 1rem 2rem;
+            background: #ffffff;
+            border-bottom: 1px solid #e9ecef;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .toolbar-search {
+            position: relative;
+            flex: 1 1 260px;
+            min-width: 200px;
+        }
+        #resource-search {
+            width: 100%;
+            height: 38px;
+            padding: 0 2.1rem 0 0.85rem;
+            font-size: 0.95rem;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        #resource-search:focus {
+            border-color: #dee2e6;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+        }
+        .search-clear {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: #adb5bd;
+            font-size: 0.85rem;
+            line-height: 1;
+            padding: 0.25rem;
+            display: none;
+        }
+        .search-clear.visible { display: block; }
+        .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            height: 38px;
+            padding: 0 0.9rem;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            border-left: 4px solid #e9ecef;
+            background: #ffffff;
+            color: #adb5bd;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+            box-sizing: border-box;
+            transition: background 0.12s ease, color 0.12s ease;
+        }
+        .chip:not(.active):hover { background: #f8f9fa; }
+        .chip.active { color: #212529; border-color: transparent; }
+        /* active chips take a light tint of their action colour + a coloured left bar */
+        .chip.active[data-action="delete"]  { background: #fdeaea; border-left-color: #dc3545; color: #9b2c2c; }
+        .chip.active[data-action="replace"] { background: #f2ecfa; border-left-color: #6f42c1; color: #4d2d8a; }
+        .chip.active[data-action="update"]  { background: #fff6db; border-left-color: #ffc107; color: #7a5b00; }
+        .chip.active[data-action="create"]  { background: #e8f6ee; border-left-color: #28a745; color: #1a7f37; }
+        .chip-count {
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.06);
+            border-radius: 3px;
+            padding: 0 0.4rem;
+        }
+        .chip.active .chip-count { background: rgba(0, 0, 0, 0.10); }
+        .results-count {
+            margin-left: auto;
+            font-size: 0.85rem;
+            color: #868e96;
+            white-space: nowrap;
+        }
+        .no-results {
+            display: none;
+            padding: 3rem 2rem;
+            text-align: center;
+            color: #868e96;
+            font-size: 0.95rem;
+        }
+        .no-results.visible { display: block; }
+        .filter-notice {
+            display: none;
+            align-items: center;
+            gap: 0.85rem;
+            padding: 1.1rem 2rem;
+            background: #fff8e1;
+            border-bottom: 1px solid #ffe8a3;
+            color: #6b5900;
+            font-size: 1.05rem;
+            font-weight: 500;
+        }
+        .filter-notice.visible { display: flex; }
+        .filter-notice-icon { flex-shrink: 0; }
+        .filter-reset {
+            margin-left: auto;
+            border: 1px solid #e9c46a;
+            background: #ffffff;
+            color: #6b5900;
+            padding: 0.45rem 0.9rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .filter-reset:hover { background: #fffdf5; }
+        .resource-change.highlighted {
+            box-shadow: 0 0 0 3px rgba(75, 85, 99, 0.6);
+            border-radius: 8px;
+        }
+
         .btn {
             background: #6b7280;
             color: white;
@@ -214,7 +341,7 @@
             border-left: 16px solid #dc3545;
         }
         
-        .resource-change.recreate {
+        .resource-change.replace {
             border-left: 16px solid #6f42c1;
         }
         
@@ -251,7 +378,7 @@
         }
         
         .resource-details {
-            padding: 1rem;
+            padding: 0;
             border-top: 1px solid #e9ecef;
         }
         
@@ -607,7 +734,7 @@
             padding-top: 0.25rem;
         }
         
-        .resource-change.recreate .property-change .before-value {
+        .resource-change.replace .property-change .before-value {
             background: #f8d7da;
             color: #721c24;
         }
@@ -776,53 +903,44 @@
         <div class="container">
             
         <div class="header">
-            <div class="plan-name"><strong>has-changes-example</strong></div>
-            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-27 20:26:08 UTC</div>
+            <div class="plan-name"><strong>Terraform Plan (example)</strong></div>
+            <div class="meta-info"><strong>Version:</strong> 1.9.5 • <strong>Generated:</strong> 2026-07-16 21:23:35 UTC</div>
         </div>
         
             
                 
-        <div class="summary">
-            <div class="summary-stats">
-                <div class="stat-item create">
-                    <span class="stat-number">1</span>
-                    <span class="stat-label">add</span>
-                </div>
-                <div class="stat-item update">
-                    <span class="stat-number">0</span>
-                    <span class="stat-label">change</span>
-                </div>
-                <div class="stat-item delete">
-                    <span class="stat-number">1</span>
-                    <span class="stat-label">destroy</span>
-                </div>
-            </div>
-        </div>
-        
                 
+        <div class="toolbar">
+            <div class="toolbar-search">
+                <input type="search" id="resource-search" placeholder="Search by name, type, or module…  (press /)" autocomplete="off" spellcheck="false">
+                <button type="button" id="search-clear" class="search-clear" title="Clear search" aria-label="Clear search">✕</button>
+            </div>
+            <div class="chips" id="action-chips"><button type="button" class="chip active" data-action="delete">Delete <span class="chip-count">7</span></button><button type="button" class="chip active" data-action="replace">Replace <span class="chip-count">3</span></button><button type="button" class="chip active" data-action="update">Update <span class="chip-count">5</span></button><button type="button" class="chip active" data-action="create">Create <span class="chip-count">6</span></button></div>
+            <div class="results-count" id="results-count"></div>
+        </div>
         <div class="filters">
             <div class="filter-section">
                 <h3>Hide Properties</h3>
                 <div class="filter-group" id="property-filters">
                     
             <label class="filter-checkbox">
-                <input type="checkbox" value="arn" > arn
+                <input type="checkbox" value="ami" > ami
             </label>
             
             <label class="filter-checkbox">
-                <input type="checkbox" value="arn_without_revision" > arn_without_revision
+                <input type="checkbox" value="architectures" > architectures
             </label>
             
             <label class="filter-checkbox">
-                <input type="checkbox" value="container_definitions" > container_definitions
+                <input type="checkbox" value="assume_role_policy" > assume_role_policy
             </label>
             
             <label class="filter-checkbox">
-                <input type="checkbox" value="enable_fault_injection" > enable_fault_injection
+                <input type="checkbox" value="backup_retention_period" > backup_retention_period
             </label>
             
             <label class="filter-checkbox">
-                <input type="checkbox" value="id" > id
+                <input type="checkbox" value="billing_mode" > billing_mode
             </label>
             
                 </div>
@@ -832,19 +950,24 @@
                 <button id="toggle-all" class="btn toggle-btn">Expand All</button>
             </div>
         </div>
+        <div class="filter-notice" id="filter-notice" role="status">
+            <svg class="filter-notice-icon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+            <span id="filter-notice-text">Filters are active — some resources are hidden.</span>
+            <button type="button" id="filter-reset" class="filter-reset">Show all</button>
+        </div>
         
                 
         <div class="resource-groups" id="resource-groups">
             
-        <div class="resource-group" data-resource-type="aws_ecs_task_definition">
+        <div class="resource-group" data-resource-type="aws_cloudwatch_log_group">
             <div class="group-header">
-                <h3>aws_ecs_task_definition (1 resources)</h3>
+                <h3>aws_cloudwatch_log_group (4 resources)</h3>
             </div>
             <div class="group-resources">
                 
-        <div class="resource-change recreate" data-action="recreate" data-address="module.ecs_service[&quot;gstream-svc-03&quot;].aws_ecs_task_definition.this[0]">
+        <div class="resource-change update" data-action="update" data-address="module.identity.aws_cloudwatch_log_group.orders_dev" data-type="aws_cloudwatch_log_group" data-provider="aws" data-module="identity">
             <div class="resource-header" onclick="toggleResource(this)">
-                <span class="resource-address">module.ecs_service[&quot;gstream-svc-03&quot;].aws_ecs_task_definition.this[0]</span>
+                <span class="resource-address">module.identity.aws_cloudwatch_log_group.orders_dev</span>
                 <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
@@ -860,140 +983,1913 @@
                 </thead>
                 <tbody>
                     
-        <tr class="property-change removal" data-property="arn">
-            <td class="property-name">arn</td>
-            <td class="before-value">arn:aws:ecs:us-east-2:181579366464:task-definition/gstream-svc-03:4</td>
-            <td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>
+        <tr class="property-change modification" data-property="retention_in_days">
+            <td class="property-name">retention_in_days</td>
+            <td class="before-value">90</td>
+            <td class="after-value">45</td>
         </tr>
         
-        <tr class="property-change removal" data-property="arn_without_revision">
-            <td class="property-name">arn_without_revision</td>
-            <td class="before-value">arn:aws:ecs:us-east-2:181579366464:task-definition/gstream-svc-03</td>
-            <td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>
-        </tr>
-        
-        <tr class="property-change modification" data-property="container_definitions">
-            <td class="property-name">container_definitions</td>
-            <td class="before-value"><pre class="complex-value">[
-  {
-    &quot;command&quot;: [
-      &quot;python3 -m http.server 8080 &amp; gst-launch-1.0 -v udpsrc address=0.0.0.0 port=5024 caps=\&quot;application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS,payload=96\&quot; ! rtpjitterbuffer ! rtpopusdepay ! opusdec ! audioconvert ! voaacenc bitrate=128000 ! mux. videotestsrc is-live=true ! video/x-raw,width=4,height=4,framerate=1/1 ! videoconvert ! x264enc tune=zerolatency ! mux. flvmux name=mux streamable=true ! rtmpsink location=\&quot;rtmp://172.72.173.238:1935/track/driver6\&quot;&quot;
-    ],
-    &quot;entryPoint&quot;: [
-      &quot;/bin/bash&quot;,
-      &quot;-c&quot;
-    ],
-    &quot;environment&quot;: [],
-    &quot;essential&quot;: true,
-    &quot;image&quot;: &quot;181579366464.dkr.ecr.us-east-2.amazonaws.com/sbx-cr-01:gstream-1.7&quot;,
-    &quot;interactive&quot;: false,
-    &quot;linuxParameters&quot;: {
-      &quot;initProcessEnabled&quot;: true
-    },
-    &quot;logConfiguration&quot;: {
-      &quot;logDriver&quot;: &quot;awslogs&quot;,
-      &quot;options&quot;: {
-        &quot;awslogs-stream-prefix&quot;: &quot;gstream-svc-03&quot;,
-        &quot;awslogs-group&quot;: &quot;/ecs/gstream-svc-03&quot;,
-        &quot;awslogs-region&quot;: &quot;us-east-2&quot;
-      }
-    },
-    &quot;mountPoints&quot;: [],
-    &quot;name&quot;: &quot;gstream-pd-01&quot;,
-    &quot;portMappings&quot;: [
-      {
-        &quot;containerPort&quot;: 5024,
-        &quot;hostPort&quot;: 5024,
-        &quot;name&quot;: &quot;gstream-pd-01&quot;,
-        &quot;protocol&quot;: &quot;udp&quot;
-      },
-      {
-        &quot;containerPort&quot;: 8080,
-        &quot;hostPort&quot;: 8080,
-        &quot;name&quot;: &quot;gstream-tcp-02&quot;,
-        &quot;protocol&quot;: &quot;tcp&quot;
-      }
-    ],
-    &quot;privileged&quot;: false,
-    &quot;pseudoTerminal&quot;: false,
-    &quot;readonlyRootFilesystem&quot;: false,
-    &quot;restartPolicy&quot;: {
-      &quot;enabled&quot;: true
-    },
-    &quot;startTimeout&quot;: 30,
-    &quot;stopTimeout&quot;: 120,
-    &quot;systemControls&quot;: [],
-    &quot;versionConsistency&quot;: &quot;disabled&quot;,
-    &quot;volumesFrom&quot;: []
-  }
-]</pre></td>
-            <td class="after-value"><pre class="complex-value">[
-  {
-    &quot;command&quot;: [
-      &quot;python3 -m http.server 8080 &amp; gst-launch-1.0 -v udpsrc address=0.0.0.0 port=5024 caps=\&quot;application/x-rtp,media=audio,clock-rate=48000,encoding-name=OPUS,payload=96\&quot; ! rtpjitterbuffer ! rtpopusdepay ! opusdec ! audioconvert ! voaacenc bitrate=128000 ! mux. videotestsrc is-live=true ! video/x-raw,width=4,height=4,framerate=1/1 ! videoconvert ! x264enc tune=zerolatency ! mux. flvmux name=mux streamable=true ! rtmpsink location=\&quot;rtmp://172.72.173.238:1935/track/driver6\&quot;&quot;
-    ],
-    &quot;entryPoint&quot;: [
-      &quot;/bin/bash&quot;,
-      &quot;-c&quot;
-    ],
-    &quot;essential&quot;: true,
-    &quot;image&quot;: &quot;181579366464.dkr.ecr.us-east-2.amazonaws.com/sbx-cr-01:gstream1-7&quot;,
-    &quot;interactive&quot;: false,
-    &quot;linuxParameters&quot;: {
-      &quot;initProcessEnabled&quot;: true
-    },
-    &quot;logConfiguration&quot;: {
-      &quot;logDriver&quot;: &quot;awslogs&quot;,
-      &quot;options&quot;: {
-        &quot;awslogs-group&quot;: &quot;/ecs/gstream-svc-03&quot;,
-        &quot;awslogs-region&quot;: &quot;us-east-2&quot;,
-        &quot;awslogs-stream-prefix&quot;: &quot;gstream-svc-03&quot;
-      }
-    },
-    &quot;name&quot;: &quot;gstream-pd-01&quot;,
-    &quot;portMappings&quot;: [
-      {
-        &quot;containerPort&quot;: 5024,
-        &quot;hostPort&quot;: 5024,
-        &quot;name&quot;: &quot;gstream-pd-01&quot;,
-        &quot;protocol&quot;: &quot;udp&quot;
-      },
-      {
-        &quot;containerPort&quot;: 8080,
-        &quot;hostPort&quot;: 8080,
-        &quot;name&quot;: &quot;gstream-tcp-02&quot;,
-        &quot;protocol&quot;: &quot;tcp&quot;
-      }
-    ],
-    &quot;privileged&quot;: false,
-    &quot;pseudoTerminal&quot;: false,
-    &quot;readonlyRootFilesystem&quot;: false,
-    &quot;restartPolicy&quot;: {
-      &quot;enabled&quot;: true
-    },
-    &quot;startTimeout&quot;: 30,
-    &quot;stopTimeout&quot;: 120,
-    &quot;versionConsistency&quot;: &quot;disabled&quot;
-  }
-]</pre></td>
-        </tr>
-        
-        <tr class="property-change removal" data-property="enable_fault_injection">
-            <td class="property-name">enable_fault_injection</td>
+        <tr class="property-change modification" data-property="skip_destroy">
+            <td class="property-name">skip_destroy</td>
             <td class="before-value">False</td>
+            <td class="after-value">True</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Version</td>
+            <td class="before-value"></td>
+            <td class="after-value">v2</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Version</td>
+            <td class="before-value"></td>
+            <td class="after-value">v2</td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-change replace" data-action="replace" data-address="module.web.aws_cloudwatch_log_group.profile_prod" data-type="aws_cloudwatch_log_group" data-provider="aws" data-module="web">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">module.web.aws_cloudwatch_log_group.profile_prod</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change removal" data-property="id">
+            <td class="property-name">id</td>
+            <td class="before-value">profile-prod-9471750</td>
             <td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>
+        </tr>
+        
+        <tr class="property-change modification" data-property="retention_in_days">
+            <td class="property-name">retention_in_days</td>
+            <td class="before-value">90</td>
+            <td class="after-value">270</td>
+        </tr>
+        
+        <tr class="property-change modification" data-property="skip_destroy">
+            <td class="property-name">skip_destroy</td>
+            <td class="before-value">False</td>
+            <td class="after-value">True</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Version</td>
+            <td class="before-value"></td>
+            <td class="after-value">v2</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Version</td>
+            <td class="before-value"></td>
+            <td class="after-value">v2</td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-change delete" data-action="delete" data-address="module.web.aws_cloudwatch_log_group.recommend_staging" data-type="aws_cloudwatch_log_group" data-provider="aws" data-module="web">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">module.web.aws_cloudwatch_log_group.recommend_staging</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change removal" data-property="id">
+            <td class="property-name">id</td>
+            <td class="before-value">recommend-staging-9352907</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="name">
+            <td class="property-name">name</td>
+            <td class="before-value">/ecs/recommend-staging</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="retention_in_days">
+            <td class="property-name">retention_in_days</td>
+            <td class="before-value">30</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="skip_destroy">
+            <td class="property-name">skip_destroy</td>
+            <td class="before-value">False</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value">prod</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.ManagedBy</td>
+            <td class="before-value">terraform</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Name</td>
+            <td class="before-value">recommend-staging</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Team</td>
+            <td class="before-value">platform</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Environment</td>
+            <td class="before-value">prod</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.ManagedBy</td>
+            <td class="before-value">terraform</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Name</td>
+            <td class="before-value">recommend-staging</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Team</td>
+            <td class="before-value">platform</td>
+            <td class="after-value"></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-change create" data-action="create" data-address="aws_cloudwatch_log_group.fraud_prod" data-type="aws_cloudwatch_log_group" data-provider="aws" data-module="root">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">aws_cloudwatch_log_group.fraud_prod</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change addition" data-property="name">
+            <td class="property-name">name</td>
+            <td class="before-value"></td>
+            <td class="after-value">/ecs/fraud-prod</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="retention_in_days">
+            <td class="property-name">retention_in_days</td>
+            <td class="before-value"></td>
+            <td class="after-value">7</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="skip_destroy">
+            <td class="property-name">skip_destroy</td>
+            <td class="before-value"></td>
+            <td class="after-value">False</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value"></td>
+            <td class="after-value">prod</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.ManagedBy</td>
+            <td class="before-value"></td>
+            <td class="after-value">terraform</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Name</td>
+            <td class="before-value"></td>
+            <td class="after-value">fraud-prod</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Team</td>
+            <td class="before-value"></td>
+            <td class="after-value">payments</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Environment</td>
+            <td class="before-value"></td>
+            <td class="after-value">prod</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.ManagedBy</td>
+            <td class="before-value"></td>
+            <td class="after-value">terraform</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Name</td>
+            <td class="before-value"></td>
+            <td class="after-value">fraud-prod</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Team</td>
+            <td class="before-value"></td>
+            <td class="after-value">payments</td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-group" data-resource-type="aws_dynamodb_table">
+            <div class="group-header">
+                <h3>aws_dynamodb_table (1 resources)</h3>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change update" data-action="update" data-address="aws_dynamodb_table.recommend_dev" data-type="aws_dynamodb_table" data-provider="aws" data-module="root">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">aws_dynamodb_table.recommend_dev</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change modification" data-property="billing_mode">
+            <td class="property-name">billing_mode</td>
+            <td class="before-value">PAY_PER_REQUEST</td>
+            <td class="after-value">PAY_PER_REQUEST-v2</td>
+        </tr>
+        
+        <tr class="property-change modification" data-property="range_key">
+            <td class="property-name">range_key</td>
+            <td class="before-value">sk</td>
+            <td class="after-value">sk-v2</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Version</td>
+            <td class="before-value"></td>
+            <td class="after-value">v2</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Version</td>
+            <td class="before-value"></td>
+            <td class="after-value">v2</td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-group" data-resource-type="aws_iam_role">
+            <div class="group-header">
+                <h3>aws_iam_role (2 resources)</h3>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change delete" data-action="delete" data-address="module.identity.aws_iam_role.inventory_prod" data-type="aws_iam_role" data-provider="aws" data-module="identity">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">module.identity.aws_iam_role.inventory_prod</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change removal" data-property="assume_role_policy">
+            <td class="property-name">assume_role_policy</td>
+            <td class="before-value"><pre class="complex-value">{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    {
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Principal&quot;: {
+        &quot;Service&quot;: &quot;ecs-tasks.amazonaws.com&quot;
+      },
+      &quot;Action&quot;: &quot;sts:AssumeRole&quot;
+    }
+  ]
+}</pre></td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="force_detach_policies">
+            <td class="property-name">force_detach_policies</td>
+            <td class="before-value">False</td>
+            <td class="after-value"></td>
         </tr>
         
         <tr class="property-change removal" data-property="id">
             <td class="property-name">id</td>
-            <td class="before-value">gstream-svc-03</td>
+            <td class="before-value">inventory-prod-8352116</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="max_session_duration">
+            <td class="property-name">max_session_duration</td>
+            <td class="before-value">7200</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="name">
+            <td class="property-name">name</td>
+            <td class="before-value">inventory-prod</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="path">
+            <td class="property-name">path</td>
+            <td class="before-value">/</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value">prod</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.ManagedBy</td>
+            <td class="before-value">terraform</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Name</td>
+            <td class="before-value">inventory-prod</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Team</td>
+            <td class="before-value">platform</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Environment</td>
+            <td class="before-value">prod</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.ManagedBy</td>
+            <td class="before-value">terraform</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Name</td>
+            <td class="before-value">inventory-prod</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Team</td>
+            <td class="before-value">platform</td>
+            <td class="after-value"></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-change create" data-action="create" data-address="module.identity.aws_iam_role.notify_staging" data-type="aws_iam_role" data-provider="aws" data-module="identity">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">module.identity.aws_iam_role.notify_staging</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change addition" data-property="assume_role_policy">
+            <td class="property-name">assume_role_policy</td>
+            <td class="before-value"></td>
+            <td class="after-value"><pre class="complex-value">{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Statement&quot;: [
+    {
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Principal&quot;: {
+        &quot;Service&quot;: &quot;ecs-tasks.amazonaws.com&quot;
+      },
+      &quot;Action&quot;: &quot;sts:AssumeRole&quot;
+    }
+  ]
+}</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="force_detach_policies">
+            <td class="property-name">force_detach_policies</td>
+            <td class="before-value"></td>
+            <td class="after-value">False</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="max_session_duration">
+            <td class="property-name">max_session_duration</td>
+            <td class="before-value"></td>
+            <td class="after-value">3600</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="name">
+            <td class="property-name">name</td>
+            <td class="before-value"></td>
+            <td class="after-value">notify-staging</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="path">
+            <td class="property-name">path</td>
+            <td class="before-value"></td>
+            <td class="after-value">/</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value"></td>
+            <td class="after-value">prod</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.ManagedBy</td>
+            <td class="before-value"></td>
+            <td class="after-value">terraform</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Name</td>
+            <td class="before-value"></td>
+            <td class="after-value">notify-staging</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Team</td>
+            <td class="before-value"></td>
+            <td class="after-value">web</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Environment</td>
+            <td class="before-value"></td>
+            <td class="after-value">prod</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.ManagedBy</td>
+            <td class="before-value"></td>
+            <td class="after-value">terraform</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Name</td>
+            <td class="before-value"></td>
+            <td class="after-value">notify-staging</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Team</td>
+            <td class="before-value"></td>
+            <td class="after-value">web</td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-group" data-resource-type="aws_instance">
+            <div class="group-header">
+                <h3>aws_instance (2 resources)</h3>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change replace" data-action="replace" data-address="module.streaming.aws_instance.orders_prod" data-type="aws_instance" data-provider="aws" data-module="streaming">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">module.streaming.aws_instance.orders_prod</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change modification" data-property="ami">
+            <td class="property-name">ami</td>
+            <td class="before-value">ami-004c6979</td>
+            <td class="after-value">ami-004c6979-v2</td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="id">
+            <td class="property-name">id</td>
+            <td class="before-value">orders-prod-8722104</td>
             <td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>
         </tr>
         
-        <tr class="property-change removal" data-property="revision">
-            <td class="property-name">revision</td>
-            <td class="before-value">4</td>
+        <tr class="property-change modification" data-property="instance_type">
+            <td class="property-name">instance_type</td>
+            <td class="before-value">t3.medium</td>
+            <td class="after-value">t3.medium-v2</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Version</td>
+            <td class="before-value"></td>
+            <td class="after-value">v2</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Version</td>
+            <td class="before-value"></td>
+            <td class="after-value">v2</td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-change update" data-action="update" data-address="aws_instance.media_staging" data-type="aws_instance" data-provider="aws" data-module="root">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">aws_instance.media_staging</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change modification" data-property="ami">
+            <td class="property-name">ami</td>
+            <td class="before-value">ami-00696d01</td>
+            <td class="after-value">ami-00696d01-v2</td>
+        </tr>
+        
+        <tr class="property-change modification" data-property="instance_type">
+            <td class="property-name">instance_type</td>
+            <td class="before-value">c5.xlarge</td>
+            <td class="after-value">c5.xlarge-v2</td>
+        </tr>
+        
+        <tr class="property-change modification" data-property="monitoring">
+            <td class="property-name">monitoring</td>
+            <td class="before-value">True</td>
+            <td class="after-value">False</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Version</td>
+            <td class="before-value"></td>
+            <td class="after-value">v2</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Version</td>
+            <td class="before-value"></td>
+            <td class="after-value">v2</td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-group" data-resource-type="aws_lambda_function">
+            <div class="group-header">
+                <h3>aws_lambda_function (1 resources)</h3>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change create" data-action="create" data-address="aws_lambda_function.webhook_staging" data-type="aws_lambda_function" data-provider="aws" data-module="root">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">aws_lambda_function.webhook_staging</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change addition" data-property="architectures">
+            <td class="property-name">architectures</td>
+            <td class="before-value"></td>
+            <td class="after-value"><pre class="complex-value">[
+  &quot;arm64&quot;
+]</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="environment">
+            <td class="property-name">environment</td>
+            <td class="before-value"></td>
+            <td class="after-value"><pre class="complex-value">[
+  {
+    &quot;variables&quot;: {
+      &quot;LOG_LEVEL&quot;: &quot;info&quot;,
+      &quot;STAGE&quot;: &quot;staging&quot;
+    }
+  }
+]</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="function_name">
+            <td class="property-name">function_name</td>
+            <td class="before-value"></td>
+            <td class="after-value">webhook-staging</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="handler">
+            <td class="property-name">handler</td>
+            <td class="before-value"></td>
+            <td class="after-value">index.handler</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="memory_size">
+            <td class="property-name">memory_size</td>
+            <td class="before-value"></td>
+            <td class="after-value">1024</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="runtime">
+            <td class="property-name">runtime</td>
+            <td class="before-value"></td>
+            <td class="after-value">python3.12</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value"></td>
+            <td class="after-value">prod</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.ManagedBy</td>
+            <td class="before-value"></td>
+            <td class="after-value">terraform</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Name</td>
+            <td class="before-value"></td>
+            <td class="after-value">webhook-staging</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Team</td>
+            <td class="before-value"></td>
+            <td class="after-value">streaming</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Environment</td>
+            <td class="before-value"></td>
+            <td class="after-value">prod</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.ManagedBy</td>
+            <td class="before-value"></td>
+            <td class="after-value">terraform</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Name</td>
+            <td class="before-value"></td>
+            <td class="after-value">webhook-staging</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Team</td>
+            <td class="before-value"></td>
+            <td class="after-value">streaming</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="timeout">
+            <td class="property-name">timeout</td>
+            <td class="before-value"></td>
+            <td class="after-value">300</td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-group" data-resource-type="aws_lb">
+            <div class="group-header">
+                <h3>aws_lb (1 resources)</h3>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change update" data-action="update" data-address="aws_lb.loyalty_dev" data-type="aws_lb" data-provider="aws" data-module="root">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">aws_lb.loyalty_dev</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change modification" data-property="enable_http2">
+            <td class="property-name">enable_http2</td>
+            <td class="before-value">True</td>
+            <td class="after-value">False</td>
+        </tr>
+        
+        <tr class="property-change modification" data-property="internal">
+            <td class="property-name">internal</td>
+            <td class="before-value">False</td>
+            <td class="after-value">True</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Version</td>
+            <td class="before-value"></td>
+            <td class="after-value">v2</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Version</td>
+            <td class="before-value"></td>
+            <td class="after-value">v2</td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-group" data-resource-type="aws_rds_cluster">
+            <div class="group-header">
+                <h3>aws_rds_cluster (3 resources)</h3>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change create" data-action="create" data-address="module.payments.aws_rds_cluster.gateway_prod" data-type="aws_rds_cluster" data-provider="aws" data-module="payments">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">module.payments.aws_rds_cluster.gateway_prod</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change addition" data-property="backup_retention_period">
+            <td class="property-name">backup_retention_period</td>
+            <td class="before-value"></td>
+            <td class="after-value">30</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="cluster_identifier">
+            <td class="property-name">cluster_identifier</td>
+            <td class="before-value"></td>
+            <td class="after-value">gateway-prod</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="database_name">
+            <td class="property-name">database_name</td>
+            <td class="before-value"></td>
+            <td class="after-value">gateway_prod</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="deletion_protection">
+            <td class="property-name">deletion_protection</td>
+            <td class="before-value"></td>
+            <td class="after-value">True</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="engine">
+            <td class="property-name">engine</td>
+            <td class="before-value"></td>
+            <td class="after-value">aurora-postgresql</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="engine_version">
+            <td class="property-name">engine_version</td>
+            <td class="before-value"></td>
+            <td class="after-value">8.0.mysql_aurora.3.05.2</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="master_username">
+            <td class="property-name">master_username</td>
+            <td class="before-value"></td>
+            <td class="after-value">admin</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="storage_encrypted">
+            <td class="property-name">storage_encrypted</td>
+            <td class="before-value"></td>
+            <td class="after-value">True</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value"></td>
+            <td class="after-value">dev</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.ManagedBy</td>
+            <td class="before-value"></td>
+            <td class="after-value">terraform</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Name</td>
+            <td class="before-value"></td>
+            <td class="after-value">gateway-prod</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Team</td>
+            <td class="before-value"></td>
+            <td class="after-value">data</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Environment</td>
+            <td class="before-value"></td>
+            <td class="after-value">dev</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.ManagedBy</td>
+            <td class="before-value"></td>
+            <td class="after-value">terraform</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Name</td>
+            <td class="before-value"></td>
+            <td class="after-value">gateway-prod</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Team</td>
+            <td class="before-value"></td>
+            <td class="after-value">data</td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-change delete" data-action="delete" data-address="aws_rds_cluster.media_dev" data-type="aws_rds_cluster" data-provider="aws" data-module="root">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">aws_rds_cluster.media_dev</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change removal" data-property="backup_retention_period">
+            <td class="property-name">backup_retention_period</td>
+            <td class="before-value">14</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="cluster_identifier">
+            <td class="property-name">cluster_identifier</td>
+            <td class="before-value">media-dev</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="database_name">
+            <td class="property-name">database_name</td>
+            <td class="before-value">media_dev</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="deletion_protection">
+            <td class="property-name">deletion_protection</td>
+            <td class="before-value">True</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="engine">
+            <td class="property-name">engine</td>
+            <td class="before-value">aurora-mysql</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="engine_version">
+            <td class="property-name">engine_version</td>
+            <td class="before-value">16.1</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="id">
+            <td class="property-name">id</td>
+            <td class="before-value">media-dev-3814464</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="master_username">
+            <td class="property-name">master_username</td>
+            <td class="before-value">admin</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="storage_encrypted">
+            <td class="property-name">storage_encrypted</td>
+            <td class="before-value">True</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value">dev</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.ManagedBy</td>
+            <td class="before-value">terraform</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Name</td>
+            <td class="before-value">media-dev</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Team</td>
+            <td class="before-value">search</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Environment</td>
+            <td class="before-value">dev</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.ManagedBy</td>
+            <td class="before-value">terraform</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Name</td>
+            <td class="before-value">media-dev</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Team</td>
+            <td class="before-value">search</td>
+            <td class="after-value"></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-change replace" data-action="replace" data-address="aws_rds_cluster.audit_staging" data-type="aws_rds_cluster" data-provider="aws" data-module="root">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">aws_rds_cluster.audit_staging</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change modification" data-property="engine">
+            <td class="property-name">engine</td>
+            <td class="before-value">aurora-mysql</td>
+            <td class="after-value">aurora-mysql-v2</td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="id">
+            <td class="property-name">id</td>
+            <td class="before-value">audit-staging-9390849</td>
             <td class="after-value known-after-apply-cell"><em class="known-after-apply">known after apply</em></td>
+        </tr>
+        
+        <tr class="property-change modification" data-property="storage_encrypted">
+            <td class="property-name">storage_encrypted</td>
+            <td class="before-value">True</td>
+            <td class="after-value">False</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Version</td>
+            <td class="before-value"></td>
+            <td class="after-value">v2</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Version</td>
+            <td class="before-value"></td>
+            <td class="after-value">v2</td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-group" data-resource-type="aws_security_group">
+            <div class="group-header">
+                <h3>aws_security_group (4 resources)</h3>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change delete" data-action="delete" data-address="module.search.aws_security_group.trace_staging" data-type="aws_security_group" data-provider="aws" data-module="search">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">module.search.aws_security_group.trace_staging</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change removal" data-property="description">
+            <td class="property-name">description</td>
+            <td class="before-value">Security group for trace-staging</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="egress">
+            <td class="property-name">egress</td>
+            <td class="before-value"><pre class="complex-value">[
+  {
+    &quot;from_port&quot;: 0,
+    &quot;to_port&quot;: 0,
+    &quot;protocol&quot;: &quot;-1&quot;,
+    &quot;cidr_blocks&quot;: [
+      &quot;0.0.0.0/0&quot;
+    ]
+  }
+]</pre></td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="id">
+            <td class="property-name">id</td>
+            <td class="before-value">trace-staging-3822465</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="ingress">
+            <td class="property-name">ingress</td>
+            <td class="before-value"><pre class="complex-value">[
+  {
+    &quot;from_port&quot;: 443,
+    &quot;to_port&quot;: 443,
+    &quot;protocol&quot;: &quot;tcp&quot;,
+    &quot;cidr_blocks&quot;: [
+      &quot;0.0.0.0/0&quot;
+    ],
+    &quot;description&quot;: &quot;HTTPS&quot;
+  }
+]</pre></td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="name">
+            <td class="property-name">name</td>
+            <td class="before-value">trace-staging</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value">prod</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.ManagedBy</td>
+            <td class="before-value">terraform</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Name</td>
+            <td class="before-value">trace-staging</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Team</td>
+            <td class="before-value">search</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Environment</td>
+            <td class="before-value">prod</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.ManagedBy</td>
+            <td class="before-value">terraform</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Name</td>
+            <td class="before-value">trace-staging</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Team</td>
+            <td class="before-value">search</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="vpc_id">
+            <td class="property-name">vpc_id</td>
+            <td class="before-value">vpc-0349a7bb</td>
+            <td class="after-value"></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-change create" data-action="create" data-address="aws_security_group.auth_dev" data-type="aws_security_group" data-provider="aws" data-module="root">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">aws_security_group.auth_dev</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change addition" data-property="description">
+            <td class="property-name">description</td>
+            <td class="before-value"></td>
+            <td class="after-value">Security group for auth-dev</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="egress">
+            <td class="property-name">egress</td>
+            <td class="before-value"></td>
+            <td class="after-value"><pre class="complex-value">[
+  {
+    &quot;from_port&quot;: 0,
+    &quot;to_port&quot;: 0,
+    &quot;protocol&quot;: &quot;-1&quot;,
+    &quot;cidr_blocks&quot;: [
+      &quot;0.0.0.0/0&quot;
+    ]
+  }
+]</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="ingress">
+            <td class="property-name">ingress</td>
+            <td class="before-value"></td>
+            <td class="after-value"><pre class="complex-value">[
+  {
+    &quot;from_port&quot;: 443,
+    &quot;to_port&quot;: 443,
+    &quot;protocol&quot;: &quot;tcp&quot;,
+    &quot;cidr_blocks&quot;: [
+      &quot;0.0.0.0/0&quot;
+    ],
+    &quot;description&quot;: &quot;HTTPS&quot;
+  }
+]</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="name">
+            <td class="property-name">name</td>
+            <td class="before-value"></td>
+            <td class="after-value">auth-dev</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value"></td>
+            <td class="after-value">staging</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.ManagedBy</td>
+            <td class="before-value"></td>
+            <td class="after-value">terraform</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Name</td>
+            <td class="before-value"></td>
+            <td class="after-value">auth-dev</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Team</td>
+            <td class="before-value"></td>
+            <td class="after-value">payments</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Environment</td>
+            <td class="before-value"></td>
+            <td class="after-value">staging</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.ManagedBy</td>
+            <td class="before-value"></td>
+            <td class="after-value">terraform</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Name</td>
+            <td class="before-value"></td>
+            <td class="after-value">auth-dev</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Team</td>
+            <td class="before-value"></td>
+            <td class="after-value">payments</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="vpc_id">
+            <td class="property-name">vpc_id</td>
+            <td class="before-value"></td>
+            <td class="after-value">vpc-04f2a492</td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-change update" data-action="update" data-address="module.streaming.aws_security_group.profile_dev" data-type="aws_security_group" data-provider="aws" data-module="streaming">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">module.streaming.aws_security_group.profile_dev</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change modification" data-property="description">
+            <td class="property-name">description</td>
+            <td class="before-value">Security group for profile-dev</td>
+            <td class="after-value">Security group for profile-dev-v2</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags">
+            <td class="property-name">tags.Version</td>
+            <td class="before-value"></td>
+            <td class="after-value">v2</td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="tags_all">
+            <td class="property-name">tags_all.Version</td>
+            <td class="before-value"></td>
+            <td class="after-value">v2</td>
+        </tr>
+        
+        <tr class="property-change modification" data-property="vpc_id">
+            <td class="property-name">vpc_id</td>
+            <td class="before-value">vpc-01455887</td>
+            <td class="after-value">vpc-01455887-v2</td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-change delete" data-action="delete" data-address="module.data.aws_security_group.shipping_staging" data-type="aws_security_group" data-provider="aws" data-module="data">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">module.data.aws_security_group.shipping_staging</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change removal" data-property="description">
+            <td class="property-name">description</td>
+            <td class="before-value">Security group for shipping-staging</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="egress">
+            <td class="property-name">egress</td>
+            <td class="before-value"><pre class="complex-value">[
+  {
+    &quot;from_port&quot;: 0,
+    &quot;to_port&quot;: 0,
+    &quot;protocol&quot;: &quot;-1&quot;,
+    &quot;cidr_blocks&quot;: [
+      &quot;0.0.0.0/0&quot;
+    ]
+  }
+]</pre></td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="id">
+            <td class="property-name">id</td>
+            <td class="before-value">shipping-staging-3232333</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="ingress">
+            <td class="property-name">ingress</td>
+            <td class="before-value"><pre class="complex-value">[
+  {
+    &quot;from_port&quot;: 443,
+    &quot;to_port&quot;: 443,
+    &quot;protocol&quot;: &quot;tcp&quot;,
+    &quot;cidr_blocks&quot;: [
+      &quot;0.0.0.0/0&quot;
+    ],
+    &quot;description&quot;: &quot;HTTPS&quot;
+  }
+]</pre></td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="name">
+            <td class="property-name">name</td>
+            <td class="before-value">shipping-staging</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value">dev</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.ManagedBy</td>
+            <td class="before-value">terraform</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Name</td>
+            <td class="before-value">shipping-staging</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Team</td>
+            <td class="before-value">data</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Environment</td>
+            <td class="before-value">dev</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.ManagedBy</td>
+            <td class="before-value">terraform</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Name</td>
+            <td class="before-value">shipping-staging</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Team</td>
+            <td class="before-value">data</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="vpc_id">
+            <td class="property-name">vpc_id</td>
+            <td class="before-value">vpc-0215a2bb</td>
+            <td class="after-value"></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-group" data-resource-type="aws_sqs_queue">
+            <div class="group-header">
+                <h3>aws_sqs_queue (1 resources)</h3>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change delete" data-action="delete" data-address="module.identity.aws_sqs_queue.profile_dev" data-type="aws_sqs_queue" data-provider="aws" data-module="identity">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">module.identity.aws_sqs_queue.profile_dev</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change removal" data-property="fifo_queue">
+            <td class="property-name">fifo_queue</td>
+            <td class="before-value">True</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="id">
+            <td class="property-name">id</td>
+            <td class="before-value">profile-dev-3545708</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="max_message_size">
+            <td class="property-name">max_message_size</td>
+            <td class="before-value">262144</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="message_retention_seconds">
+            <td class="property-name">message_retention_seconds</td>
+            <td class="before-value">1209600</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="name">
+            <td class="property-name">name</td>
+            <td class="before-value">profile-dev.fifo</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Environment</td>
+            <td class="before-value">staging</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.ManagedBy</td>
+            <td class="before-value">terraform</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Name</td>
+            <td class="before-value">profile-dev</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags">
+            <td class="property-name">tags.Team</td>
+            <td class="before-value">web</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Environment</td>
+            <td class="before-value">staging</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.ManagedBy</td>
+            <td class="before-value">terraform</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Name</td>
+            <td class="before-value">profile-dev</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="tags_all">
+            <td class="property-name">tags_all.Team</td>
+            <td class="before-value">web</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="visibility_timeout_seconds">
+            <td class="property-name">visibility_timeout_seconds</td>
+            <td class="before-value">300</td>
+            <td class="after-value"></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-group" data-resource-type="kubernetes_deployment">
+            <div class="group-header">
+                <h3>kubernetes_deployment (2 resources)</h3>
+            </div>
+            <div class="group-resources">
+                
+        <div class="resource-change delete" data-action="delete" data-address="kubernetes_deployment.analytics_prod" data-type="kubernetes_deployment" data-provider="kubernetes" data-module="root">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">kubernetes_deployment.analytics_prod</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change removal" data-property="id">
+            <td class="property-name">id</td>
+            <td class="before-value">analytics-prod-8703161</td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="metadata">
+            <td class="property-name">metadata</td>
+            <td class="before-value"><pre class="complex-value">[
+  {
+    &quot;name&quot;: &quot;analytics-prod&quot;,
+    &quot;namespace&quot;: &quot;apps&quot;
+  }
+]</pre></td>
+            <td class="after-value"></td>
+        </tr>
+        
+        <tr class="property-change removal" data-property="spec">
+            <td class="property-name">spec</td>
+            <td class="before-value"><pre class="complex-value">[
+  {
+    &quot;replicas&quot;: &quot;2&quot;,
+    &quot;selector&quot;: [
+      {
+        &quot;match_labels&quot;: {
+          &quot;app&quot;: &quot;analytics-prod&quot;
+        }
+      }
+    ],
+    &quot;template&quot;: [
+      {
+        &quot;spec&quot;: [
+          {
+            &quot;container&quot;: [
+              {
+                &quot;name&quot;: &quot;analytics-prod&quot;,
+                &quot;image&quot;: &quot;ghcr.io/acme/analytics-prod:1.17.0&quot;,
+                &quot;resources&quot;: [
+                  {
+                    &quot;limits&quot;: {
+                      &quot;cpu&quot;: &quot;500m&quot;,
+                      &quot;memory&quot;: &quot;512Mi&quot;
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]</pre></td>
+            <td class="after-value"></td>
+        </tr>
+        
+                </tbody>
+            </table>
+        </div>
+        
+            </div>
+        </div>
+        
+        <div class="resource-change create" data-action="create" data-address="module.identity.kubernetes_deployment.auth_prod" data-type="kubernetes_deployment" data-provider="kubernetes" data-module="identity">
+            <div class="resource-header" onclick="toggleResource(this)">
+                <span class="resource-address">module.identity.kubernetes_deployment.auth_prod</span>
+                <span class="toggle-indicator">▼</span>
+            </div>
+            <div class="resource-details">
+                
+        <div class="property-changes">
+            <table class="properties-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Before</th>
+                        <th>After</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    
+        <tr class="property-change addition" data-property="metadata">
+            <td class="property-name">metadata</td>
+            <td class="before-value"></td>
+            <td class="after-value"><pre class="complex-value">[
+  {
+    &quot;name&quot;: &quot;auth-prod&quot;,
+    &quot;namespace&quot;: &quot;default&quot;
+  }
+]</pre></td>
+        </tr>
+        
+        <tr class="property-change addition" data-property="spec">
+            <td class="property-name">spec</td>
+            <td class="before-value"></td>
+            <td class="after-value"><pre class="complex-value">[
+  {
+    &quot;replicas&quot;: &quot;3&quot;,
+    &quot;selector&quot;: [
+      {
+        &quot;match_labels&quot;: {
+          &quot;app&quot;: &quot;auth-prod&quot;
+        }
+      }
+    ],
+    &quot;template&quot;: [
+      {
+        &quot;spec&quot;: [
+          {
+            &quot;container&quot;: [
+              {
+                &quot;name&quot;: &quot;auth-prod&quot;,
+                &quot;image&quot;: &quot;ghcr.io/acme/auth-prod:1.19.0&quot;,
+                &quot;resources&quot;: [
+                  {
+                    &quot;limits&quot;: {
+                      &quot;cpu&quot;: &quot;500m&quot;,
+                      &quot;memory&quot;: &quot;512Mi&quot;
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+]</pre></td>
         </tr>
         
                 </tbody>
@@ -1007,9 +2903,102 @@
         </div>
         
         </div>
+        <div class="no-results" id="no-results">No resources match your search or filters.</div>
         
             
             
+        <div class="resource-groups">
+            <div class="resource-group" data-resource-type="outputs">
+                <div class="group-header">
+                    <h3>Outputs (3 items)</h3>
+                </div>
+                <div class="group-resources">
+                    
+            <div class="resource-change read collapsed" data-action="read" data-address="output_alb_dns_name">
+                <div class="resource-header" onclick="toggleResource(this)">
+                    <span class="resource-address">alb_dns_name</span>
+                    <span class="toggle-indicator">▼</span>
+                </div>
+                <div class="resource-details">
+                    
+                <div class="property-changes">
+                    <table class="properties-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="property-change">
+                                <td class="property-name">null</td>
+                                <td class="after-value"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                </div>
+            </div>
+            
+            <div class="resource-change read collapsed" data-action="read" data-address="output_cluster_endpoint">
+                <div class="resource-header" onclick="toggleResource(this)">
+                    <span class="resource-address">cluster_endpoint</span>
+                    <span class="toggle-indicator">▼</span>
+                </div>
+                <div class="resource-details">
+                    
+                <div class="property-changes">
+                    <table class="properties-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="property-change">
+                                <td class="property-name">string</td>
+                                <td class="after-value">new.cluster.local</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                </div>
+            </div>
+            
+            <div class="resource-change read collapsed" data-action="read" data-address="output_db_password">
+                <div class="resource-header" onclick="toggleResource(this)">
+                    <span class="resource-address">db_password</span>
+                    <span class="toggle-indicator">▼</span>
+                </div>
+                <div class="resource-details">
+                    
+                <div class="property-changes">
+                    <table class="properties-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="property-change">
+                                <td class="property-name">sensitive</td>
+                                <td class="after-value"><pre>(sensitive value)</pre></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                </div>
+            </div>
+            
+                </div>
+            </div>
+        </div>
+        
             
         <div class="terminal-section">
             <div class="terminal-header">
@@ -1025,7 +3014,7 @@
         <div class="footer">
             <div class="footer-content">
                 <div class="footer-text">
-                    Generated by <strong>tofUI</strong> • 
+                    Generated by <strong>tofUI v1.4.2</strong> • 
                     Better OpenTofu & Terraform Plans
                 </div>
                 <div class="footer-buttons">
@@ -1038,17 +3027,22 @@
         
         <script>
             // Embedded plan data
-            const planData = {"summary": {"create": 1, "update": 0, "delete": 1, "has_changes": true}, "actions": ["recreate"], "properties": ["ipc_mode", "tags", "enable_fault_injection", "pid_mode", "revision", "tags_all", "arn_without_revision", "arn", "container_definitions", "id"]};
+            const planData = {"summary": {"create": 9, "update": 5, "delete": 10, "has_changes": true}, "actions": ["create", "delete", "update", "replace"], "properties": ["range_key", "spec", "retention_in_days", "architectures", "vpc_id", "tags_all", "visibility_timeout_seconds", "max_session_duration", "engine_version", "assume_role_policy", "billing_mode", "id", "deletion_protection", "max_message_size", "storage_encrypted", "metadata", "force_detach_policies", "fifo_queue", "internal", "memory_size", "name", "tags", "monitoring", "backup_retention_period", "handler", "instance_type", "description", "cluster_identifier", "database_name", "enable_http2", "ingress", "function_name", "timeout", "path", "master_username", "skip_destroy", "environment", "ami", "engine", "message_retention_seconds", "runtime", "egress"]};
             
             
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             initializeFilters();
+            initializeSearch();
             initializeToggleButtons();
-            
+
             // Initially collapse all resources
             collapseAllResources();
-            
+
+            // Apply filters + counts, then honor any deep link (#address)
+            applyFilters();
+            handleDeepLink();
+
             // Auto-load logs
             autoLoadLogs();
         });
@@ -1101,54 +3095,154 @@
             });
         }
         
+        function initializeSearch() {
+            const search = document.getElementById('resource-search');
+            const clear = document.getElementById('search-clear');
+
+            if (search) {
+                search.addEventListener('input', function() {
+                    if (clear) clear.classList.toggle('visible', search.value.length > 0);
+                    applyFilters();
+                });
+            }
+            if (clear) {
+                clear.addEventListener('click', function() {
+                    if (search) { search.value = ''; search.focus(); }
+                    clear.classList.remove('visible');
+                    applyFilters();
+                });
+            }
+
+            // Action filter chips toggle their action on/off
+            document.querySelectorAll('#action-chips .chip').forEach(chip => {
+                chip.addEventListener('click', function() {
+                    chip.classList.toggle('active');
+                    applyFilters();
+                });
+            });
+
+            // "Show all" reset in the filter notice
+            const reset = document.getElementById('filter-reset');
+            if (reset) reset.addEventListener('click', resetFilters);
+
+            // Keyboard: '/' focuses search, Esc clears/blurs it
+            document.addEventListener('keydown', function(e) {
+                if (e.key === '/' && document.activeElement !== search) {
+                    e.preventDefault();
+                    if (search) search.focus();
+                } else if (e.key === 'Escape' && document.activeElement === search) {
+                    search.value = '';
+                    if (clear) clear.classList.remove('visible');
+                    applyFilters();
+                    search.blur();
+                }
+            });
+        }
+
+        function getActiveActions() {
+            const chips = document.querySelectorAll('#action-chips .chip');
+            if (!chips.length) return null; // no chips => don't filter by action
+            const active = new Set();
+            chips.forEach(c => { if (c.classList.contains('active')) active.add(c.dataset.action); });
+            return active;
+        }
+
         function applyFilters() {
-            // Get selected property filters (properties to hide)
+            // 1) Property-level hiding (the "Hide Properties" checkboxes)
             const hiddenProperties = Array.from(
                 document.querySelectorAll('#property-filters input[type="checkbox"]:checked')
             ).map(input => input.value);
-            
-            // Filter properties with smart matching
+
             const propertyRows = document.querySelectorAll('.property-change');
             propertyRows.forEach(row => {
                 const property = row.dataset.property;
-                const propertyPath = row.querySelector('.property-name').textContent.trim();
-                
+                const nameEl = row.querySelector('.property-name');
+                const propertyPath = nameEl ? nameEl.textContent.trim() : '';
+
                 let shouldHide = false;
                 for (const hiddenProp of hiddenProperties) {
-                    // Direct match
-                    if (property === hiddenProp) {
-                        shouldHide = true;
-                        break;
-                    }
-                    // Pattern matching for nested properties
-                    if (hiddenProp === 'tags_all' && (property === 'tags' || propertyPath.startsWith('tags.'))) {
-                        shouldHide = true;
-                        break;
-                    }
-                    // Generic pattern matching for other nested properties
-                    if (propertyPath.startsWith(hiddenProp + '.')) {
-                        shouldHide = true;
-                        break;
-                    }
+                    if (property === hiddenProp) { shouldHide = true; break; }
+                    if (hiddenProp === 'tags_all' && (property === 'tags' || propertyPath.startsWith('tags.'))) { shouldHide = true; break; }
+                    if (propertyPath.startsWith(hiddenProp + '.')) { shouldHide = true; break; }
                 }
-                
-                if (shouldHide) {
-                    row.style.display = 'none';
-                } else {
-                    row.style.display = 'table-row';
+                row.style.display = shouldHide ? 'none' : 'table-row';
+            });
+
+            // 2) Resource-level filtering by search text + active action chips.
+            //    Scoped to the main plan groups so the Outputs section (which
+            //    reuses .resource-change with data-action="read") is untouched.
+            const container = document.getElementById('resource-groups');
+            const search = document.getElementById('resource-search');
+            const q = (search ? search.value : '').trim().toLowerCase();
+            const activeActions = getActiveActions();
+
+            const resources = container ? Array.from(container.querySelectorAll('.resource-change')) : [];
+            let visibleCount = 0;
+            resources.forEach(res => {
+                const haystack = (
+                    (res.dataset.address || '') + ' ' +
+                    (res.dataset.type || '') + ' ' +
+                    (res.dataset.provider || '') + ' ' +
+                    (res.dataset.module || '')
+                ).toLowerCase();
+                const matchesSearch = !q || haystack.indexOf(q) !== -1;
+                const matchesAction = !activeActions || activeActions.has(res.dataset.action);
+                const show = matchesSearch && matchesAction;
+                res.style.display = show ? '' : 'none';
+                if (show) visibleCount++;
+            });
+
+            // 3) Update group visibility + header counts to reflect what's visible
+            const groups = container ? container.querySelectorAll('.resource-group') : [];
+            groups.forEach(group => {
+                const groupResources = Array.from(group.querySelectorAll('.resource-change'));
+                const visible = groupResources.filter(r => r.style.display !== 'none').length;
+                group.style.display = visible === 0 ? 'none' : 'block';
+                const heading = group.querySelector('.group-header h3');
+                if (heading && group.dataset.resourceType) {
+                    const label = group.dataset.resourceType.charAt(0).toUpperCase() + group.dataset.resourceType.slice(1);
+                    heading.textContent = `${label} (${visible} resource${visible === 1 ? '' : 's'})`;
                 }
             });
-            
-            // Hide resource groups that have no visible resources
-            const resourceGroups = document.querySelectorAll('.resource-group');
-            resourceGroups.forEach(group => {
-                const visibleResources = group.querySelectorAll('.resource-change:not([style*="display: none"])');
-                if (visibleResources.length === 0) {
-                    group.style.display = 'none';
-                } else {
-                    group.style.display = 'block';
-                }
-            });
+
+            // 4) Results counter + empty state
+            const rc = document.getElementById('results-count');
+            if (rc) rc.textContent = `Showing ${visibleCount} of ${resources.length}`;
+            const nr = document.getElementById('no-results');
+            if (nr) nr.classList.toggle('visible', resources.length > 0 && visibleCount === 0);
+
+            // 5) Inline warning when any filter is active
+            const chips = document.querySelectorAll('#action-chips .chip');
+            const filtersActive = q.length > 0 || (activeActions !== null && activeActions.size < chips.length);
+            const notice = document.getElementById('filter-notice');
+            if (notice) {
+                notice.classList.toggle('visible', filtersActive);
+                const nt = document.getElementById('filter-notice-text');
+                if (nt) nt.textContent = `Filters are active — showing ${visibleCount} of ${resources.length} resources.`;
+            }
+        }
+
+        function resetFilters() {
+            const search = document.getElementById('resource-search');
+            const clear = document.getElementById('search-clear');
+            if (search) search.value = '';
+            if (clear) clear.classList.remove('visible');
+            document.querySelectorAll('#action-chips .chip').forEach(c => c.classList.add('active'));
+            applyFilters();
+        }
+
+        function handleDeepLink() {
+            if (!location.hash || location.hash.length < 2) return;
+            const addr = decodeURIComponent(location.hash.slice(1));
+            let el = null;
+            try {
+                el = document.querySelector('.resource-change[data-address="' + (window.CSS && CSS.escape ? CSS.escape(addr) : addr) + '"]');
+            } catch (e) { return; }
+            if (!el) return;
+            el.classList.remove('collapsed');
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('highlighted');
+            setTimeout(() => el.classList.remove('highlighted'), 2200);
         }
         
         function applySorting() {
@@ -1157,10 +3251,10 @@
             
             const resourceGroups = Array.from(resourceGroupsContainer.querySelectorAll('.resource-group'));
             
-            // Always use priority-based sorting: delete → recreate → update → create
+            // Always use priority-based sorting: delete → replace → update → create
             const actionPriority = {
                 'delete': 1,
-                'recreate': 2, 
+                'replace': 2,
                 'update': 3,
                 'create': 4
             };
@@ -1244,6 +3338,37 @@
             tryLoadLog(logUrls, 0);
         }
         
+        function filterTerraformLogs(logContent) {
+            const lines = logContent.split('\n');
+            
+            // Look for trigger lines to start from
+            const triggerPatterns = [
+                'Terraform will perform the following actions:',
+                'Terraform planned the following actions, but then encountered a problem:',
+                'No changes. Your infrastructure matches the configuration.'
+            ];
+            
+            let startIndex = -1;
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                for (const pattern of triggerPatterns) {
+                    if (line.includes(pattern)) {
+                        startIndex = i;
+                        break;
+                    }
+                }
+                if (startIndex !== -1) break;
+            }
+            
+            // If no trigger found, return original content
+            if (startIndex === -1) {
+                return logContent;
+            }
+            
+            // Return content starting from the trigger line
+            return lines.slice(startIndex).join('\n');
+        }
+        
         function tryLoadLog(urls, index) {
             if (index >= urls.length) {
                 document.getElementById('terminal-output').textContent = 
@@ -1257,7 +3382,8 @@
                     return response.text();
                 })
                 .then(data => {
-                    document.getElementById('terminal-output').textContent = data;
+                    const filteredData = filterTerraformLogs(data);
+                    document.getElementById('terminal-output').textContent = filteredData;
                 })
                 .catch(() => tryLoadLog(urls, index + 1));
         }

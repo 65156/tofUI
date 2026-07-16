@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>tofUI - no-changes-example</title>
+        <title>tofUI - No Changes (example)</title>
         <style>
             
         * {
@@ -142,7 +142,134 @@
         .filter-checkbox input {
             margin: 0;
         }
-        
+
+        /* Search + filter toolbar */
+        .toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem 1rem;
+            padding: 1rem 2rem;
+            background: #ffffff;
+            border-bottom: 1px solid #e9ecef;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .toolbar-search {
+            position: relative;
+            flex: 1 1 260px;
+            min-width: 200px;
+        }
+        #resource-search {
+            width: 100%;
+            height: 38px;
+            padding: 0 2.1rem 0 0.85rem;
+            font-size: 0.95rem;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        #resource-search:focus {
+            border-color: #dee2e6;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+        }
+        .search-clear {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: #adb5bd;
+            font-size: 0.85rem;
+            line-height: 1;
+            padding: 0.25rem;
+            display: none;
+        }
+        .search-clear.visible { display: block; }
+        .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            height: 38px;
+            padding: 0 0.9rem;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            border-left: 4px solid #e9ecef;
+            background: #ffffff;
+            color: #adb5bd;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+            box-sizing: border-box;
+            transition: background 0.12s ease, color 0.12s ease;
+        }
+        .chip:not(.active):hover { background: #f8f9fa; }
+        .chip.active { color: #212529; border-color: transparent; }
+        /* active chips take a light tint of their action colour + a coloured left bar */
+        .chip.active[data-action="delete"]  { background: #fdeaea; border-left-color: #dc3545; color: #9b2c2c; }
+        .chip.active[data-action="replace"] { background: #f2ecfa; border-left-color: #6f42c1; color: #4d2d8a; }
+        .chip.active[data-action="update"]  { background: #fff6db; border-left-color: #ffc107; color: #7a5b00; }
+        .chip.active[data-action="create"]  { background: #e8f6ee; border-left-color: #28a745; color: #1a7f37; }
+        .chip-count {
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.06);
+            border-radius: 3px;
+            padding: 0 0.4rem;
+        }
+        .chip.active .chip-count { background: rgba(0, 0, 0, 0.10); }
+        .results-count {
+            margin-left: auto;
+            font-size: 0.85rem;
+            color: #868e96;
+            white-space: nowrap;
+        }
+        .no-results {
+            display: none;
+            padding: 3rem 2rem;
+            text-align: center;
+            color: #868e96;
+            font-size: 0.95rem;
+        }
+        .no-results.visible { display: block; }
+        .filter-notice {
+            display: none;
+            align-items: center;
+            gap: 0.85rem;
+            padding: 1.1rem 2rem;
+            background: #fff8e1;
+            border-bottom: 1px solid #ffe8a3;
+            color: #6b5900;
+            font-size: 1.05rem;
+            font-weight: 500;
+        }
+        .filter-notice.visible { display: flex; }
+        .filter-notice-icon { flex-shrink: 0; }
+        .filter-reset {
+            margin-left: auto;
+            border: 1px solid #e9c46a;
+            background: #ffffff;
+            color: #6b5900;
+            padding: 0.45rem 0.9rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .filter-reset:hover { background: #fffdf5; }
+        .resource-change.highlighted {
+            box-shadow: 0 0 0 3px rgba(75, 85, 99, 0.6);
+            border-radius: 8px;
+        }
+
         .btn {
             background: #6b7280;
             color: white;
@@ -214,7 +341,7 @@
             border-left: 16px solid #dc3545;
         }
         
-        .resource-change.recreate {
+        .resource-change.replace {
             border-left: 16px solid #6f42c1;
         }
         
@@ -251,7 +378,7 @@
         }
         
         .resource-details {
-            padding: 1rem;
+            padding: 0;
             border-top: 1px solid #e9ecef;
         }
         
@@ -607,7 +734,7 @@
             padding-top: 0.25rem;
         }
         
-        .resource-change.recreate .property-change .before-value {
+        .resource-change.replace .property-change .before-value {
             background: #f8d7da;
             color: #721c24;
         }
@@ -776,8 +903,8 @@
         <div class="container">
             
         <div class="header">
-            <div class="plan-name"><strong>no-changes-example</strong></div>
-            <div class="meta-info"><strong>Terraform Version:</strong> 1.5.0 • <strong>Generated:</strong> 2025-10-27 20:26:08 UTC</div>
+            <div class="plan-name"><strong>No Changes (example)</strong></div>
+            <div class="meta-info"><strong>Generated:</strong> 2026-07-16 21:23:35 UTC</div>
         </div>
         
             
@@ -788,71 +915,6 @@
         </div>
         
             
-        <div class="resource-groups">
-            <div class="resource-group" data-resource-type="outputs">
-                <div class="group-header">
-                    <h3>Outputs (2 items)</h3>
-                </div>
-                <div class="group-resources">
-                    
-            <div class="resource-change read collapsed" data-action="read" data-address="output_app_url">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">app_url</span>
-                    <span class="toggle-indicator">▼</span>
-                </div>
-                <div class="resource-details">
-                    
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="property-name">string</td>
-                                <td class="after-value">https://app.example.com</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                </div>
-            </div>
-            
-            <div class="resource-change read collapsed" data-action="read" data-address="output_vpc_id">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">vpc_id</span>
-                    <span class="toggle-indicator">▼</span>
-                </div>
-                <div class="resource-details">
-                    
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Type</th>
-                                <th>Value</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="property-name">string</td>
-                                <td class="after-value">vpc-12345</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                </div>
-            </div>
-            
-                </div>
-            </div>
-        </div>
-        
             
         <div class="terminal-section">
             <div class="terminal-header">
@@ -868,7 +930,7 @@
         <div class="footer">
             <div class="footer-content">
                 <div class="footer-text">
-                    Generated by <strong>tofUI</strong> • 
+                    Generated by <strong>tofUI v1.4.2</strong> • 
                     Better OpenTofu & Terraform Plans
                 </div>
                 <div class="footer-buttons">
@@ -887,11 +949,16 @@
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             initializeFilters();
+            initializeSearch();
             initializeToggleButtons();
-            
+
             // Initially collapse all resources
             collapseAllResources();
-            
+
+            // Apply filters + counts, then honor any deep link (#address)
+            applyFilters();
+            handleDeepLink();
+
             // Auto-load logs
             autoLoadLogs();
         });
@@ -944,54 +1011,154 @@
             });
         }
         
+        function initializeSearch() {
+            const search = document.getElementById('resource-search');
+            const clear = document.getElementById('search-clear');
+
+            if (search) {
+                search.addEventListener('input', function() {
+                    if (clear) clear.classList.toggle('visible', search.value.length > 0);
+                    applyFilters();
+                });
+            }
+            if (clear) {
+                clear.addEventListener('click', function() {
+                    if (search) { search.value = ''; search.focus(); }
+                    clear.classList.remove('visible');
+                    applyFilters();
+                });
+            }
+
+            // Action filter chips toggle their action on/off
+            document.querySelectorAll('#action-chips .chip').forEach(chip => {
+                chip.addEventListener('click', function() {
+                    chip.classList.toggle('active');
+                    applyFilters();
+                });
+            });
+
+            // "Show all" reset in the filter notice
+            const reset = document.getElementById('filter-reset');
+            if (reset) reset.addEventListener('click', resetFilters);
+
+            // Keyboard: '/' focuses search, Esc clears/blurs it
+            document.addEventListener('keydown', function(e) {
+                if (e.key === '/' && document.activeElement !== search) {
+                    e.preventDefault();
+                    if (search) search.focus();
+                } else if (e.key === 'Escape' && document.activeElement === search) {
+                    search.value = '';
+                    if (clear) clear.classList.remove('visible');
+                    applyFilters();
+                    search.blur();
+                }
+            });
+        }
+
+        function getActiveActions() {
+            const chips = document.querySelectorAll('#action-chips .chip');
+            if (!chips.length) return null; // no chips => don't filter by action
+            const active = new Set();
+            chips.forEach(c => { if (c.classList.contains('active')) active.add(c.dataset.action); });
+            return active;
+        }
+
         function applyFilters() {
-            // Get selected property filters (properties to hide)
+            // 1) Property-level hiding (the "Hide Properties" checkboxes)
             const hiddenProperties = Array.from(
                 document.querySelectorAll('#property-filters input[type="checkbox"]:checked')
             ).map(input => input.value);
-            
-            // Filter properties with smart matching
+
             const propertyRows = document.querySelectorAll('.property-change');
             propertyRows.forEach(row => {
                 const property = row.dataset.property;
-                const propertyPath = row.querySelector('.property-name').textContent.trim();
-                
+                const nameEl = row.querySelector('.property-name');
+                const propertyPath = nameEl ? nameEl.textContent.trim() : '';
+
                 let shouldHide = false;
                 for (const hiddenProp of hiddenProperties) {
-                    // Direct match
-                    if (property === hiddenProp) {
-                        shouldHide = true;
-                        break;
-                    }
-                    // Pattern matching for nested properties
-                    if (hiddenProp === 'tags_all' && (property === 'tags' || propertyPath.startsWith('tags.'))) {
-                        shouldHide = true;
-                        break;
-                    }
-                    // Generic pattern matching for other nested properties
-                    if (propertyPath.startsWith(hiddenProp + '.')) {
-                        shouldHide = true;
-                        break;
-                    }
+                    if (property === hiddenProp) { shouldHide = true; break; }
+                    if (hiddenProp === 'tags_all' && (property === 'tags' || propertyPath.startsWith('tags.'))) { shouldHide = true; break; }
+                    if (propertyPath.startsWith(hiddenProp + '.')) { shouldHide = true; break; }
                 }
-                
-                if (shouldHide) {
-                    row.style.display = 'none';
-                } else {
-                    row.style.display = 'table-row';
+                row.style.display = shouldHide ? 'none' : 'table-row';
+            });
+
+            // 2) Resource-level filtering by search text + active action chips.
+            //    Scoped to the main plan groups so the Outputs section (which
+            //    reuses .resource-change with data-action="read") is untouched.
+            const container = document.getElementById('resource-groups');
+            const search = document.getElementById('resource-search');
+            const q = (search ? search.value : '').trim().toLowerCase();
+            const activeActions = getActiveActions();
+
+            const resources = container ? Array.from(container.querySelectorAll('.resource-change')) : [];
+            let visibleCount = 0;
+            resources.forEach(res => {
+                const haystack = (
+                    (res.dataset.address || '') + ' ' +
+                    (res.dataset.type || '') + ' ' +
+                    (res.dataset.provider || '') + ' ' +
+                    (res.dataset.module || '')
+                ).toLowerCase();
+                const matchesSearch = !q || haystack.indexOf(q) !== -1;
+                const matchesAction = !activeActions || activeActions.has(res.dataset.action);
+                const show = matchesSearch && matchesAction;
+                res.style.display = show ? '' : 'none';
+                if (show) visibleCount++;
+            });
+
+            // 3) Update group visibility + header counts to reflect what's visible
+            const groups = container ? container.querySelectorAll('.resource-group') : [];
+            groups.forEach(group => {
+                const groupResources = Array.from(group.querySelectorAll('.resource-change'));
+                const visible = groupResources.filter(r => r.style.display !== 'none').length;
+                group.style.display = visible === 0 ? 'none' : 'block';
+                const heading = group.querySelector('.group-header h3');
+                if (heading && group.dataset.resourceType) {
+                    const label = group.dataset.resourceType.charAt(0).toUpperCase() + group.dataset.resourceType.slice(1);
+                    heading.textContent = `${label} (${visible} resource${visible === 1 ? '' : 's'})`;
                 }
             });
-            
-            // Hide resource groups that have no visible resources
-            const resourceGroups = document.querySelectorAll('.resource-group');
-            resourceGroups.forEach(group => {
-                const visibleResources = group.querySelectorAll('.resource-change:not([style*="display: none"])');
-                if (visibleResources.length === 0) {
-                    group.style.display = 'none';
-                } else {
-                    group.style.display = 'block';
-                }
-            });
+
+            // 4) Results counter + empty state
+            const rc = document.getElementById('results-count');
+            if (rc) rc.textContent = `Showing ${visibleCount} of ${resources.length}`;
+            const nr = document.getElementById('no-results');
+            if (nr) nr.classList.toggle('visible', resources.length > 0 && visibleCount === 0);
+
+            // 5) Inline warning when any filter is active
+            const chips = document.querySelectorAll('#action-chips .chip');
+            const filtersActive = q.length > 0 || (activeActions !== null && activeActions.size < chips.length);
+            const notice = document.getElementById('filter-notice');
+            if (notice) {
+                notice.classList.toggle('visible', filtersActive);
+                const nt = document.getElementById('filter-notice-text');
+                if (nt) nt.textContent = `Filters are active — showing ${visibleCount} of ${resources.length} resources.`;
+            }
+        }
+
+        function resetFilters() {
+            const search = document.getElementById('resource-search');
+            const clear = document.getElementById('search-clear');
+            if (search) search.value = '';
+            if (clear) clear.classList.remove('visible');
+            document.querySelectorAll('#action-chips .chip').forEach(c => c.classList.add('active'));
+            applyFilters();
+        }
+
+        function handleDeepLink() {
+            if (!location.hash || location.hash.length < 2) return;
+            const addr = decodeURIComponent(location.hash.slice(1));
+            let el = null;
+            try {
+                el = document.querySelector('.resource-change[data-address="' + (window.CSS && CSS.escape ? CSS.escape(addr) : addr) + '"]');
+            } catch (e) { return; }
+            if (!el) return;
+            el.classList.remove('collapsed');
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('highlighted');
+            setTimeout(() => el.classList.remove('highlighted'), 2200);
         }
         
         function applySorting() {
@@ -1000,10 +1167,10 @@
             
             const resourceGroups = Array.from(resourceGroupsContainer.querySelectorAll('.resource-group'));
             
-            // Always use priority-based sorting: delete → recreate → update → create
+            // Always use priority-based sorting: delete → replace → update → create
             const actionPriority = {
                 'delete': 1,
-                'recreate': 2, 
+                'replace': 2,
                 'update': 3,
                 'create': 4
             };
@@ -1087,6 +1254,37 @@
             tryLoadLog(logUrls, 0);
         }
         
+        function filterTerraformLogs(logContent) {
+            const lines = logContent.split('\n');
+            
+            // Look for trigger lines to start from
+            const triggerPatterns = [
+                'Terraform will perform the following actions:',
+                'Terraform planned the following actions, but then encountered a problem:',
+                'No changes. Your infrastructure matches the configuration.'
+            ];
+            
+            let startIndex = -1;
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                for (const pattern of triggerPatterns) {
+                    if (line.includes(pattern)) {
+                        startIndex = i;
+                        break;
+                    }
+                }
+                if (startIndex !== -1) break;
+            }
+            
+            // If no trigger found, return original content
+            if (startIndex === -1) {
+                return logContent;
+            }
+            
+            // Return content starting from the trigger line
+            return lines.slice(startIndex).join('\n');
+        }
+        
         function tryLoadLog(urls, index) {
             if (index >= urls.length) {
                 document.getElementById('terminal-output').textContent = 
@@ -1100,7 +1298,8 @@
                     return response.text();
                 })
                 .then(data => {
-                    document.getElementById('terminal-output').textContent = data;
+                    const filteredData = filterTerraformLogs(data);
+                    document.getElementById('terminal-output').textContent = filteredData;
                 })
                 .catch(() => tryLoadLog(urls, index + 1));
         }
