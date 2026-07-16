@@ -6,7 +6,7 @@
 
 Beautiful, interactive HTML reports from OpenTofu & Terraform plans.
 
-👉 **[Live example report](https://65156.github.io/tofUI/large-plan-example.html)** · more in [examples.md](examples.md)
+👉 **[Live example report](https://65156.github.io/tofUI/has-changes-example.html)** · more in [examples.md](examples.md)
 
 ## Install
 
