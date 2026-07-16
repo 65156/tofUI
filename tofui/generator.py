@@ -179,25 +179,10 @@ class HTMLGenerator:
                 <p>This plan contains no changes to your infrastructure.</p>
             </div>
             """
-        
-        return f"""
-        <div class="summary">
-            <div class="summary-stats">
-                <div class="stat-item create">
-                    <span class="stat-number">{summary.create}</span>
-                    <span class="stat-label">add</span>
-                </div>
-                <div class="stat-item update">
-                    <span class="stat-number">{summary.update}</span>
-                    <span class="stat-label">change</span>
-                </div>
-                <div class="stat-item delete">
-                    <span class="stat-number">{summary.delete}</span>
-                    <span class="stat-label">destroy</span>
-                </div>
-            </div>
-        </div>
-        """
+
+        # Change counts are shown on the action filter buttons, so no
+        # separate add/change/destroy aggregation is rendered here.
+        return ""
     
     def _generate_filters(self, analysis: PlanAnalysis) -> str:
         """Generate the filter controls"""
