@@ -19,7 +19,7 @@ tofUI now includes built-in support for publishing report metadata to a centrali
 
 ### 1. Set Up Dashboard Repository
 
-Create a repository for your dashboard (e.g., `myorg/tofui-dashboard`) and copy the dashboard files from `tofUI+/static-dashboard/` to it. Enable GitHub Pages on the `gh-pages` branch.
+Create a repository for your dashboard (e.g., `myorg/tofui-dashboard`) and copy the dashboard files from this repo's `static-dashboard/` directory to it. Enable GitHub Pages on the `gh-pages` branch.
 
 ### 2. Generate Report with Dashboard Publishing
 
@@ -33,8 +33,11 @@ tofui plan.json \
   --status terraform_plan:2
 
 # Build report (for merges/deploys) - when --apply-mode is used
-tofui apply.json \
+# apply-mode reads the apply log; it requires --stdout-tf-log and --terraform-exit-code
+tofui \
   --apply-mode \
+  --stdout-tf-log apply.log \
+  --terraform-exit-code 0 \
   --build-name "deploy-123" \
   --github-repo "myorg/infrastructure" \
   --folder "aws_us_east_2" \
@@ -77,8 +80,10 @@ tofui plan.json \
 ### Build Reports (Merges/Deploys)
 ```bash
 # Use --apply-mode to mark as build report
-tofui apply.json \
+tofui \
   --apply-mode \
+  --stdout-tf-log apply.log \
+  --terraform-exit-code 0 \
   --build-name "deploy-123" \
   --github-repo "myorg/infrastructure" \
   --dashboard-repo "myorg/tofui-dashboard" \
@@ -163,13 +168,15 @@ if [ "$CI_EVENT_TYPE" = "pull_request" ]; then
 
 # For Merges/Deploys (build reports)
 else
-  # Run terraform apply
-  terraform apply -auto-approve -detailed-exitcode
-  APPLY_EXIT=$?
+  # Run terraform apply, capturing the log
+  terraform apply -auto-approve 2>&1 | tee apply.log
+  APPLY_EXIT=${PIPESTATUS[0]}
   
   # Generate build report (with --apply-mode)
-  tofui apply.json \
+  tofui \
     --apply-mode \
+    --stdout-tf-log apply.log \
+    --terraform-exit-code "${APPLY_EXIT}" \
     --build-name "deploy-${BUILD_ID}" \
     --display-name "Production Deploy #${BUILD_ID}" \
     --github-repo "myorg/infrastructure" \
@@ -247,8 +254,10 @@ tofui plan.json \
   --status terraform_plan:2
 
 # Build report
-tofui apply.json \
+tofui \
   --apply-mode \
+  --stdout-tf-log apply.log \
+  --terraform-exit-code 0 \
   --build-name "deploy-123" \
   --github-repo "myorg/infrastructure" \
   --github-enterprise-url "https://github.company.com" \
@@ -292,8 +301,10 @@ tofui plan.json \
   --status terraform_plan:2
 
 # Build report (with --apply-mode)
-tofui apply.json \
+tofui \
   --apply-mode \
+  --stdout-tf-log apply.log \
+  --terraform-exit-code 0 \
   --build-name "deploy-123" \
   --github-repo "myorg/infra" \
   --dashboard-repo "myorg/dashboard" \
