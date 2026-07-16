@@ -219,8 +219,38 @@ class HTMLGenerator:
                 <input type="checkbox" value="{html.escape(prop)}" {checked}> {html.escape(prop)}
             </label>
             """
-        
+
+        # Count resources per action for the filter chips
+        from collections import Counter
+        action_counts = Counter()
+        for group in analysis.resource_groups:
+            for change in group.changes:
+                action_counts[change.action.value] += 1
+
+        chip_meta = [
+            ("delete", "Delete"),
+            ("replace", "Replace"),
+            ("update", "Update"),
+            ("create", "Create"),
+        ]
+        chips_html = ""
+        for key, label in chip_meta:
+            count = action_counts.get(key, 0)
+            if count:
+                chips_html += (
+                    f'<button type="button" class="chip active" data-action="{key}">'
+                    f'{label} <span class="chip-count">{count}</span></button>'
+                )
+
         return f"""
+        <div class="toolbar">
+            <div class="toolbar-search">
+                <input type="search" id="resource-search" placeholder="Search by name, type, or module…  (press /)" autocomplete="off" spellcheck="false">
+                <button type="button" id="search-clear" class="search-clear" title="Clear search" aria-label="Clear search">✕</button>
+            </div>
+            <div class="chips" id="action-chips">{chips_html}</div>
+            <div class="results-count" id="results-count"></div>
+        </div>
         <div class="filters">
             <div class="filter-section">
                 <h3>Hide Properties</h3>
@@ -232,6 +262,11 @@ class HTMLGenerator:
             <div class="control-section">
                 <button id="toggle-all" class="btn toggle-btn">Expand All</button>
             </div>
+        </div>
+        <div class="filter-notice" id="filter-notice" role="status">
+            <svg class="filter-notice-icon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+            <span id="filter-notice-text">Filters are active — some resources are hidden.</span>
+            <button type="button" id="filter-reset" class="filter-reset">Show all</button>
         </div>
         """
     
@@ -248,8 +283,9 @@ class HTMLGenerator:
         <div class="resource-groups" id="resource-groups">
             {groups_html}
         </div>
+        <div class="no-results" id="no-results">No resources match your search or filters.</div>
         """
-    
+
     def _generate_resource_group(self, group) -> str:
         """Generate HTML for a single resource group"""
         action_counts = group.action_counts
@@ -281,9 +317,24 @@ class HTMLGenerator:
         properties_html = ""
         if change.has_property_changes:
             properties_html = self._generate_property_changes(change.property_changes, change.action)
-        
+
+        # Derive provider and module path for search/filtering
+        rtype = change.type or ""
+        provider = rtype.split("_", 1)[0] if "_" in rtype else rtype
+        address = change.address or ""
+        module_names = []
+        parts = address.split(".")
+        i = 0
+        while i < len(parts) - 1:
+            if parts[i] == "module":
+                module_names.append(parts[i + 1])
+                i += 2
+            else:
+                i += 1
+        module = "/".join(module_names) if module_names else "root"
+
         return f"""
-        <div class="resource-change {action_class}" data-action="{action_class}" data-address="{html.escape(change.address)}">
+        <div class="resource-change {action_class}" data-action="{action_class}" data-address="{html.escape(address)}" data-type="{html.escape(rtype)}" data-provider="{html.escape(provider)}" data-module="{html.escape(module)}">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">{html.escape(change.address)}</span>
                 <span class="toggle-indicator">▼</span>
@@ -2055,7 +2106,137 @@ class HTMLGenerator:
         .filter-checkbox input {
             margin: 0;
         }
-        
+
+        /* Search + filter toolbar */
+        .toolbar {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem 1rem;
+            padding: 1rem 2rem;
+            background: #ffffff;
+            border-bottom: 1px solid #e9ecef;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+        .toolbar-search {
+            position: relative;
+            flex: 1 1 260px;
+            min-width: 200px;
+        }
+        #resource-search {
+            width: 100%;
+            height: 38px;
+            padding: 0 2.1rem 0 0.85rem;
+            font-size: 0.95rem;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        #resource-search:focus {
+            border-color: #dee2e6;
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+        }
+        .search-clear {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            color: #adb5bd;
+            font-size: 0.85rem;
+            line-height: 1;
+            padding: 0.25rem;
+            display: none;
+        }
+        .search-clear.visible { display: block; }
+        .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            height: 38px;
+            padding: 0 0.9rem;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            border-left: 4px solid #e9ecef;
+            background: #ffffff;
+            color: #adb5bd;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            user-select: none;
+            box-sizing: border-box;
+            transition: background 0.12s ease, color 0.12s ease;
+        }
+        .chip:hover { background: #f8f9fa; }
+        .chip.active {
+            background: #f8f9fa;
+            color: #212529;
+        }
+        /* left action bar: coloured when active, grey when toggled off */
+        .chip.active[data-action="delete"]  { border-left-color: #dc3545; }
+        .chip.active[data-action="create"]  { border-left-color: #28a745; }
+        .chip.active[data-action="update"]  { border-left-color: #ffc107; }
+        .chip.active[data-action="replace"] { border-left-color: #6f42c1; }
+        .chip-count {
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.06);
+            border-radius: 3px;
+            padding: 0 0.4rem;
+        }
+        .chip.active .chip-count { background: rgba(0, 0, 0, 0.10); }
+        .results-count {
+            margin-left: auto;
+            font-size: 0.85rem;
+            color: #868e96;
+            white-space: nowrap;
+        }
+        .no-results {
+            display: none;
+            padding: 3rem 2rem;
+            text-align: center;
+            color: #868e96;
+            font-size: 0.95rem;
+        }
+        .no-results.visible { display: block; }
+        .filter-notice {
+            display: none;
+            align-items: center;
+            gap: 0.85rem;
+            padding: 1.1rem 2rem;
+            background: #fff8e1;
+            border-bottom: 1px solid #ffe8a3;
+            color: #6b5900;
+            font-size: 1.05rem;
+            font-weight: 500;
+        }
+        .filter-notice.visible { display: flex; }
+        .filter-notice-icon { flex-shrink: 0; }
+        .filter-reset {
+            margin-left: auto;
+            border: 1px solid #e9c46a;
+            background: #ffffff;
+            color: #6b5900;
+            padding: 0.45rem 0.9rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .filter-reset:hover { background: #fffdf5; }
+        .resource-change.highlighted {
+            box-shadow: 0 0 0 3px rgba(75, 85, 99, 0.6);
+            border-radius: 8px;
+        }
+
         .btn {
             background: #6b7280;
             color: white;
@@ -2127,7 +2308,7 @@ class HTMLGenerator:
             border-left: 16px solid #dc3545;
         }
         
-        .resource-change.recreate {
+        .resource-change.replace {
             border-left: 16px solid #6f42c1;
         }
         
@@ -2164,7 +2345,7 @@ class HTMLGenerator:
         }
         
         .resource-details {
-            padding: 1rem;
+            padding: 0;
             border-top: 1px solid #e9ecef;
         }
         
@@ -2520,7 +2701,7 @@ class HTMLGenerator:
             padding-top: 0.25rem;
         }
         
-        .resource-change.recreate .property-change .before-value {
+        .resource-change.replace .property-change .before-value {
             background: #f8d7da;
             color: #721c24;
         }
@@ -2612,11 +2793,16 @@ class HTMLGenerator:
         // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
             initializeFilters();
+            initializeSearch();
             initializeToggleButtons();
-            
+
             // Initially collapse all resources
             collapseAllResources();
-            
+
+            // Apply filters + counts, then honor any deep link (#address)
+            applyFilters();
+            handleDeepLink();
+
             // Auto-load logs
             autoLoadLogs();
         });
@@ -2669,54 +2855,154 @@ class HTMLGenerator:
             });
         }
         
+        function initializeSearch() {
+            const search = document.getElementById('resource-search');
+            const clear = document.getElementById('search-clear');
+
+            if (search) {
+                search.addEventListener('input', function() {
+                    if (clear) clear.classList.toggle('visible', search.value.length > 0);
+                    applyFilters();
+                });
+            }
+            if (clear) {
+                clear.addEventListener('click', function() {
+                    if (search) { search.value = ''; search.focus(); }
+                    clear.classList.remove('visible');
+                    applyFilters();
+                });
+            }
+
+            // Action filter chips toggle their action on/off
+            document.querySelectorAll('#action-chips .chip').forEach(chip => {
+                chip.addEventListener('click', function() {
+                    chip.classList.toggle('active');
+                    applyFilters();
+                });
+            });
+
+            // "Show all" reset in the filter notice
+            const reset = document.getElementById('filter-reset');
+            if (reset) reset.addEventListener('click', resetFilters);
+
+            // Keyboard: '/' focuses search, Esc clears/blurs it
+            document.addEventListener('keydown', function(e) {
+                if (e.key === '/' && document.activeElement !== search) {
+                    e.preventDefault();
+                    if (search) search.focus();
+                } else if (e.key === 'Escape' && document.activeElement === search) {
+                    search.value = '';
+                    if (clear) clear.classList.remove('visible');
+                    applyFilters();
+                    search.blur();
+                }
+            });
+        }
+
+        function getActiveActions() {
+            const chips = document.querySelectorAll('#action-chips .chip');
+            if (!chips.length) return null; // no chips => don't filter by action
+            const active = new Set();
+            chips.forEach(c => { if (c.classList.contains('active')) active.add(c.dataset.action); });
+            return active;
+        }
+
         function applyFilters() {
-            // Get selected property filters (properties to hide)
+            // 1) Property-level hiding (the "Hide Properties" checkboxes)
             const hiddenProperties = Array.from(
                 document.querySelectorAll('#property-filters input[type="checkbox"]:checked')
             ).map(input => input.value);
-            
-            // Filter properties with smart matching
+
             const propertyRows = document.querySelectorAll('.property-change');
             propertyRows.forEach(row => {
                 const property = row.dataset.property;
-                const propertyPath = row.querySelector('.property-name').textContent.trim();
-                
+                const nameEl = row.querySelector('.property-name');
+                const propertyPath = nameEl ? nameEl.textContent.trim() : '';
+
                 let shouldHide = false;
                 for (const hiddenProp of hiddenProperties) {
-                    // Direct match
-                    if (property === hiddenProp) {
-                        shouldHide = true;
-                        break;
-                    }
-                    // Pattern matching for nested properties
-                    if (hiddenProp === 'tags_all' && (property === 'tags' || propertyPath.startsWith('tags.'))) {
-                        shouldHide = true;
-                        break;
-                    }
-                    // Generic pattern matching for other nested properties
-                    if (propertyPath.startsWith(hiddenProp + '.')) {
-                        shouldHide = true;
-                        break;
-                    }
+                    if (property === hiddenProp) { shouldHide = true; break; }
+                    if (hiddenProp === 'tags_all' && (property === 'tags' || propertyPath.startsWith('tags.'))) { shouldHide = true; break; }
+                    if (propertyPath.startsWith(hiddenProp + '.')) { shouldHide = true; break; }
                 }
-                
-                if (shouldHide) {
-                    row.style.display = 'none';
-                } else {
-                    row.style.display = 'table-row';
+                row.style.display = shouldHide ? 'none' : 'table-row';
+            });
+
+            // 2) Resource-level filtering by search text + active action chips.
+            //    Scoped to the main plan groups so the Outputs section (which
+            //    reuses .resource-change with data-action="read") is untouched.
+            const container = document.getElementById('resource-groups');
+            const search = document.getElementById('resource-search');
+            const q = (search ? search.value : '').trim().toLowerCase();
+            const activeActions = getActiveActions();
+
+            const resources = container ? Array.from(container.querySelectorAll('.resource-change')) : [];
+            let visibleCount = 0;
+            resources.forEach(res => {
+                const haystack = (
+                    (res.dataset.address || '') + ' ' +
+                    (res.dataset.type || '') + ' ' +
+                    (res.dataset.provider || '') + ' ' +
+                    (res.dataset.module || '')
+                ).toLowerCase();
+                const matchesSearch = !q || haystack.indexOf(q) !== -1;
+                const matchesAction = !activeActions || activeActions.has(res.dataset.action);
+                const show = matchesSearch && matchesAction;
+                res.style.display = show ? '' : 'none';
+                if (show) visibleCount++;
+            });
+
+            // 3) Update group visibility + header counts to reflect what's visible
+            const groups = container ? container.querySelectorAll('.resource-group') : [];
+            groups.forEach(group => {
+                const groupResources = Array.from(group.querySelectorAll('.resource-change'));
+                const visible = groupResources.filter(r => r.style.display !== 'none').length;
+                group.style.display = visible === 0 ? 'none' : 'block';
+                const heading = group.querySelector('.group-header h3');
+                if (heading && group.dataset.resourceType) {
+                    const label = group.dataset.resourceType.charAt(0).toUpperCase() + group.dataset.resourceType.slice(1);
+                    heading.textContent = `${label} (${visible} resource${visible === 1 ? '' : 's'})`;
                 }
             });
-            
-            // Hide resource groups that have no visible resources
-            const resourceGroups = document.querySelectorAll('.resource-group');
-            resourceGroups.forEach(group => {
-                const visibleResources = group.querySelectorAll('.resource-change:not([style*="display: none"])');
-                if (visibleResources.length === 0) {
-                    group.style.display = 'none';
-                } else {
-                    group.style.display = 'block';
-                }
-            });
+
+            // 4) Results counter + empty state
+            const rc = document.getElementById('results-count');
+            if (rc) rc.textContent = `Showing ${visibleCount} of ${resources.length}`;
+            const nr = document.getElementById('no-results');
+            if (nr) nr.classList.toggle('visible', resources.length > 0 && visibleCount === 0);
+
+            // 5) Inline warning when any filter is active
+            const chips = document.querySelectorAll('#action-chips .chip');
+            const filtersActive = q.length > 0 || (activeActions !== null && activeActions.size < chips.length);
+            const notice = document.getElementById('filter-notice');
+            if (notice) {
+                notice.classList.toggle('visible', filtersActive);
+                const nt = document.getElementById('filter-notice-text');
+                if (nt) nt.textContent = `Filters are active — showing ${visibleCount} of ${resources.length} resources.`;
+            }
+        }
+
+        function resetFilters() {
+            const search = document.getElementById('resource-search');
+            const clear = document.getElementById('search-clear');
+            if (search) search.value = '';
+            if (clear) clear.classList.remove('visible');
+            document.querySelectorAll('#action-chips .chip').forEach(c => c.classList.add('active'));
+            applyFilters();
+        }
+
+        function handleDeepLink() {
+            if (!location.hash || location.hash.length < 2) return;
+            const addr = decodeURIComponent(location.hash.slice(1));
+            let el = null;
+            try {
+                el = document.querySelector('.resource-change[data-address="' + (window.CSS && CSS.escape ? CSS.escape(addr) : addr) + '"]');
+            } catch (e) { return; }
+            if (!el) return;
+            el.classList.remove('collapsed');
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('highlighted');
+            setTimeout(() => el.classList.remove('highlighted'), 2200);
         }
         
         function applySorting() {
@@ -2725,10 +3011,10 @@ class HTMLGenerator:
             
             const resourceGroups = Array.from(resourceGroupsContainer.querySelectorAll('.resource-group'));
             
-            // Always use priority-based sorting: delete → recreate → update → create
+            // Always use priority-based sorting: delete → replace → update → create
             const actionPriority = {
                 'delete': 1,
-                'recreate': 2, 
+                'replace': 2,
                 'update': 3,
                 'create': 4
             };

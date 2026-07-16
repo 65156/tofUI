@@ -15,7 +15,7 @@ class ActionType(Enum):
     CREATE = "create"
     UPDATE = "update" 
     DELETE = "delete"
-    RECREATE = "recreate"
+    RECREATE = "replace"
     READ = "read"
     NO_OP = "no-op"
 
