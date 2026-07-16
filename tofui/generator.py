@@ -342,12 +342,17 @@ class HTMLGenerator:
                 
         return f"""
         <div class="property-changes">
-            <table class="properties-table">
+            <table class="properties-table resizable-table">
+                <colgroup>
+                    <col class="col-prop">
+                    <col class="col-before">
+                    <col class="col-after">
+                </colgroup>
                 <thead>
                     <tr>
-                        <th>Property</th>
-                        <th>Before</th>
-                        <th>After</th>
+                        <th class="col-h-prop">Property</th>
+                        <th class="col-h-before">Before<span class="col-resizer" title="Drag to resize"></span></th>
+                        <th class="col-h-after">After</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -2514,7 +2519,40 @@ class HTMLGenerator:
             font-weight: 600;
             color: #495057;
             border-bottom: 2px solid #dee2e6;
+            position: relative;
         }
+
+        /* Resizable Before/After columns (property-changes table) */
+        .resizable-table { --before-w: 37.5%; --after-w: 37.5%; }
+        .resizable-table .col-prop { width: 25%; }
+        .resizable-table .col-before { width: var(--before-w); }
+        .resizable-table .col-after { width: var(--after-w); }
+        /* action-aware defaults: deletes emphasise Before, creates emphasise After */
+        .resource-change.delete .resizable-table { --before-w: 52%; --after-w: 23%; }
+        .resource-change.create .resizable-table { --before-w: 23%; --after-w: 52%; }
+        .resizable-table .before-value,
+        .resizable-table .after-value { width: auto; max-width: none; }
+        .col-resizer {
+            position: absolute;
+            top: 0;
+            right: -5px;
+            width: 10px;
+            height: 100%;
+            cursor: col-resize;
+            z-index: 2;
+        }
+        .col-resizer::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 20%;
+            height: 60%;
+            width: 2px;
+            transform: translateX(-50%);
+            background: #dee2e6;
+        }
+        .col-resizer:hover::after,
+        .col-resizer.dragging::after { background: #adb5bd; }
         
         .properties-table td {
             padding: 0.5rem; #decrease this to decrease padding between properties
@@ -2777,6 +2815,7 @@ class HTMLGenerator:
             initializeFilters();
             initializeSearch();
             initializeToggleButtons();
+            initializeColumnResizers();
 
             // Initially collapse all resources
             collapseAllResources();
@@ -2971,6 +3010,46 @@ class HTMLGenerator:
             if (clear) clear.classList.remove('visible');
             document.querySelectorAll('#action-chips .chip').forEach(c => c.classList.add('active'));
             applyFilters();
+        }
+
+        function initializeColumnResizers() {
+            document.querySelectorAll('.resizable-table .col-resizer').forEach(function(res) {
+                res.addEventListener('mousedown', startColumnResize);
+            });
+        }
+
+        function startColumnResize(e) {
+            e.preventDefault();
+            const resizer = e.currentTarget;
+            const table = resizer.closest('table');
+            const beforeCol = table.querySelector('col.col-before');
+            const afterCol = table.querySelector('col.col-after');
+            const beforeTh = table.querySelector('.col-h-before');
+            const afterTh = table.querySelector('.col-h-after');
+            if (!beforeCol || !afterCol || !beforeTh || !afterTh) return;
+
+            const startX = e.clientX;
+            const startBefore = beforeTh.offsetWidth;
+            const pairWidth = startBefore + afterTh.offsetWidth;
+            const tableWidth = table.getBoundingClientRect().width;
+            const minW = 60;
+            resizer.classList.add('dragging');
+            document.body.style.userSelect = 'none';
+
+            function onMove(ev) {
+                let newBefore = startBefore + (ev.clientX - startX);
+                newBefore = Math.max(minW, Math.min(pairWidth - minW, newBefore));
+                beforeCol.style.width = (newBefore / tableWidth * 100) + '%';
+                afterCol.style.width = ((pairWidth - newBefore) / tableWidth * 100) + '%';
+            }
+            function onUp() {
+                resizer.classList.remove('dragging');
+                document.body.style.userSelect = '';
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+            }
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
         }
 
         function handleDeepLink() {
