@@ -39,6 +39,9 @@ dependencies = [
 dynamic = ["version"]
 
 [project.optional-dependencies]
+gcs = [
+    "google-cloud-storage>=2.10.0",  # GCS hosting & v4 signed URLs
+]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",

@@ -29,6 +29,9 @@ brew install 65156/tofui/tofui
 # pip (from PyPI)
 pip install tofui
 
+# pip, with Google Cloud Storage upload support
+pip install 'tofui[gcs]'
+
 # pip (latest from GitHub)
 pip install git+https://github.com/65156/tofUI.git
 ```
@@ -61,8 +64,33 @@ tofui plan.json --build-name my-plan
 open my-plan.html
 ```
 
-That's the whole workflow. For S3/GitHub Pages uploads, dashboard publishing,
+That's the whole workflow. For S3/GCS/GitHub Pages uploads, dashboard publishing,
 CI/CD, and configuration, see **[examples.md](examples.md)**.
+
+### Hosting reports on a private bucket
+
+Upload to a private S3 or GCS bucket and get a signed link to share on a PR —
+no public hosting required:
+
+```bash
+# GCS (requires: pip install 'tofui[gcs]')
+tofui plan.json --build-name "pr-42-$GITHUB_SHA" \
+  --gcs-bucket my-project-tf-plan-reports --gcs-prefix plans/pr-42
+
+# S3
+tofui plan.json --build-name "pr-42-$GITHUB_SHA" \
+  --s3-bucket my-tf-plan-reports --s3-prefix plans/pr-42
+```
+
+Both upload with `Content-Type: text/html` so the report renders in the browser
+rather than downloading, and print a signed URL valid for `--signed-url-expiry`
+(default `7d`, which is the maximum both providers allow). Pass `--no-signed-url`
+for a public bucket where a plain object URL is enough.
+
+Signing GCS URLs needs a key to sign with: either a service-account key via
+`GOOGLE_APPLICATION_CREDENTIALS`, or `roles/iam.serviceAccountTokenCreator` on
+the active identity so tofUI can sign through the IAM API (e.g. under Workload
+Identity Federation).
 
 ## Contributing
 

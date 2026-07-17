@@ -236,10 +236,11 @@ def handle_no_changes_scenario(args):
     print(f"🌐 Open in browser: file://{os.path.abspath(output_file)}")
     
     # Handle uploads if requested
-    if args.s3_bucket:
-        upload_to_s3(html_content, args, output_file, args.plan_file or "terraform-no-changes.json")
-    
-    html_url = ""
+    storage_url = handle_object_storage_uploads(
+        html_content, args, output_file, args.plan_file or "terraform-no-changes.json"
+    )
+
+    html_url = storage_url
     if args.github_repo:
         html_url = upload_to_github_pages(html_content, args, output_file, args.plan_file or "terraform-no-changes.json", display_name)
     
@@ -358,10 +359,11 @@ def handle_terraform_apply_mode(args):
     print(f"🌐 Open in browser: file://{os.path.abspath(output_file)}")
     
     # Handle uploads if requested
-    if args.s3_bucket:
-        upload_to_s3(html_content, args, output_file, "terraform-apply.log")
-    
-    html_url = ""
+    storage_url = handle_object_storage_uploads(
+        html_content, args, output_file, "terraform-apply.log"
+    )
+
+    html_url = storage_url
     if args.github_repo:
         html_url = upload_to_github_pages(html_content, args, output_file, "terraform-apply.log", display_name)
     
@@ -448,10 +450,11 @@ def handle_terraform_error(args):
     print(f"🌐 Open in browser: file://{os.path.abspath(output_file)}")
     
     # Handle uploads if requested
-    if args.s3_bucket:
-        upload_to_s3(html_content, args, output_file, args.plan_file or "terraform-error.log")
-    
-    html_url = ""
+    storage_url = handle_object_storage_uploads(
+        html_content, args, output_file, args.plan_file or "terraform-error.log"
+    )
+
+    html_url = storage_url
     if args.github_repo:
         html_url = upload_to_github_pages(html_content, args, output_file, args.plan_file or "terraform-error.log", display_name)
     
@@ -662,10 +665,11 @@ def main():
         # Print summary
         print_summary(analysis, output_file, args)
         
-        # Handle S3 upload if requested
-        if args.s3_bucket:
-            upload_to_s3(html_content, args, output_file, args.plan_file)
-        
+        # Handle object storage uploads if requested
+        storage_url = handle_object_storage_uploads(
+            html_content, args, output_file, args.plan_file
+        )
+
         # Handle GitHub Pages upload if requested
         if args.github_repo:
             # Get the JSON URL that will be constructed by the upload function
@@ -698,7 +702,7 @@ def main():
             
             html_url = upload_to_github_pages(html_content, args, output_file, args.plan_file, display_name)
         else:
-            html_url = ""
+            html_url = storage_url
         
         # Handle dashboard publishing if dashboard-repo is specified
         if getattr(args, 'dashboard_repo', None):
@@ -767,8 +771,16 @@ Examples:
        tofui plan.json --terraform-exit-code 2 --stdout-tf-log terraform.log --build-name "changes-${BUILD_NUMBER}" ;;
   esac
 
-  # Upload to S3 (uploads both HTML report and JSON plan)
+  # Upload to S3 (prints a presigned URL, valid 7d by default)
   tofui plan.json --build-name "staging-${BUILD_ID}" --s3-bucket my-reports --s3-prefix reports/
+
+  # Upload to a private GCS bucket and print a signed URL (needs: pip install 'tofui[gcs]')
+  tofui plan.json --build-name "pr-${PR_NUMBER}-${GITHUB_SHA}" \
+    --gcs-bucket my-project-tf-plan-reports --gcs-prefix "plans/pr-${PR_NUMBER}" \
+    --signed-url-expiry 7d
+
+  # Public bucket: skip signing and print the plain object URL
+  tofui plan.json --build-name "staging-${BUILD_ID}" --s3-bucket my-public-reports --no-signed-url
 
   # GitHub Pages upload
   tofui plan.json --build-name "production-${CI_BUILD_NUMBER}" --github-repo "owner/repo"
@@ -842,7 +854,42 @@ Examples:
         default="us-east-1",
         help="AWS region (default: us-east-1)"
     )
-    
+
+    # GCS options
+    gcs_group = parser.add_argument_group("Google Cloud Storage Upload Options")
+    gcs_group.add_argument(
+        "--gcs-bucket",
+        help="GCS bucket name to upload the report to (bucket can be private)"
+    )
+
+    gcs_group.add_argument(
+        "--gcs-prefix",
+        default="",
+        help="GCS object prefix (default: root of bucket)"
+    )
+
+    gcs_group.add_argument(
+        "--gcs-project",
+        help="GCP project ID (defaults to the project of the active credentials)"
+    )
+
+    # Signed URL options (shared by S3 and GCS)
+    signing_group = parser.add_argument_group("Signed URL Options (S3 and GCS)")
+    signing_group.add_argument(
+        "--signed-url-expiry",
+        type=parse_duration,
+        default="7d",
+        metavar="DURATION",
+        help="How long the signed URL stays valid, e.g. '7d', '2h', '3600' (default: 7d, which is the maximum both providers allow)"
+    )
+
+    signing_group.add_argument(
+        "--no-signed-url",
+        dest="signed_url",
+        action="store_false",
+        help="Print the plain object URL instead of a signed one (only useful for a public bucket)"
+    )
+
     # GitHub Pages options
     github_group = parser.add_argument_group("GitHub Pages Options")
     github_group.add_argument(
@@ -983,43 +1030,122 @@ def print_summary(analysis, output_file: str, args):
     
     print(f"\n🌐 Open in browser: file://{os.path.abspath(output_file)}")
 
-def upload_to_s3(html_content: str, args, local_file: str, plan_file: str):
-    """Upload the HTML report and optionally JSON plan to S3"""
+# Both S3 (SigV4) and GCS (v4) refuse to sign a URL valid for longer than 7 days.
+MAX_SIGNED_URL_SECONDS = 7 * 24 * 3600
+
+
+def parse_duration(value: str) -> int:
+    """Parse a duration like '7d', '2h', '30m', '3600' into seconds."""
+    text = str(value).strip().lower()
+    if not text:
+        raise argparse.ArgumentTypeError("Duration cannot be empty")
+
+    units = {"s": 1, "m": 60, "h": 3600, "d": 86400}
+    multiplier = 1
+    if text[-1] in units:
+        multiplier = units[text[-1]]
+        text = text[:-1]
+
+    try:
+        amount = float(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"Invalid duration: {value!r}. Use forms like '7d', '2h', '30m', or '3600'."
+        )
+
+    seconds = int(amount * multiplier)
+    if seconds <= 0:
+        raise argparse.ArgumentTypeError(f"Duration must be positive, got {value!r}")
+    if seconds > MAX_SIGNED_URL_SECONDS:
+        raise argparse.ArgumentTypeError(
+            f"Duration {value!r} exceeds the 7d maximum for signed URLs."
+        )
+    return seconds
+
+
+def _object_keys(args, local_file: str, prefix: str):
+    """Return (html_key, json_key) for an upload, honouring an optional prefix."""
+    base_name = os.path.splitext(os.path.basename(local_file))[0]
+    clean = prefix.strip("/") if prefix else ""
+    if clean:
+        return f"{clean}/{base_name}.html", f"{clean}/{base_name}.json"
+    return f"{base_name}.html", f"{base_name}.json"
+
+
+def handle_object_storage_uploads(html_content: str, args, local_file: str, plan_file: str) -> str:
+    """Run whichever object-storage uploads were requested.
+
+    Returns the report URL to advertise, preferring GCS when both are configured.
+    """
+    s3_url = ""
+    if getattr(args, "s3_bucket", None):
+        s3_url = upload_to_s3(html_content, args, local_file, plan_file)
+
+    gcs_url = ""
+    if getattr(args, "gcs_bucket", None):
+        gcs_url = upload_to_gcs(html_content, args, local_file, plan_file)
+
+    return gcs_url or s3_url
+
+
+def upload_to_s3(html_content: str, args, local_file: str, plan_file: str) -> str:
+    """Upload the HTML report and optionally JSON plan to S3.
+
+    Returns the URL to the report (presigned unless signing is disabled), or ""
+    on failure.
+    """
     try:
         import boto3
+        from botocore.config import Config
         from botocore.exceptions import NoCredentialsError, ClientError
     except ImportError:
         print("❌ Error: boto3 is required for S3 upload. Install with: pip install boto3", file=sys.stderr)
-        return
-    
+        return ""
+
     try:
         print("☁️ Uploading to S3...")
-        
-        # Create S3 client
-        s3_client = boto3.client('s3', region_name=args.s3_region)
-        
-        # Get the base name from the HTML file (without .html extension)
-        base_name = os.path.splitext(os.path.basename(local_file))[0]
-        
-        # Build S3 keys
-        html_key = f"{args.s3_prefix.rstrip('/')}/{base_name}.html" if args.s3_prefix else f"{base_name}.html"
-        
-        # Upload HTML report
+
+        # Pin SigV4: boto3 still defaults to SigV2 presigning for S3 in some
+        # regions, and regions launched after 2014 reject SigV2 outright.
+        s3_client = boto3.client(
+            's3',
+            region_name=args.s3_region,
+            config=Config(signature_version='s3v4'),
+        )
+
+        html_key, json_key = _object_keys(args, local_file, args.s3_prefix)
+
+        # Content-Type matters: without it the browser downloads the report (or
+        # renders it as plain text) instead of displaying it.
         s3_client.put_object(
             Bucket=args.s3_bucket,
             Key=html_key,
             Body=html_content.encode('utf-8'),
-            ContentType='text/html',
+            ContentType='text/html; charset=utf-8',
             CacheControl='max-age=3600'
         )
-        
+
         html_s3_url = f"https://{args.s3_bucket}.s3.{args.s3_region}.amazonaws.com/{html_key}"
-        print(f"✅ HTML report uploaded to S3: {html_s3_url}")
-        
+        print(f"✅ HTML report uploaded to S3: s3://{args.s3_bucket}/{html_key}")
+
+        report_url = html_s3_url
+        if getattr(args, 'signed_url', True):
+            expiry = getattr(args, 'signed_url_expiry', MAX_SIGNED_URL_SECONDS)
+            report_url = s3_client.generate_presigned_url(
+                'get_object',
+                Params={
+                    'Bucket': args.s3_bucket,
+                    'Key': html_key,
+                    'ResponseContentType': 'text/html; charset=utf-8',
+                },
+                ExpiresIn=expiry,
+            )
+            print(f"🔗 Signed URL (valid {format_duration(expiry)}): {report_url}")
+        else:
+            print(f"🔗 URL: {report_url}")
+
         # Only upload JSON if debug-json flag is provided
         if getattr(args, 'debug_json', False):
-            json_key = f"{args.s3_prefix.rstrip('/')}/{base_name}.json" if args.s3_prefix else f"{base_name}.json"
-            
             # Upload JSON plan file
             with open(plan_file, 'rb') as f:
                 s3_client.put_object(
@@ -1029,12 +1155,11 @@ def upload_to_s3(html_content: str, args, local_file: str, plan_file: str):
                     ContentType='application/json',
                     CacheControl='max-age=3600'
                 )
-            
-            json_s3_url = f"https://{args.s3_bucket}.s3.{args.s3_region}.amazonaws.com/{json_key}"
-            print(f"✅ JSON plan uploaded to S3: {json_s3_url}")
+
+            print(f"✅ JSON plan uploaded to S3: s3://{args.s3_bucket}/{json_key}")
         else:
             print("ℹ️  JSON upload skipped (use --debug-json to include)")
-        
+
         # If bucket has website hosting, also show website URL for HTML
         try:
             s3_client.get_bucket_website(Bucket=args.s3_bucket)
@@ -1043,7 +1168,9 @@ def upload_to_s3(html_content: str, args, local_file: str, plan_file: str):
         except ClientError:
             # Website hosting not enabled, just show the regular S3 URL
             pass
-            
+
+        return report_url
+
     except NoCredentialsError:
         print("❌ Error: AWS credentials not found. Configure with 'aws configure' or set environment variables.", file=sys.stderr)
     except ClientError as e:
@@ -1056,6 +1183,134 @@ def upload_to_s3(html_content: str, args, local_file: str, plan_file: str):
             print(f"❌ Error uploading to S3: {e}", file=sys.stderr)
     except Exception as e:
         print(f"❌ Error uploading to S3: {e}", file=sys.stderr)
+
+    return ""
+
+
+def format_duration(seconds: int) -> str:
+    """Render a second count as a compact human duration (e.g. '7d', '90m')."""
+    for unit_seconds, suffix in ((86400, "d"), (3600, "h"), (60, "m")):
+        if seconds % unit_seconds == 0 and seconds >= unit_seconds:
+            return f"{seconds // unit_seconds}{suffix}"
+    return f"{seconds}s"
+
+
+def _gcs_signed_url(blob, expiry: int) -> Optional[str]:
+    """Sign a GCS URL, falling back to IAM signing when credentials lack a key.
+
+    A service-account JSON key can sign locally. Workload Identity / ADC tokens
+    cannot, and need roles/iam.serviceAccountTokenCreator to sign via the IAM API.
+    """
+    from datetime import timedelta
+
+    try:
+        return blob.generate_signed_url(
+            version="v4",
+            expiration=timedelta(seconds=expiry),
+            method="GET",
+            response_type="text/html; charset=utf-8",
+        )
+    except Exception as local_error:
+        try:
+            import google.auth
+            import google.auth.transport.requests
+
+            credentials, _ = google.auth.default()
+            auth_request = google.auth.transport.requests.Request()
+            credentials.refresh(auth_request)
+            service_account_email = getattr(credentials, "service_account_email", None)
+            if not service_account_email:
+                raise local_error
+
+            return blob.generate_signed_url(
+                version="v4",
+                expiration=timedelta(seconds=expiry),
+                method="GET",
+                response_type="text/html; charset=utf-8",
+                service_account_email=service_account_email,
+                access_token=credentials.token,
+            )
+        except Exception:
+            print(
+                "⚠️  Could not sign the GCS URL. Use a service-account key "
+                "(GOOGLE_APPLICATION_CREDENTIALS), or grant the active identity "
+                "roles/iam.serviceAccountTokenCreator on itself to sign via the "
+                f"IAM API. Cause: {local_error}",
+                file=sys.stderr,
+            )
+            return None
+
+
+def upload_to_gcs(html_content: str, args, local_file: str, plan_file: str) -> str:
+    """Upload the HTML report and optionally JSON plan to Google Cloud Storage.
+
+    Returns the URL to the report (signed unless signing is disabled), or "" on
+    failure.
+    """
+    try:
+        from google.cloud import storage
+        from google.api_core import exceptions as gcs_exceptions
+    except ImportError:
+        print(
+            "❌ Error: google-cloud-storage is required for GCS upload. "
+            "Install with: pip install 'tofui[gcs]'",
+            file=sys.stderr,
+        )
+        return ""
+
+    try:
+        print("☁️ Uploading to GCS...")
+
+        client = storage.Client(project=getattr(args, "gcs_project", None) or None)
+        bucket = client.bucket(args.gcs_bucket)
+
+        html_key, json_key = _object_keys(args, local_file, args.gcs_prefix)
+
+        # GCS serves objects with X-Content-Type-Options: nosniff, so an absent or
+        # wrong content type shows raw source instead of the rendered report.
+        blob = bucket.blob(html_key)
+        blob.cache_control = "max-age=3600"
+        blob.upload_from_string(
+            html_content.encode("utf-8"),
+            content_type="text/html; charset=utf-8",
+        )
+        print(f"✅ HTML report uploaded to GCS: gs://{args.gcs_bucket}/{html_key}")
+
+        report_url = f"https://storage.googleapis.com/{args.gcs_bucket}/{html_key}"
+        if getattr(args, "signed_url", True):
+            expiry = getattr(args, "signed_url_expiry", MAX_SIGNED_URL_SECONDS)
+            signed = _gcs_signed_url(blob, expiry)
+            if signed:
+                report_url = signed
+                print(f"🔗 Signed URL (valid {format_duration(expiry)}): {report_url}")
+            else:
+                print(f"🔗 URL (unsigned, requires bucket access): {report_url}")
+        else:
+            print(f"🔗 URL: {report_url}")
+
+        if getattr(args, "debug_json", False):
+            json_blob = bucket.blob(json_key)
+            json_blob.cache_control = "max-age=3600"
+            with open(plan_file, "rb") as f:
+                json_blob.upload_from_file(f, content_type="application/json")
+            print(f"✅ JSON plan uploaded to GCS: gs://{args.gcs_bucket}/{json_key}")
+        else:
+            print("ℹ️  JSON upload skipped (use --debug-json to include)")
+
+        return report_url
+
+    except gcs_exceptions.NotFound:
+        print(f"❌ Error: GCS bucket '{args.gcs_bucket}' does not exist.", file=sys.stderr)
+    except gcs_exceptions.Forbidden:
+        print(
+            f"❌ Error: Access denied to GCS bucket '{args.gcs_bucket}'. The identity "
+            "needs roles/storage.objectAdmin on the bucket.",
+            file=sys.stderr,
+        )
+    except Exception as e:
+        print(f"❌ Error uploading to GCS: {e}", file=sys.stderr)
+
+    return ""
 
 def get_github_pages_url(owner: str, repo: str, headers: dict, api_base_url: str) -> Optional[str]:
     """Get GitHub Pages URL for the repository using the API"""
