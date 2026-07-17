@@ -237,7 +237,15 @@ def handle_no_changes_scenario(args):
     
     # Handle uploads if requested
     storage_url = handle_object_storage_uploads(
-        html_content, args, output_file, args.plan_file or "terraform-no-changes.json"
+        html_content, args, output_file, args.plan_file or "terraform-no-changes.json",
+        log_file=log_output_file if log_file_available else None,
+        rebuild_html=lambda log_url: generator.generate_report(
+            analysis,
+            plan_name=display_name,
+            output_file=None,  # keep the local copy relative/portable
+            config={**config, 'log_url': log_url},
+            log_file_available=log_file_available,
+        ),
     )
 
     html_url = storage_url
@@ -360,7 +368,15 @@ def handle_terraform_apply_mode(args):
     
     # Handle uploads if requested
     storage_url = handle_object_storage_uploads(
-        html_content, args, output_file, "terraform-apply.log"
+        html_content, args, output_file, "terraform-apply.log",
+        log_file=log_output_file if log_file_available else None,
+        rebuild_html=lambda log_url: generator.generate_apply_report(
+            apply_result=apply_result,
+            plan_name=display_name,
+            output_file=None,  # keep the local copy relative/portable
+            config={**config, 'log_url': log_url},
+            log_file_available=log_file_available,
+        ),
     )
 
     html_url = storage_url
@@ -451,7 +467,16 @@ def handle_terraform_error(args):
     
     # Handle uploads if requested
     storage_url = handle_object_storage_uploads(
-        html_content, args, output_file, args.plan_file or "terraform-error.log"
+        html_content, args, output_file, args.plan_file or "terraform-error.log",
+        log_file=log_output_file if log_file_available else None,
+        rebuild_html=lambda log_url: generator.generate_error_report(
+            error_output=error_output,
+            plan_error_data=plan_error_data,
+            plan_name=display_name,
+            output_file=None,  # keep the local copy relative/portable
+            config={**config, 'log_url': log_url},
+            log_file_available=log_file_available,
+        ),
     )
 
     html_url = storage_url
@@ -667,7 +692,15 @@ def main():
         
         # Handle object storage uploads if requested
         storage_url = handle_object_storage_uploads(
-            html_content, args, output_file, args.plan_file
+            html_content, args, output_file, args.plan_file,
+            log_file=log_output_file if log_file_available else None,
+            rebuild_html=lambda log_url: generator.generate_report(
+                analysis,
+                plan_name=display_name,
+                output_file=None,  # keep the local copy relative/portable
+                config={**config, 'log_url': log_url},
+                log_file_available=log_file_available,
+            ),
         )
 
         # Handle GitHub Pages upload if requested
@@ -775,7 +808,9 @@ Examples:
   tofui plan.json --build-name "staging-${BUILD_ID}" --s3-bucket my-reports --s3-prefix reports/
 
   # Upload to a private GCS bucket and print a signed URL (needs: pip install 'tofui[gcs]')
+  # The terraform log is uploaded and signed alongside the report automatically.
   tofui plan.json --build-name "pr-${PR_NUMBER}-${GITHUB_SHA}" \
+    --stdout-tf-log terraform.log \
     --gcs-bucket my-project-tf-plan-reports --gcs-prefix "plans/pr-${PR_NUMBER}" \
     --signed-url-expiry 7d
 
@@ -1064,32 +1099,46 @@ def parse_duration(value: str) -> int:
 
 
 def _object_keys(args, local_file: str, prefix: str):
-    """Return (html_key, json_key) for an upload, honouring an optional prefix."""
+    """Return (html_key, json_key, log_key) for an upload, honouring an optional prefix."""
     base_name = os.path.splitext(os.path.basename(local_file))[0]
     clean = prefix.strip("/") if prefix else ""
     if clean:
-        return f"{clean}/{base_name}.html", f"{clean}/{base_name}.json"
-    return f"{base_name}.html", f"{base_name}.json"
+        base_name = f"{clean}/{base_name}"
+    return f"{base_name}.html", f"{base_name}.json", f"{base_name}.log"
 
 
-def handle_object_storage_uploads(html_content: str, args, local_file: str, plan_file: str) -> str:
+def handle_object_storage_uploads(
+    html_content: str,
+    args,
+    local_file: str,
+    plan_file: str,
+    log_file: Optional[str] = None,
+    rebuild_html=None,
+) -> str:
     """Run whichever object-storage uploads were requested.
 
     Returns the report URL to advertise, preferring GCS when both are configured.
     """
     s3_url = ""
     if getattr(args, "s3_bucket", None):
-        s3_url = upload_to_s3(html_content, args, local_file, plan_file)
+        s3_url = upload_to_s3(html_content, args, local_file, plan_file, log_file, rebuild_html)
 
     gcs_url = ""
     if getattr(args, "gcs_bucket", None):
-        gcs_url = upload_to_gcs(html_content, args, local_file, plan_file)
+        gcs_url = upload_to_gcs(html_content, args, local_file, plan_file, log_file, rebuild_html)
 
     return gcs_url or s3_url
 
 
-def upload_to_s3(html_content: str, args, local_file: str, plan_file: str) -> str:
-    """Upload the HTML report and optionally JSON plan to S3.
+def upload_to_s3(
+    html_content: str,
+    args,
+    local_file: str,
+    plan_file: str,
+    log_file: Optional[str] = None,
+    rebuild_html=None,
+) -> str:
+    """Upload the HTML report (plus the log, and optionally the JSON plan) to S3.
 
     Returns the URL to the report (presigned unless signing is disabled), or ""
     on failure.
@@ -1113,7 +1162,38 @@ def upload_to_s3(html_content: str, args, local_file: str, plan_file: str) -> st
             config=Config(signature_version='s3v4'),
         )
 
-        html_key, json_key = _object_keys(args, local_file, args.s3_prefix)
+        html_key, json_key, log_key = _object_keys(args, local_file, args.s3_prefix)
+
+        signing = getattr(args, 'signed_url', True)
+        expiry = getattr(args, 'signed_url_expiry', MAX_SIGNED_URL_SECONDS)
+
+        # The log must be uploaded and signed before the HTML is rebuilt, because
+        # the report fetches the log at runtime and a signed URL cannot be
+        # guessed from a relative path.
+        if log_file and os.path.exists(log_file):
+            with open(log_file, 'rb') as f:
+                s3_client.put_object(
+                    Bucket=args.s3_bucket,
+                    Key=log_key,
+                    Body=f.read(),
+                    ContentType='text/plain; charset=utf-8',
+                    CacheControl='max-age=3600'
+                )
+            print(f"✅ Terraform log uploaded to S3: s3://{args.s3_bucket}/{log_key}")
+
+            log_url = f"https://{args.s3_bucket}.s3.{args.s3_region}.amazonaws.com/{log_key}"
+            if signing:
+                log_url = s3_client.generate_presigned_url(
+                    'get_object',
+                    Params={
+                        'Bucket': args.s3_bucket,
+                        'Key': log_key,
+                        'ResponseContentType': 'text/plain; charset=utf-8',
+                    },
+                    ExpiresIn=expiry,
+                )
+            if rebuild_html:
+                html_content = rebuild_html(log_url)
 
         # Content-Type matters: without it the browser downloads the report (or
         # renders it as plain text) instead of displaying it.
@@ -1129,8 +1209,7 @@ def upload_to_s3(html_content: str, args, local_file: str, plan_file: str) -> st
         print(f"✅ HTML report uploaded to S3: s3://{args.s3_bucket}/{html_key}")
 
         report_url = html_s3_url
-        if getattr(args, 'signed_url', True):
-            expiry = getattr(args, 'signed_url_expiry', MAX_SIGNED_URL_SECONDS)
+        if signing:
             report_url = s3_client.generate_presigned_url(
                 'get_object',
                 Params={
@@ -1195,7 +1274,7 @@ def format_duration(seconds: int) -> str:
     return f"{seconds}s"
 
 
-def _gcs_signed_url(blob, expiry: int) -> Optional[str]:
+def _gcs_signed_url(blob, expiry: int, content_type: str = "text/html; charset=utf-8") -> Optional[str]:
     """Sign a GCS URL, falling back to IAM signing when credentials lack a key.
 
     A service-account JSON key can sign locally. Workload Identity / ADC tokens
@@ -1208,7 +1287,7 @@ def _gcs_signed_url(blob, expiry: int) -> Optional[str]:
             version="v4",
             expiration=timedelta(seconds=expiry),
             method="GET",
-            response_type="text/html; charset=utf-8",
+            response_type=content_type,
         )
     except Exception as local_error:
         try:
@@ -1226,7 +1305,7 @@ def _gcs_signed_url(blob, expiry: int) -> Optional[str]:
                 version="v4",
                 expiration=timedelta(seconds=expiry),
                 method="GET",
-                response_type="text/html; charset=utf-8",
+                response_type=content_type,
                 service_account_email=service_account_email,
                 access_token=credentials.token,
             )
@@ -1241,8 +1320,15 @@ def _gcs_signed_url(blob, expiry: int) -> Optional[str]:
             return None
 
 
-def upload_to_gcs(html_content: str, args, local_file: str, plan_file: str) -> str:
-    """Upload the HTML report and optionally JSON plan to Google Cloud Storage.
+def upload_to_gcs(
+    html_content: str,
+    args,
+    local_file: str,
+    plan_file: str,
+    log_file: Optional[str] = None,
+    rebuild_html=None,
+) -> str:
+    """Upload the HTML report (plus the log, and optionally the JSON plan) to GCS.
 
     Returns the URL to the report (signed unless signing is disabled), or "" on
     failure.
@@ -1264,7 +1350,28 @@ def upload_to_gcs(html_content: str, args, local_file: str, plan_file: str) -> s
         client = storage.Client(project=getattr(args, "gcs_project", None) or None)
         bucket = client.bucket(args.gcs_bucket)
 
-        html_key, json_key = _object_keys(args, local_file, args.gcs_prefix)
+        html_key, json_key, log_key = _object_keys(args, local_file, args.gcs_prefix)
+
+        signing = getattr(args, "signed_url", True)
+        expiry = getattr(args, "signed_url_expiry", MAX_SIGNED_URL_SECONDS)
+
+        # The log must be uploaded and signed before the HTML is rebuilt, because
+        # the report fetches the log at runtime and a signed URL cannot be
+        # guessed from a relative path.
+        if log_file and os.path.exists(log_file):
+            log_blob = bucket.blob(log_key)
+            log_blob.cache_control = "max-age=3600"
+            with open(log_file, "rb") as f:
+                log_blob.upload_from_file(f, content_type="text/plain; charset=utf-8")
+            print(f"✅ Terraform log uploaded to GCS: gs://{args.gcs_bucket}/{log_key}")
+
+            log_url = f"https://storage.googleapis.com/{args.gcs_bucket}/{log_key}"
+            if signing:
+                signed_log = _gcs_signed_url(log_blob, expiry, content_type="text/plain; charset=utf-8")
+                if signed_log:
+                    log_url = signed_log
+            if rebuild_html:
+                html_content = rebuild_html(log_url)
 
         # GCS serves objects with X-Content-Type-Options: nosniff, so an absent or
         # wrong content type shows raw source instead of the rendered report.
@@ -1277,8 +1384,7 @@ def upload_to_gcs(html_content: str, args, local_file: str, plan_file: str) -> s
         print(f"✅ HTML report uploaded to GCS: gs://{args.gcs_bucket}/{html_key}")
 
         report_url = f"https://storage.googleapis.com/{args.gcs_bucket}/{html_key}"
-        if getattr(args, "signed_url", True):
-            expiry = getattr(args, "signed_url_expiry", MAX_SIGNED_URL_SECONDS)
+        if signing:
             signed = _gcs_signed_url(blob, expiry)
             if signed:
                 report_url = signed

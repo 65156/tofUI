@@ -87,6 +87,11 @@ rather than downloading, and print a signed URL valid for `--signed-url-expiry`
 (default `7d`, which is the maximum both providers allow). Pass `--no-signed-url`
 for a public bucket where a plain object URL is enough.
 
+When `--stdout-tf-log` is used, the terraform log is uploaded and signed
+alongside the report automatically, and the report is pointed at that signed URL
+— so the log terminal works from the bucket with nothing extra to configure. The
+log lands next to the report, so a single signed report link stays self-sufficient.
+
 Signing GCS URLs needs a key to sign with: either a service-account key via
 `GOOGLE_APPLICATION_CREDENTIALS`, or `roles/iam.serviceAccountTokenCreator` on
 the active identity so tofUI can sign through the IAM API (e.g. under Workload
