@@ -26,14 +26,26 @@ brew install tofui
 # Homebrew, without tapping first
 brew install 65156/tofui/tofui
 
-# pip (from PyPI)
+# pip (from PyPI) — generating reports needs no dependencies at all
 pip install tofui
-
-# pip, with Google Cloud Storage upload support
-pip install 'tofui[gcs]'
 
 # pip (latest from GitHub)
 pip install git+https://github.com/65156/tofUI.git
+```
+
+Publishing backends are opt-in, so a plain install stays dependency-free.
+Add only what you use:
+
+| Extra | Installs | Needed for |
+|---|---|---|
+| `tofui[s3]` | boto3 | `--s3-bucket` |
+| `tofui[gcs]` | google-cloud-storage | `--gcs-bucket` |
+| `tofui[ghpages]` | requests | `--github-repo` |
+| `tofui[dashboard]` | requests | `--dashboard-repo` |
+
+```bash
+pip install 'tofui[gcs]'          # one backend
+pip install 'tofui[s3,ghpages]'   # or combine
 ```
 
 </details>

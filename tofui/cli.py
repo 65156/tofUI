@@ -516,8 +516,11 @@ def parse_statuses(status_args):
 
 def publish_to_dashboard_wrapper(args, sanitized_build_name, display_name, html_url):
     """Wrapper function to publish report to dashboard"""
+    if not require_extra("requests", "dashboard", "Dashboard publishing"):
+        return False
+
     from .publisher import publish_to_dashboard
-    
+
     print("📊 Publishing to dashboard...")
     
     # Validate required parameters
@@ -1069,6 +1072,26 @@ def print_summary(analysis, output_file: str, args):
 MAX_SIGNED_URL_SECONDS = 7 * 24 * 3600
 
 
+def require_extra(module: str, extra: str, feature: str) -> bool:
+    """Report whether an optional dependency is installed, naming the extra.
+
+    Publishing backends are opt-in extras, so a plain install can reach one of
+    these paths; say which extra provides it rather than raising ImportError.
+    """
+    import importlib
+
+    try:
+        importlib.import_module(module)
+        return True
+    except ImportError:
+        print(
+            f"❌ Error: {feature} requires the '{module}' package. "
+            f"Install it with: pip install 'tofui[{extra}]'",
+            file=sys.stderr,
+        )
+        return False
+
+
 def parse_duration(value: str) -> int:
     """Parse a duration like '7d', '2h', '30m', '3600' into seconds."""
     text = str(value).strip().lower()
@@ -1148,7 +1171,11 @@ def upload_to_s3(
         from botocore.config import Config
         from botocore.exceptions import NoCredentialsError, ClientError
     except ImportError:
-        print("❌ Error: boto3 is required for S3 upload. Install with: pip install boto3", file=sys.stderr)
+        print(
+            "❌ Error: S3 upload requires the 'boto3' package. "
+            "Install it with: pip install 'tofui[s3]'",
+            file=sys.stderr,
+        )
         return ""
 
     try:
@@ -1338,8 +1365,8 @@ def upload_to_gcs(
         from google.api_core import exceptions as gcs_exceptions
     except ImportError:
         print(
-            "❌ Error: google-cloud-storage is required for GCS upload. "
-            "Install with: pip install 'tofui[gcs]'",
+            "❌ Error: GCS upload requires the 'google-cloud-storage' package. "
+            "Install it with: pip install 'tofui[gcs]'",
             file=sys.stderr,
         )
         return ""
@@ -1483,6 +1510,9 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
     Returns:
         str: The HTML URL if successful, empty string otherwise
     """
+    if not require_extra("requests", "ghpages", "GitHub Pages publishing"):
+        return ""
+
     try:
         import requests
         import json

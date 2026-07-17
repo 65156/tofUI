@@ -32,15 +32,23 @@ classifiers = [
     "Topic :: System :: Systems Administration",
     "Topic :: Utilities",
 ]
-dependencies = [
-    "requests>=2.25.0",  # dashboard publishing & GitHub Pages
-    "boto3>=1.26.0",     # S3 dashboard hosting
-]
+# Generating a report needs nothing but the standard library. Each publishing
+# backend is opt-in, so a local report install stays dependency-free.
+dependencies = []
 dynamic = ["version"]
 
 [project.optional-dependencies]
+s3 = [
+    "boto3>=1.26.0",  # S3 upload & presigned URLs
+]
 gcs = [
-    "google-cloud-storage>=2.10.0",  # GCS hosting & v4 signed URLs
+    "google-cloud-storage>=2.10.0",  # GCS upload & v4 signed URLs
+]
+ghpages = [
+    "requests>=2.25.0",  # GitHub Pages publishing via the GitHub API
+]
+dashboard = [
+    "requests>=2.25.0",  # dashboard publishing via the GitHub API
 ]
 dev = [
     "pytest>=7.0.0",
