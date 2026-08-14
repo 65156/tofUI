@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
     from tofui import TerraformPlanParser, PlanAnalyzer, HTMLGenerator
+    from tofui.parser import ActionType
     from tofui.cli import (
         main,
         upload_to_s3,
@@ -157,7 +158,10 @@ class TofUITests(unittest.TestCase):
         
         change = plan.resource_changes[0]
         self.assertEqual(change.address, "aws_instance.web")
-        self.assertEqual(change.change.actions, ["create"])
+        # ResourceChange flattens terraform's nested `change` object: the action
+        # is a single ActionType on the change itself, not a list one level down.
+        self.assertEqual(change.action, ActionType.CREATE)
+        self.assertTrue(change.is_creation)
         
         print("✅ Basic parsing test passed")
 
@@ -269,40 +273,65 @@ class TofUITests(unittest.TestCase):
         else:
             print("⚠️  CLI test completed but output file not found in current directory")
 
-    @patch('tofui.cli.boto3')
-    def test_s3_integration_mock(self, mock_boto3):
-        """Test S3 integration with mocked AWS calls"""
+    def test_s3_integration_mock(self):
+        """Test S3 integration against a mocked S3 backend.
+
+        Uses moto rather than patching `tofui.cli.boto3`: boto3 is imported
+        inside upload_to_s3, so that attribute does not exist on the module and
+        the patch raised AttributeError before the test could run.
+        """
         print("\n☁️  Testing S3 integration (mocked)...")
-        
-        # Mock AWS S3 client
-        mock_s3_client = MagicMock()
-        mock_boto3.client.return_value = mock_s3_client
-        
-        # Mock successful upload
-        mock_s3_client.put_object.return_value = {}
-        mock_s3_client.get_bucket_website.side_effect = Exception("Website not configured")
-        
-        # Create mock args
-        class MockArgs:
-            s3_bucket = "test-bucket"
-            s3_prefix = "test-prefix"
-            s3_region = "us-east-1"
-        
-        args = MockArgs()
+
+        try:
+            import boto3
+            from moto import mock_aws
+        except ImportError:
+            self.skipTest("moto/boto3 not installed (pip install 'tofui[dev]')")
+
+        import argparse
+
+        os.environ.setdefault("AWS_ACCESS_KEY_ID", "testing")
+        os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "testing")
+
+        plan_file = os.path.join(self.test_dir, "plan.json")
+        with open(plan_file, "w") as f:
+            f.write('{"format_version": "1.2"}')
+        log_file = os.path.join(self.test_dir, "apply.log")
+        with open(log_file, "w") as f:
+            f.write("Apply complete!")
+
+        args = argparse.Namespace(
+            s3_bucket="test-bucket", s3_prefix="test-prefix", s3_region="us-east-1",
+            signed_url=True, signed_url_expiry=3600, debug_json=True,
+        )
         html_content = "<html><body>Test Report</body></html>"
-        
-        # Test upload function
-        upload_to_s3(html_content, args, "test-report.html")
-        
-        # Verify boto3 was called correctly
-        mock_boto3.client.assert_called_with('s3', region_name='us-east-1')
-        mock_s3_client.put_object.assert_called_once()
-        
-        call_args = mock_s3_client.put_object.call_args[1]
-        self.assertEqual(call_args['Bucket'], 'test-bucket')
-        self.assertEqual(call_args['Key'], 'test-prefix/test-report.html')
-        self.assertEqual(call_args['ContentType'], 'text/html')
-        
+
+        with mock_aws():
+            s3 = boto3.client("s3", region_name="us-east-1")
+            s3.create_bucket(Bucket="test-bucket")
+
+            urls = upload_to_s3(html_content, args, "test-report.html", plan_file,
+                                log_file=log_file)
+
+            # All three artefacts land under the prefix, as siblings.
+            keys = {o["Key"] for o in s3.list_objects_v2(Bucket="test-bucket")["Contents"]}
+            self.assertEqual(keys, {
+                "test-prefix/test-report.html",
+                "test-prefix/test-report.json",
+                "test-prefix/test-report.log",
+            })
+
+            # Content-Type matters: without it the browser downloads the report
+            # instead of rendering it.
+            head = s3.head_object(Bucket="test-bucket", Key="test-prefix/test-report.html")
+            self.assertEqual(head["ContentType"], "text/html; charset=utf-8")
+
+            # And every URL comes back presigned.
+            for field in ("html", "json", "log"):
+                value = getattr(urls, field)
+                self.assertTrue(value, f"{field} URL should be set")
+                self.assertIn("X-Amz-Signature", value, f"{field} URL should be presigned")
+
         print("✅ S3 integration (mocked) test passed")
 
     def test_s3_integration_real(self):
@@ -388,6 +417,30 @@ class TofUITests(unittest.TestCase):
             pass  # Expected failure
 
         print("✅ Error handling test passed")
+
+    def test_log_terminal_only_rendered_with_a_log(self):
+        """No log, no terminal pane.
+
+        The pane fills itself by fetching a log at runtime, so rendering it
+        without one showed "Log file not found in any expected location" —
+        reading as a failure when nothing had been asked for.
+        """
+        print("\n🖥️  Testing log terminal gating...")
+
+        parser = TerraformPlanParser()
+        plan = parser.parse_file(self.test_plan)
+        analysis = PlanAnalyzer().analyze(plan)
+
+        without = HTMLGenerator().generate_report(analysis, plan_name="no-log")
+        self.assertNotIn('id="terminal-output"', without,
+                         "terminal must be absent when no log was produced")
+
+        with_log = HTMLGenerator().generate_report(
+            analysis, plan_name="with-log", log_file_available=True)
+        self.assertIn('id="terminal-output"', with_log,
+                      "terminal must be present when a log was produced")
+
+        print("✅ Log terminal gating test passed")
 
     # --- --export-vars-file, across every publishing backend -----------------
     #

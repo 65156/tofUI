@@ -20,6 +20,8 @@ class HTMLGenerator:
     def __init__(self):
         self.plan_name = "tofUI Plan"
         self.timestamp = datetime.utcnow()
+        # Gates the log terminal; set per-report by the generate_* methods below.
+        self.log_file_available = False
     
     def generate_report(
         self, 
@@ -33,6 +35,7 @@ class HTMLGenerator:
         
         self.plan_name = plan_name or "tofUI Plan"
         self.config = config or {}
+        self.log_file_available = log_file_available
         
         # Generate the complete HTML content
         html_content = self._generate_complete_html(analysis)
@@ -57,6 +60,7 @@ class HTMLGenerator:
         
         self.plan_name = plan_name or "tofUI Error Report"
         self.config = config or {}
+        self.log_file_available = log_file_available
         
         # Process error data
         processed_errors = self._process_terraform_errors(error_output, plan_error_data)
@@ -83,6 +87,7 @@ class HTMLGenerator:
         
         self.plan_name = plan_name or "tofUI Apply Report"
         self.config = config or {}
+        self.log_file_available = log_file_available
         
         # Generate the complete HTML content for apply report
         html_content = self._generate_apply_html(apply_result)
@@ -131,7 +136,7 @@ class HTMLGenerator:
         else:
             theme_class = "theme-yellow"
             
-        # Add terminal section for logs
+        # Add terminal section for logs (empty unless a log was produced)
         terminal_section = self._generate_terminal_section_placeholder()
             
         return f"""<!DOCTYPE html>
@@ -998,7 +1003,15 @@ class HTMLGenerator:
         """
     
     def _generate_terminal_section_placeholder(self) -> str:
-        """Generate terminal section with auto-loading logs"""
+        """Generate terminal section with auto-loading logs.
+
+        Returns nothing when no log was produced. The pane loads its content by
+        fetching a log at runtime, so rendering it without one left the report
+        showing "Log file not found in any expected location" — a failure
+        message for something that was never asked for.
+        """
+        if not self.log_file_available:
+            return ""
         return f"""
         <div class="terminal-section">
             <div class="terminal-header">
@@ -1012,7 +1025,13 @@ class HTMLGenerator:
         """
 
     def _generate_terminal_output_section(self, raw_output: str) -> str:
-        """Generate the terminal-style output section with auto-loading"""
+        """Generate the terminal-style output section with auto-loading.
+
+        Same gate as the placeholder above: this pane also fills itself by
+        fetching the log, so it is useless without one.
+        """
+        if not self.log_file_available:
+            return ""
         return f"""
         <div class="terminal-section">
             <div class="terminal-header">
