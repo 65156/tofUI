@@ -87,8 +87,12 @@ class TerraformPlan:
 class TerraformPlanParser:
     """Parser for terraform JSON plan files"""
     
+    # Terraform bumps the plan-format minor version additively, so any 1.x is
+    # readable by a 1.x parser. Only a major bump is a breaking change.
+    SUPPORTED_FORMAT_MAJOR = 1
+
     def __init__(self):
-        self._supported_format_versions = ["1.0", "1.1", "1.2"]
+        self._supported_format_major = self.SUPPORTED_FORMAT_MAJOR
     
     def parse_file(self, file_path: str) -> TerraformPlan:
         """Parse a terraform plan JSON file"""
@@ -161,12 +165,26 @@ class TerraformPlanParser:
             raise ValueError("Plan data must be a JSON object")
         
         format_version = plan_data.get("format_version")
-        if format_version not in self._supported_format_versions:
+        if format_version is None:
+            raise ValueError(
+                "Plan data missing 'format_version'. Expected the output of "
+                "'terraform show -json <planfile>'."
+            )
+
+        try:
+            major = int(str(format_version).split(".", 1)[0])
+        except (ValueError, AttributeError):
+            raise ValueError(
+                f"Malformed format version: {format_version!r}. Expected a version "
+                f"like '{self._supported_format_major}.2'."
+            )
+
+        if major != self._supported_format_major:
             raise ValueError(
                 f"Unsupported format version: {format_version}. "
-                f"Supported versions: {', '.join(self._supported_format_versions)}"
+                f"Supported: {self._supported_format_major}.x"
             )
-        
+
         if "resource_changes" not in plan_data:
             raise ValueError("Plan data missing 'resource_changes' field")
     

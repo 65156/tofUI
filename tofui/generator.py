@@ -94,6 +94,17 @@ class HTMLGenerator:
         
         return html_content
     
+    def _generate_log_url_js(self) -> str:
+        """Declare the explicit log URL for the log loader to try first.
+
+        A signed bucket URL carries a per-object signature, so the relative
+        candidates the loader falls back on cannot reach it.
+        """
+        import os
+
+        log_url = self.config.get('log_url', '') or os.environ.get('TOFUI_LOG_URL', '')
+        return f"const TOFUI_LOG_URL = {json.dumps(log_url or None)};"
+
     def _generate_complete_html(self, analysis: PlanAnalysis) -> str:
         """Generate the complete HTML document"""
         
@@ -146,7 +157,8 @@ class HTMLGenerator:
         <script>
             // Embedded plan data
             const planData = {js_data};
-            
+            {self._generate_log_url_js()}
+
             {self._get_embedded_javascript()}
         </script>
     </body>
@@ -864,6 +876,7 @@ class HTMLGenerator:
     </div>
     
     <script>
+        {self._generate_log_url_js()}
         {self._get_error_specific_javascript()}
     </script>
 </body>
@@ -1129,6 +1142,7 @@ class HTMLGenerator:
     </div>
     
     <script>
+        {self._generate_log_url_js()}
         {self._get_apply_specific_javascript()}
     </script>
 </body>
@@ -1498,6 +1512,8 @@ class HTMLGenerator:
             const baseName = window.location.pathname.split('/').pop().replace('.html', '');
             
             const logUrls = [
+                // Explicit URL (e.g. a signed bucket URL) wins when provided
+                ...(typeof TOFUI_LOG_URL !== 'undefined' && TOFUI_LOG_URL ? [TOFUI_LOG_URL] : []),
                 `${baseName}.log`,  // Local: same directory
                 `../logs/${baseName}.log`,  // GitHub Pages: logs folder
                 `logs/${baseName}.log`  // Alternative GitHub Pages path
@@ -1803,6 +1819,8 @@ class HTMLGenerator:
             const baseName = window.location.pathname.split('/').pop().replace('.html', '');
             
             const logUrls = [
+                // Explicit URL (e.g. a signed bucket URL) wins when provided
+                ...(typeof TOFUI_LOG_URL !== 'undefined' && TOFUI_LOG_URL ? [TOFUI_LOG_URL] : []),
                 `${baseName}.log`,  // Local: same directory
                 `../logs/${baseName}.log`,  // GitHub Pages: logs folder
                 `logs/${baseName}.log`  // Alternative GitHub Pages path
@@ -3151,6 +3169,8 @@ class HTMLGenerator:
             const baseName = window.location.pathname.split('/').pop().replace('.html', '');
             
             const logUrls = [
+                // Explicit URL (e.g. a signed bucket URL) wins when provided
+                ...(typeof TOFUI_LOG_URL !== 'undefined' && TOFUI_LOG_URL ? [TOFUI_LOG_URL] : []),
                 `${baseName}.log`,  // Local: same directory
                 `../logs/${baseName}.log`,  // GitHub Pages: logs folder
                 `logs/${baseName}.log`  // Alternative GitHub Pages path

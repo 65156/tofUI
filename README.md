@@ -26,11 +26,26 @@ brew install tofui
 # Homebrew, without tapping first
 brew install 65156/tofui/tofui
 
-# pip (from PyPI)
+# pip (from PyPI) — generating reports needs no dependencies at all
 pip install tofui
 
 # pip (latest from GitHub)
 pip install git+https://github.com/65156/tofUI.git
+```
+
+Publishing backends are opt-in, so a plain install stays dependency-free.
+Add only what you use:
+
+| Extra | Installs | Needed for |
+|---|---|---|
+| `tofui[s3]` | boto3 | `--s3-bucket` |
+| `tofui[gcs]` | google-cloud-storage | `--gcs-bucket` |
+| `tofui[ghpages]` | requests | `--github-repo` |
+| `tofui[dashboard]` | requests | `--dashboard-repo` |
+
+```bash
+pip install 'tofui[gcs]'          # one backend
+pip install 'tofui[s3,ghpages]'   # or combine
 ```
 
 </details>
@@ -61,8 +76,58 @@ tofui plan.json --build-name my-plan
 open my-plan.html
 ```
 
-That's the whole workflow. For S3/GitHub Pages uploads, dashboard publishing,
+That's the whole workflow. For S3/GCS/GitHub Pages uploads, dashboard publishing,
 CI/CD, and configuration, see **[examples.md](examples.md)**.
+
+### Hosting reports on a private bucket
+
+Upload to a private S3 or GCS bucket and get a signed link to share on a PR —
+no public hosting required:
+
+```bash
+# GCS (requires: pip install 'tofui[gcs]')
+tofui plan.json --build-name "pr-42-$GITHUB_SHA" \
+  --gcs-bucket my-project-tf-plan-reports --gcs-prefix plans/pr-42
+
+# S3
+tofui plan.json --build-name "pr-42-$GITHUB_SHA" \
+  --s3-bucket my-tf-plan-reports --s3-prefix plans/pr-42
+```
+
+Both upload with `Content-Type: text/html` so the report renders in the browser
+rather than downloading, and print a signed URL valid for `--signed-url-expiry`
+(default `7d`, which is the maximum both providers allow). Pass `--no-signed-url`
+for a public bucket where a plain object URL is enough.
+
+When `--stdout-tf-log` is used, the terraform log is uploaded and signed
+alongside the report automatically, and the report is pointed at that signed URL
+— so the log terminal works from the bucket with nothing extra to configure. The
+log lands next to the report, so a single signed report link stays self-sufficient.
+
+Signing GCS URLs needs a key to sign with: either a service-account key via
+`GOOGLE_APPLICATION_CREDENTIALS`, or `roles/iam.serviceAccountTokenCreator` on
+the active identity so tofUI can sign through the IAM API (e.g. under Workload
+Identity Federation).
+
+### Getting the URLs back out in CI
+
+`--export-vars-file` writes a sourceable shell file with wherever the report
+ended up:
+
+```bash
+tofui plan.json --build-name "pr-42-$GITHUB_SHA" \
+  --gcs-bucket my-project-tf-plan-reports \
+  --export-vars-file tofui_vars.sh
+
+. ./tofui_vars.sh
+gh pr comment 42 --body "[Plan report]($TOFUI_HTML_URL)"
+```
+
+It sets `TOFUI_HTML_URL`, `TOFUI_JSON_URL`, `TOFUI_LOG_URL` and
+`TOFUI_HTML_FILE` (the local report on disk). Every variable is always defined,
+empty when that artefact was not published, so sourcing the file is safe under
+`set -u`. It is written for every backend — GCS, S3, GitHub Pages — and when no
+backend ran at all, in which case `TOFUI_HTML_FILE` is the only value set.
 
 ## Contributing
 
