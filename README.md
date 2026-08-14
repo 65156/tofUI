@@ -109,6 +109,26 @@ Signing GCS URLs needs a key to sign with: either a service-account key via
 the active identity so tofUI can sign through the IAM API (e.g. under Workload
 Identity Federation).
 
+### Getting the URLs back out in CI
+
+`--export-vars-file` writes a sourceable shell file with wherever the report
+ended up:
+
+```bash
+tofui plan.json --build-name "pr-42-$GITHUB_SHA" \
+  --gcs-bucket my-project-tf-plan-reports \
+  --export-vars-file tofui_vars.sh
+
+. ./tofui_vars.sh
+gh pr comment 42 --body "[Plan report]($TOFUI_HTML_URL)"
+```
+
+It sets `TOFUI_HTML_URL`, `TOFUI_JSON_URL`, `TOFUI_LOG_URL` and
+`TOFUI_HTML_FILE` (the local report on disk). Every variable is always defined,
+empty when that artefact was not published, so sourcing the file is safe under
+`set -u`. It is written for every backend — GCS, S3, GitHub Pages — and when no
+backend ran at all, in which case `TOFUI_HTML_FILE` is the only value set.
+
 ## Contributing
 
 ```bash

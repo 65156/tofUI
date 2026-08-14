@@ -9,13 +9,31 @@ import argparse
 import sys
 import os
 from pathlib import Path
-from typing import Optional
+from typing import NamedTuple, Optional
 
 from . import __version__
 from .parser import TerraformPlanParser
 from .analyzer import PlanAnalyzer
 from .generator import HTMLGenerator
 from .apply_parser import TerraformApplyParser
+
+
+class ReportUrls(NamedTuple):
+    """Where one report ended up, per artefact.
+
+    Every publishing backend returns this, so the URLs can be exported the same
+    way no matter which one ran. An empty string means "not published" — the
+    JSON is skipped unless --debug-json, and the log only exists in apply mode.
+    """
+
+    html: str = ""
+    json: str = ""
+    log: str = ""
+
+    def __bool__(self) -> bool:
+        # A backend that produced no report URL is falsey, so callers can keep
+        # picking a winner with a plain `or`.
+        return bool(self.html)
 
 
 def sanitize_build_name(name: str) -> str:
@@ -236,7 +254,7 @@ def handle_no_changes_scenario(args):
     print(f"🌐 Open in browser: file://{os.path.abspath(output_file)}")
     
     # Handle uploads if requested
-    storage_url = handle_object_storage_uploads(
+    storage_urls = handle_object_storage_uploads(
         html_content, args, output_file, args.plan_file or "terraform-no-changes.json",
         log_file=log_output_file if log_file_available else None,
         rebuild_html=lambda log_url: generator.generate_report(
@@ -248,10 +266,12 @@ def handle_no_changes_scenario(args):
         ),
     )
 
-    html_url = storage_url
+    pages_urls = ReportUrls()
     if args.github_repo:
-        html_url = upload_to_github_pages(html_content, args, output_file, args.plan_file or "terraform-no-changes.json", display_name)
-    
+        pages_urls = upload_to_github_pages(html_content, args, output_file, args.plan_file or "terraform-no-changes.json", display_name)
+
+    html_url = finalize_report(args, output_file, storage_urls, pages_urls)
+
     # Handle dashboard publishing if dashboard-repo is specified
     if getattr(args, 'dashboard_repo', None):
         publish_to_dashboard_wrapper(args, sanitized_build_name, display_name, html_url)
@@ -367,7 +387,7 @@ def handle_terraform_apply_mode(args):
     print(f"🌐 Open in browser: file://{os.path.abspath(output_file)}")
     
     # Handle uploads if requested
-    storage_url = handle_object_storage_uploads(
+    storage_urls = handle_object_storage_uploads(
         html_content, args, output_file, "terraform-apply.log",
         log_file=log_output_file if log_file_available else None,
         rebuild_html=lambda log_url: generator.generate_apply_report(
@@ -379,10 +399,12 @@ def handle_terraform_apply_mode(args):
         ),
     )
 
-    html_url = storage_url
+    pages_urls = ReportUrls()
     if args.github_repo:
-        html_url = upload_to_github_pages(html_content, args, output_file, "terraform-apply.log", display_name)
-    
+        pages_urls = upload_to_github_pages(html_content, args, output_file, "terraform-apply.log", display_name)
+
+    html_url = finalize_report(args, output_file, storage_urls, pages_urls)
+
     # Handle dashboard publishing if dashboard-repo is specified
     if getattr(args, 'dashboard_repo', None):
         publish_to_dashboard_wrapper(args, sanitized_build_name, display_name, html_url)
@@ -466,7 +488,7 @@ def handle_terraform_error(args):
     print(f"🌐 Open in browser: file://{os.path.abspath(output_file)}")
     
     # Handle uploads if requested
-    storage_url = handle_object_storage_uploads(
+    storage_urls = handle_object_storage_uploads(
         html_content, args, output_file, args.plan_file or "terraform-error.log",
         log_file=log_output_file if log_file_available else None,
         rebuild_html=lambda log_url: generator.generate_error_report(
@@ -479,10 +501,12 @@ def handle_terraform_error(args):
         ),
     )
 
-    html_url = storage_url
+    pages_urls = ReportUrls()
     if args.github_repo:
-        html_url = upload_to_github_pages(html_content, args, output_file, args.plan_file or "terraform-error.log", display_name)
-    
+        pages_urls = upload_to_github_pages(html_content, args, output_file, args.plan_file or "terraform-error.log", display_name)
+
+    html_url = finalize_report(args, output_file, storage_urls, pages_urls)
+
     # Handle dashboard publishing if dashboard-repo is specified
     if getattr(args, 'dashboard_repo', None):
         publish_to_dashboard_wrapper(args, sanitized_build_name, display_name, html_url)
@@ -694,7 +718,7 @@ def main():
         print_summary(analysis, output_file, args)
         
         # Handle object storage uploads if requested
-        storage_url = handle_object_storage_uploads(
+        storage_urls = handle_object_storage_uploads(
             html_content, args, output_file, args.plan_file,
             log_file=log_output_file if log_file_available else None,
             rebuild_html=lambda log_url: generator.generate_report(
@@ -736,10 +760,12 @@ def main():
                 log_file_available=log_file_available
             )
             
-            html_url = upload_to_github_pages(html_content, args, output_file, args.plan_file, display_name)
+            pages_urls = upload_to_github_pages(html_content, args, output_file, args.plan_file, display_name)
         else:
-            html_url = storage_url
-        
+            pages_urls = ReportUrls()
+
+        html_url = finalize_report(args, output_file, storage_urls, pages_urls)
+
         # Handle dashboard publishing if dashboard-repo is specified
         if getattr(args, 'dashboard_repo', None):
             publish_to_dashboard_wrapper(args, sanitized_build_name, display_name, html_url)
@@ -874,6 +900,19 @@ Examples:
         help="Generate apply report based on terraform apply logs and exit code instead of plan JSON. Requires --stdout-tf-log and --terraform-exit-code."
     )
 
+    # Applies to every backend, so it sits outside the per-backend groups —
+    # listing it under "GitHub Pages Options" is what made it look, and behave,
+    # like a Pages-only flag.
+    parser.add_argument(
+        "--export-vars-file",
+        help=(
+            "File to write environment variable exports to (e.g. 'tofui_vars.sh'). "
+            "Source it in a CI script to get TOFUI_HTML_URL, TOFUI_JSON_URL, "
+            "TOFUI_LOG_URL and TOFUI_HTML_FILE. Written for every backend, and "
+            "with no backend at all — unpublished values are exported empty."
+        )
+    )
+
     # S3 options
     s3_group = parser.add_argument_group("S3 Upload Options")
     s3_group.add_argument(
@@ -954,11 +993,6 @@ Examples:
     github_group.add_argument(
         "--github-enterprise-url",
         help="GitHub Enterprise base URL (e.g., 'https://github.ibm.com')"
-    )
-    
-    github_group.add_argument(
-        "--export-vars-file",
-        help="File to write environment variable exports (e.g., 'tofui_vars.sh'). Can be sourced in scripts to get TOFUI_HTML_URL and TOFUI_JSON_URL variables."
     )
     
     # Dashboard publishing options
@@ -1137,20 +1171,39 @@ def handle_object_storage_uploads(
     plan_file: str,
     log_file: Optional[str] = None,
     rebuild_html=None,
-) -> str:
+) -> ReportUrls:
     """Run whichever object-storage uploads were requested.
 
-    Returns the report URL to advertise, preferring GCS when both are configured.
+    Returns the URLs to advertise, preferring GCS when both are configured.
     """
-    s3_url = ""
+    s3_urls = ReportUrls()
     if getattr(args, "s3_bucket", None):
-        s3_url = upload_to_s3(html_content, args, local_file, plan_file, log_file, rebuild_html)
+        s3_urls = upload_to_s3(html_content, args, local_file, plan_file, log_file, rebuild_html)
 
-    gcs_url = ""
+    gcs_urls = ReportUrls()
     if getattr(args, "gcs_bucket", None):
-        gcs_url = upload_to_gcs(html_content, args, local_file, plan_file, log_file, rebuild_html)
+        gcs_urls = upload_to_gcs(html_content, args, local_file, plan_file, log_file, rebuild_html)
 
-    return gcs_url or s3_url
+    return gcs_urls or s3_urls
+
+
+def finalize_report(args, output_file: str, storage_urls: ReportUrls, pages_urls: ReportUrls) -> str:
+    """Settle on the URLs to advertise and export them if asked.
+
+    Every publishing path ends here — no backend, S3, GCS or GitHub Pages — so
+    --export-vars-file always produces a file. It used to be written only inside
+    the GitHub Pages branch, which meant `source tofui_vars.sh` in an S3 or GCS
+    pipeline died with "No such file or directory" even though the upload had
+    succeeded.
+
+    Returns the report URL, for the dashboard publisher.
+    """
+    urls = pages_urls or storage_urls
+
+    if getattr(args, "export_vars_file", None):
+        write_export_vars_file(args.export_vars_file, urls, os.path.abspath(output_file))
+
+    return urls.html
 
 
 def upload_to_s3(
@@ -1160,11 +1213,11 @@ def upload_to_s3(
     plan_file: str,
     log_file: Optional[str] = None,
     rebuild_html=None,
-) -> str:
+) -> ReportUrls:
     """Upload the HTML report (plus the log, and optionally the JSON plan) to S3.
 
-    Returns the URL to the report (presigned unless signing is disabled), or ""
-    on failure.
+    Returns the URLs to the uploaded artefacts (presigned unless signing is
+    disabled), or an empty ReportUrls on failure.
     """
     try:
         import boto3
@@ -1176,7 +1229,7 @@ def upload_to_s3(
             "Install it with: pip install 'tofui[s3]'",
             file=sys.stderr,
         )
-        return ""
+        return ReportUrls()
 
     try:
         print("☁️ Uploading to S3...")
@@ -1193,6 +1246,8 @@ def upload_to_s3(
 
         signing = getattr(args, 'signed_url', True)
         expiry = getattr(args, 'signed_url_expiry', MAX_SIGNED_URL_SECONDS)
+        log_url = ""
+        json_url = ""
 
         # The log must be uploaded and signed before the HTML is rebuilt, because
         # the report fetches the log at runtime and a signed URL cannot be
@@ -1263,6 +1318,18 @@ def upload_to_s3(
                 )
 
             print(f"✅ JSON plan uploaded to S3: s3://{args.s3_bucket}/{json_key}")
+
+            json_url = f"https://{args.s3_bucket}.s3.{args.s3_region}.amazonaws.com/{json_key}"
+            if signing:
+                json_url = s3_client.generate_presigned_url(
+                    'get_object',
+                    Params={
+                        'Bucket': args.s3_bucket,
+                        'Key': json_key,
+                        'ResponseContentType': 'application/json',
+                    },
+                    ExpiresIn=expiry,
+                )
         else:
             print("ℹ️  JSON upload skipped (use --debug-json to include)")
 
@@ -1275,7 +1342,7 @@ def upload_to_s3(
             # Website hosting not enabled, just show the regular S3 URL
             pass
 
-        return report_url
+        return ReportUrls(html=report_url, json=json_url, log=log_url)
 
     except NoCredentialsError:
         print("❌ Error: AWS credentials not found. Configure with 'aws configure' or set environment variables.", file=sys.stderr)
@@ -1290,7 +1357,7 @@ def upload_to_s3(
     except Exception as e:
         print(f"❌ Error uploading to S3: {e}", file=sys.stderr)
 
-    return ""
+    return ReportUrls()
 
 
 def format_duration(seconds: int) -> str:
@@ -1354,11 +1421,11 @@ def upload_to_gcs(
     plan_file: str,
     log_file: Optional[str] = None,
     rebuild_html=None,
-) -> str:
+) -> ReportUrls:
     """Upload the HTML report (plus the log, and optionally the JSON plan) to GCS.
 
-    Returns the URL to the report (signed unless signing is disabled), or "" on
-    failure.
+    Returns the URLs to the uploaded artefacts (signed unless signing is
+    disabled), or an empty ReportUrls on failure.
     """
     try:
         from google.cloud import storage
@@ -1369,7 +1436,7 @@ def upload_to_gcs(
             "Install it with: pip install 'tofui[gcs]'",
             file=sys.stderr,
         )
-        return ""
+        return ReportUrls()
 
     try:
         print("☁️ Uploading to GCS...")
@@ -1381,6 +1448,8 @@ def upload_to_gcs(
 
         signing = getattr(args, "signed_url", True)
         expiry = getattr(args, "signed_url_expiry", MAX_SIGNED_URL_SECONDS)
+        log_url = ""
+        json_url = ""
 
         # The log must be uploaded and signed before the HTML is rebuilt, because
         # the report fetches the log at runtime and a signed URL cannot be
@@ -1427,10 +1496,16 @@ def upload_to_gcs(
             with open(plan_file, "rb") as f:
                 json_blob.upload_from_file(f, content_type="application/json")
             print(f"✅ JSON plan uploaded to GCS: gs://{args.gcs_bucket}/{json_key}")
+
+            json_url = f"https://storage.googleapis.com/{args.gcs_bucket}/{json_key}"
+            if signing:
+                signed_json = _gcs_signed_url(json_blob, expiry, content_type="application/json")
+                if signed_json:
+                    json_url = signed_json
         else:
             print("ℹ️  JSON upload skipped (use --debug-json to include)")
 
-        return report_url
+        return ReportUrls(html=report_url, json=json_url, log=log_url)
 
     except gcs_exceptions.NotFound:
         print(f"❌ Error: GCS bucket '{args.gcs_bucket}' does not exist.", file=sys.stderr)
@@ -1443,7 +1518,7 @@ def upload_to_gcs(
     except Exception as e:
         print(f"❌ Error uploading to GCS: {e}", file=sys.stderr)
 
-    return ""
+    return ReportUrls()
 
 def get_github_pages_url(owner: str, repo: str, headers: dict, api_base_url: str) -> Optional[str]:
     """Get GitHub Pages URL for the repository using the API"""
@@ -1465,28 +1540,37 @@ def get_github_pages_url(owner: str, repo: str, headers: dict, api_base_url: str
         print(f"⚠️ Warning: Could not retrieve GitHub Pages URL: {e}")
         return None
 
-def write_export_vars_file(file_path: str, html_url: str, json_url: str, log_url: Optional[str] = None):
-    """Write environment variable exports to a file"""
+def write_export_vars_file(file_path: str, urls: ReportUrls, local_file: str = ""):
+    """Write environment variable exports to a file.
+
+    Every variable is written unconditionally, empty when that artefact was not
+    published. Skipping the empty ones would leave a sourcing script to trip
+    over an unset variable under `set -u`, which is exactly the shape of CI that
+    sources this file.
+
+    TOFUI_HTML_FILE is the local report on disk. It is the only value present
+    when no publishing backend ran, which is what makes this flag useful in the
+    dependency-free base install.
+    """
     import os
-    
+
     try:
         # Create the export file content
         export_content = f"""#!/bin/bash
 # Generated by tofUI - Environment Variables
-# Source this file to set TOFUI_HTML_URL, TOFUI_JSON_URL, and TOFUI_LOG_URL variables
+# Source this file to set TOFUI_HTML_URL, TOFUI_JSON_URL, TOFUI_LOG_URL and
+# TOFUI_HTML_FILE variables. Values are empty when not published.
 #
 # Usage: source {os.path.basename(file_path)}
 
-export TOFUI_HTML_URL='{html_url}'
-export TOFUI_JSON_URL='{json_url}'
+export TOFUI_HTML_URL='{urls.html}'
+export TOFUI_JSON_URL='{urls.json}'
+export TOFUI_LOG_URL='{urls.log}'
+export TOFUI_HTML_FILE='{local_file}'
 """
-        
-        # Add log URL if provided
-        if log_url:
-            export_content += f"export TOFUI_LOG_URL='{log_url}'\n"
-        
+
         export_content += "\n"
-        
+
         # Write the file
         with open(file_path, 'w', encoding='utf-8') as f:
             f.write(export_content)
@@ -1504,14 +1588,14 @@ export TOFUI_JSON_URL='{json_url}'
         return False
 
 
-def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: str, display_name: str) -> str:
+def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: str, display_name: str) -> ReportUrls:
     """Upload the HTML report and JSON plan to GitHub Pages
-    
+
     Returns:
-        str: The HTML URL if successful, empty string otherwise
+        ReportUrls: The published URLs if successful, an empty ReportUrls otherwise
     """
     if not require_extra("requests", "ghpages", "GitHub Pages publishing"):
-        return ""
+        return ReportUrls()
 
     try:
         import requests
@@ -1520,7 +1604,7 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
         from datetime import datetime
     except ImportError:
         print("❌ Error: requests is required for GitHub Pages upload. Install with: pip install tofui[ghpages]", file=sys.stderr)
-        return ""
+        return ReportUrls()
     
     try:
         print("🐙 Uploading to GitHub Pages...")
@@ -1529,12 +1613,12 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
         github_token = args.github_token or os.getenv('GITHUB_TOKEN')
         if not github_token:
             print("❌ Error: GitHub token not found. Use --github-token or set GITHUB_TOKEN environment variable.", file=sys.stderr)
-            return ""
+            return ReportUrls()
         
         # Parse repository
         if '/' not in args.github_repo:
             print("❌ Error: GitHub repository must be in format 'owner/repo'", file=sys.stderr)
-            return ""
+            return ReportUrls()
             
         owner, repo = args.github_repo.split('/', 1)
         
@@ -1608,23 +1692,23 @@ def upload_to_github_pages(html_content: str, args, local_file: str, plan_file: 
             print(f"export TOFUI_LOG_URL='{log_url}'")
             if getattr(args, 'debug_json', False):
                 print(f"export TOFUI_JSON_URL='{json_url}'")
-            
-            # Write export vars file if requested
-            if args.export_vars_file:
-                # Use empty string for json_url if debug_json is not enabled
-                json_url_for_export = json_url if getattr(args, 'debug_json', False) else ""
-                write_export_vars_file(args.export_vars_file, html_url, json_url_for_export, log_url)
-            
-            return html_url
+
+            # The vars file is written centrally in finalize_report(), so that
+            # S3, GCS and the no-backend base install get one too.
+            return ReportUrls(
+                html=html_url,
+                json=json_url if getattr(args, 'debug_json', False) else "",
+                log=log_url,
+            )
         else:
-            return ""
-            
+            return ReportUrls()
+
     except Exception as e:
         print(f"❌ Error uploading to GitHub Pages: {e}", file=sys.stderr)
         if hasattr(args, 'debug') and args.debug:
             import traceback
             traceback.print_exc()
-        return ""
+        return ReportUrls()
 
 
 def github_api_request_with_retry(url: str, headers: dict, data: dict, method: str = "PUT", max_retries: int = 12) -> tuple:

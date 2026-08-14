@@ -21,7 +21,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
     from tofui import TerraformPlanParser, PlanAnalyzer, HTMLGenerator
-    from tofui.cli import main, upload_to_s3
+    from tofui.cli import (
+        main,
+        upload_to_s3,
+        ReportUrls,
+        finalize_report,
+        handle_object_storage_uploads,
+    )
 except ImportError as e:
     print(f"❌ Import error: {e}")
     print("Make sure tofUI is properly installed or run from the project directory")
@@ -380,8 +386,130 @@ class TofUITests(unittest.TestCase):
             self.fail("Expected parsing to fail for non-existent file")
         except Exception:
             pass  # Expected failure
-        
+
         print("✅ Error handling test passed")
+
+    # --- --export-vars-file, across every publishing backend -----------------
+    #
+    # These cover the regression where the vars file was written only inside the
+    # GitHub Pages branch, so `source tofui_vars.sh` in an S3 or GCS pipeline
+    # failed with "No such file or directory" even though the upload worked.
+
+    def _export_args(self, **overrides):
+        """Minimal args namespace for the export-vars helpers."""
+        import argparse
+
+        defaults = dict(export_vars_file=os.path.join(self.test_dir, "vars.sh"))
+        defaults.update(overrides)
+        return argparse.Namespace(**defaults)
+
+    def _read_exports(self, path: str) -> Dict[str, str]:
+        """Parse a generated vars file into {name: value}."""
+        exports = {}
+        with open(path) as f:
+            for line in f:
+                if line.startswith("export "):
+                    name, _, value = line[len("export "):].partition("=")
+                    exports[name] = value.strip().strip("'")
+        return exports
+
+    def test_export_vars_written_without_any_backend(self):
+        """The base install writes the file too, carrying the local report path."""
+        print("\n📝 Testing export vars with no publishing backend...")
+
+        args = self._export_args()
+        report = os.path.join(self.test_dir, "report.html")
+
+        url = finalize_report(args, report, ReportUrls(), ReportUrls())
+
+        self.assertEqual(url, "")
+        self.assertTrue(os.path.exists(args.export_vars_file),
+                        "vars file must be written even with no backend configured")
+        exports = self._read_exports(args.export_vars_file)
+        self.assertEqual(exports["TOFUI_HTML_FILE"], report)
+        print("✅ Base install export vars test passed")
+
+    def test_export_vars_written_for_object_storage(self):
+        """S3/GCS uploads export all three artefact URLs."""
+        print("\n📝 Testing export vars for object storage...")
+
+        args = self._export_args()
+        storage = ReportUrls(
+            html="https://storage.googleapis.com/bucket/report.html",
+            json="https://storage.googleapis.com/bucket/report.json",
+            log="https://storage.googleapis.com/bucket/report.log",
+        )
+
+        url = finalize_report(args, os.path.join(self.test_dir, "report.html"),
+                              storage, ReportUrls())
+
+        self.assertEqual(url, storage.html)
+        exports = self._read_exports(args.export_vars_file)
+        self.assertEqual(exports["TOFUI_HTML_URL"], storage.html)
+        self.assertEqual(exports["TOFUI_JSON_URL"], storage.json)
+        self.assertEqual(exports["TOFUI_LOG_URL"], storage.log)
+        print("✅ Object storage export vars test passed")
+
+    def test_export_vars_always_define_every_variable(self):
+        """Unset values are exported empty, so `set -u` consumers don't trip."""
+        print("\n📝 Testing export vars completeness...")
+
+        args = self._export_args()
+        finalize_report(args, os.path.join(self.test_dir, "report.html"),
+                        ReportUrls(html="https://example.com/report.html"), ReportUrls())
+
+        exports = self._read_exports(args.export_vars_file)
+        for name in ("TOFUI_HTML_URL", "TOFUI_JSON_URL", "TOFUI_LOG_URL", "TOFUI_HTML_FILE"):
+            self.assertIn(name, exports, f"{name} must always be defined")
+        print("✅ Export vars completeness test passed")
+
+    def test_export_vars_prefers_github_pages(self):
+        """When Pages and object storage both ran, Pages is the advertised URL."""
+        print("\n📝 Testing export vars backend precedence...")
+
+        args = self._export_args()
+        storage = ReportUrls(html="https://storage.googleapis.com/bucket/report.html")
+        pages = ReportUrls(html="https://owner.github.io/repo/html_report/report.html")
+
+        url = finalize_report(args, os.path.join(self.test_dir, "report.html"), storage, pages)
+
+        self.assertEqual(url, pages.html)
+        self.assertEqual(self._read_exports(args.export_vars_file)["TOFUI_HTML_URL"], pages.html)
+        print("✅ Export vars precedence test passed")
+
+    def test_export_vars_skipped_when_not_requested(self):
+        """No --export-vars-file, no file."""
+        print("\n📝 Testing export vars opt-in...")
+
+        args = self._export_args(export_vars_file=None)
+        finalize_report(args, os.path.join(self.test_dir, "report.html"),
+                        ReportUrls(html="https://example.com/report.html"), ReportUrls())
+
+        self.assertFalse(os.path.exists(os.path.join(self.test_dir, "vars.sh")))
+        print("✅ Export vars opt-in test passed")
+
+    def test_object_storage_prefers_gcs_over_s3(self):
+        """Both buckets configured: GCS wins, as it did before ReportUrls."""
+        print("\n📝 Testing object storage backend preference...")
+
+        import argparse
+
+        args = argparse.Namespace(s3_bucket="a-bucket", gcs_bucket="a-gcs-bucket")
+        s3 = ReportUrls(html="https://s3.example.com/report.html")
+        gcs = ReportUrls(html="https://storage.googleapis.com/bucket/report.html")
+
+        with patch("tofui.cli.upload_to_s3", return_value=s3), \
+             patch("tofui.cli.upload_to_gcs", return_value=gcs):
+            urls = handle_object_storage_uploads("<html></html>", args, "report.html", "plan.json")
+        self.assertEqual(urls.html, gcs.html)
+
+        # And a failed GCS upload falls back to the S3 result rather than
+        # advertising nothing.
+        with patch("tofui.cli.upload_to_s3", return_value=s3), \
+             patch("tofui.cli.upload_to_gcs", return_value=ReportUrls()):
+            urls = handle_object_storage_uploads("<html></html>", args, "report.html", "plan.json")
+        self.assertEqual(urls.html, s3.html)
+        print("✅ Object storage preference test passed")
 
 def run_performance_test():
     """Run performance benchmarks"""
