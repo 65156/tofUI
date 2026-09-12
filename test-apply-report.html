@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>tofUI - no-changes-example</title>
-        <style>
-            :root {
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>tofUI Apply Report - test-apply-report</title>
+    <style>
+        :root {
     --bg-page: #f8f7f5;
     --bg-surface: #ffffff;
     --bg-muted: #f3f2ef;
@@ -125,7 +125,7 @@
     --radius-lg: 10px;
     }
 }
-            
+        
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
         *, *::before, *::after {
@@ -807,8 +807,58 @@
             .before-value, .after-value { width: 35%; }
         }
         
-        </style>
-        <script>
+        
+        .action-label {
+            font-size: 0.8rem;
+            background: var(--bg-muted);
+            padding: 0.2rem 0.5rem;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            margin-left: auto;
+            margin-right: 0.5rem;
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+        }
+        .status-badge--completed  { background: var(--diff-add-bg); color: var(--diff-add-fg); }
+        .status-badge--failed     { background: var(--diff-del-bg); color: var(--diff-del-fg); }
+        .status-badge--in_progress{ background: var(--diff-mod-bg); color: var(--diff-mod-fg); }
+        .status-badge--unknown    { background: var(--bg-muted);    color: var(--text-muted); }
+        
+        .operation-duration {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-left: 0.5rem;
+        }
+        
+        .operation-details {
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-size: 0.9rem;
+            padding: 1rem;
+        }
+        
+        .timing-section {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .timing-section h3 {
+            margin: 0 0 1rem 0;
+            color: var(--text-secondary);
+        }
+        
+        .timing-details {
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+        
+    </style>
+    <script>
         // ── tofUI Maze theme bridge ──────────────────────────────────────────
         (function () {
             var root = document.documentElement;
@@ -827,392 +877,53 @@
             });
         })();
         </script>
-    </head>
-    <body>
-        <div class="container">
-            
+</head>
+<body>
+    <div class="container">
+        
         <div class="header">
-            <div class="plan-name"><strong>no-changes-example</strong></div>
-            <div class="meta-info"><strong>Generated:</strong> 2026-09-11 23:32:26 UTC</div>
+            <div class="plan-name"><strong>test-apply-report</strong></div>
+            <div class="meta-info"><strong>Generated:</strong> 2026-09-11 23:32:27 UTC</div>
         </div>
         
-            
+        
         <div class="state-card state-card--nochange">
-            <div class="state-card__icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
-            </div>
-            <h2 class="state-card__title">No changes</h2>
-            <p class="state-card__body">Your infrastructure matches the configuration.</p>
+            <div class="state-card__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+            <h2 class="state-card__title">Nothing to do</h2>
+            <p class="state-card__body">No changes were required. Infrastructure is up to date.</p>
+            
         </div>
         
-            
-            
-            
-            
+        
+        <div class="terminal-section">
+            <div class="terminal-header">
+                <h3>Logs</h3>
+                <button class="copy-btn" onclick="copyToClipboard('terminal-output')">Copy</button>
+            </div>
+            <div class="terminal-container">
+                <pre id="terminal-output" class="terminal-output">Loading logs...</pre>
+            </div>
+        </div>
+        
+        
+        
         <div class="tofui-watermark">
             Generated by <a href="https://github.com/65156/tofUI" target="_blank" rel="noopener">tofUI v2.0.0</a>
         </div>
         
-        </div>
+    </div>
+    
+    <script>
+        const TOFUI_LOG_URL = null;
         
-        <script>
-            // Embedded plan data
-            const planData = {"summary": {"create": 0, "update": 0, "delete": 0, "has_changes": false}, "actions": [], "properties": []};
-            const TOFUI_LOG_URL = null;
-
-            
-        // Initialize the application
+        // Initialize the apply page
         document.addEventListener('DOMContentLoaded', function() {
-            initializeFilters();
-            initializeSearch();
-            initializeToggleButtons();
-            initializeColumnResizers();
-
-            // Initially collapse all resources
+            // Initialize collapsible elements
             collapseAllResources();
-
-            // Apply filters + counts, then honor any deep link (#address)
-            applyFilters();
-            handleDeepLink();
-
+            
             // Auto-load logs
             autoLoadLogs();
         });
-        
-        function initializeFilters() {
-            // Property filters (hide properties)
-            const propertyFilters = document.querySelectorAll('#property-filters input[type="checkbox"]');
-            propertyFilters.forEach(filter => {
-                filter.addEventListener('change', applyFilters);
-            });
-            
-            // Always sort by action priority
-            applySorting();
-        }
-        
-        function initializeToggleButtons() {
-            // Expand/collapse all — icon button; rotate SVG chevron to show state
-            const toggleBtn = document.getElementById('toggle-all');
-            const toggleIcon = document.getElementById('toggle-all-icon');
-            let allExpanded = false;
-
-            if (toggleBtn) {
-                toggleBtn.addEventListener('click', function() {
-                    allExpanded = !allExpanded;
-                    if (allExpanded) {
-                        expandAllResources();
-                        toggleBtn.title = 'Collapse all';
-                        toggleBtn.setAttribute('aria-label', 'Collapse all resources');
-                        if (toggleIcon) toggleIcon.style.transform = 'rotate(180deg)';
-                    } else {
-                        collapseAllResources();
-                        toggleBtn.title = 'Expand all';
-                        toggleBtn.setAttribute('aria-label', 'Expand all resources');
-                        if (toggleIcon) toggleIcon.style.transform = '';
-                    }
-                });
-            }
-
-            // Properties panel toggle
-            const propsBtn = document.getElementById('props-btn');
-            const propsPanel = document.getElementById('props-panel');
-            if (propsBtn && propsPanel) {
-                propsBtn.addEventListener('click', function() {
-                    const open = propsPanel.hidden;
-                    propsPanel.hidden = !open;
-                    propsBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
-                });
-            }
-        }
-        
-        function toggleResource(header) {
-            const resourceChange = header.closest('.resource-change');
-            resourceChange.classList.toggle('collapsed');
-        }
-        
-        function expandAllResources() {
-            const resources = document.querySelectorAll('.resource-change');
-            resources.forEach(resource => {
-                resource.classList.remove('collapsed');
-            });
-        }
-        
-        function collapseAllResources() {
-            const resources = document.querySelectorAll('.resource-change');
-            resources.forEach(resource => {
-                resource.classList.add('collapsed');
-            });
-        }
-        
-        function initializeSearch() {
-            const search = document.getElementById('resource-search');
-            const clear = document.getElementById('search-clear');
-
-            if (search) {
-                search.addEventListener('input', function() {
-                    if (clear) clear.classList.toggle('visible', search.value.length > 0);
-                    applyFilters();
-                });
-            }
-            if (clear) {
-                clear.addEventListener('click', function() {
-                    if (search) { search.value = ''; search.focus(); }
-                    clear.classList.remove('visible');
-                    applyFilters();
-                });
-            }
-
-            // Action filter chips toggle their action on/off
-            document.querySelectorAll('#action-chips .chip').forEach(chip => {
-                chip.addEventListener('click', function() {
-                    chip.classList.toggle('active');
-                    applyFilters();
-                });
-            });
-
-            // "Show all" reset in the filter notice
-            const reset = document.getElementById('filter-reset');
-            if (reset) reset.addEventListener('click', resetFilters);
-
-            // Keyboard: '/' focuses search, Esc clears/blurs it
-            document.addEventListener('keydown', function(e) {
-                if (e.key === '/' && document.activeElement !== search) {
-                    e.preventDefault();
-                    if (search) search.focus();
-                } else if (e.key === 'Escape' && document.activeElement === search) {
-                    search.value = '';
-                    if (clear) clear.classList.remove('visible');
-                    applyFilters();
-                    search.blur();
-                }
-            });
-        }
-
-        function getActiveActions() {
-            const chips = document.querySelectorAll('#action-chips .chip');
-            if (!chips.length) return null; // no chips => don't filter by action
-            const active = new Set();
-            chips.forEach(c => { if (c.classList.contains('active')) active.add(c.dataset.action); });
-            return active;
-        }
-
-        function applyFilters() {
-            // 1) Property-level hiding (the "Hide Properties" checkboxes)
-            const hiddenProperties = Array.from(
-                document.querySelectorAll('#property-filters input[type="checkbox"]:checked')
-            ).map(input => input.value);
-
-            const propertyRows = document.querySelectorAll('.property-change');
-            propertyRows.forEach(row => {
-                const property = row.dataset.property;
-                const nameEl = row.querySelector('.property-name');
-                const propertyPath = nameEl ? nameEl.textContent.trim() : '';
-
-                let shouldHide = false;
-                for (const hiddenProp of hiddenProperties) {
-                    if (property === hiddenProp) { shouldHide = true; break; }
-                    if (hiddenProp === 'tags_all' && (property === 'tags' || propertyPath.startsWith('tags.'))) { shouldHide = true; break; }
-                    if (propertyPath.startsWith(hiddenProp + '.')) { shouldHide = true; break; }
-                }
-                row.style.display = shouldHide ? 'none' : 'table-row';
-            });
-
-            // 2) Resource-level filtering by search text + active action chips.
-            //    Scoped to the main plan groups so the Outputs section (which
-            //    reuses .resource-change with data-action="read") is untouched.
-            const container = document.getElementById('resource-groups');
-            const search = document.getElementById('resource-search');
-            const q = (search ? search.value : '').trim().toLowerCase();
-            const activeActions = getActiveActions();
-
-            const resources = container ? Array.from(container.querySelectorAll('.resource-change')) : [];
-            let visibleCount = 0;
-            resources.forEach(res => {
-                const haystack = (
-                    (res.dataset.address || '') + ' ' +
-                    (res.dataset.type || '') + ' ' +
-                    (res.dataset.provider || '') + ' ' +
-                    (res.dataset.module || '')
-                ).toLowerCase();
-                const matchesSearch = !q || haystack.indexOf(q) !== -1;
-                const matchesAction = !activeActions || activeActions.has(res.dataset.action);
-                const show = matchesSearch && matchesAction;
-                res.style.display = show ? '' : 'none';
-                if (show) visibleCount++;
-            });
-
-            // 3) Update group visibility + header counts to reflect what's visible
-            const groups = container ? container.querySelectorAll('.resource-group') : [];
-            groups.forEach(group => {
-                const groupResources = Array.from(group.querySelectorAll('.resource-change'));
-                const visible = groupResources.filter(r => r.style.display !== 'none').length;
-                group.style.display = visible === 0 ? 'none' : 'block';
-                const heading = group.querySelector('.group-header h3');
-                if (heading && group.dataset.resourceType) {
-                    const label = group.dataset.resourceType.charAt(0).toUpperCase() + group.dataset.resourceType.slice(1);
-                    heading.textContent = `${label} (${visible} resource${visible === 1 ? '' : 's'})`;
-                }
-            });
-
-            // 4) Results counter + empty state
-            const rc = document.getElementById('results-count');
-            if (rc) rc.textContent = `Showing ${visibleCount} of ${resources.length}`;
-            const nr = document.getElementById('no-results');
-            if (nr) nr.classList.toggle('visible', resources.length > 0 && visibleCount === 0);
-
-            // 5) Inline warning when any filter is active
-            const chips = document.querySelectorAll('#action-chips .chip');
-            const filtersActive = q.length > 0 || (activeActions !== null && activeActions.size < chips.length);
-            const notice = document.getElementById('filter-notice');
-            if (notice) {
-                notice.classList.toggle('visible', filtersActive);
-                const nt = document.getElementById('filter-notice-text');
-                if (nt) nt.textContent = `Filters are active — showing ${visibleCount} of ${resources.length} resources.`;
-            }
-        }
-
-        function resetFilters() {
-            const search = document.getElementById('resource-search');
-            const clear = document.getElementById('search-clear');
-            if (search) search.value = '';
-            if (clear) clear.classList.remove('visible');
-            document.querySelectorAll('#action-chips .chip').forEach(c => c.classList.add('active'));
-            applyFilters();
-        }
-
-        function initializeColumnResizers() {
-            document.querySelectorAll('.resizable-table .col-resizer').forEach(function(res) {
-                res.addEventListener('mousedown', startColumnResize);
-            });
-        }
-
-        function startColumnResize(e) {
-            e.preventDefault();
-            const resizer = e.currentTarget;
-            const table = resizer.closest('table');
-            const beforeCol = table.querySelector('col.col-before');
-            const afterCol = table.querySelector('col.col-after');
-            const beforeTh = table.querySelector('.col-h-before');
-            const afterTh = table.querySelector('.col-h-after');
-            if (!beforeCol || !afterCol || !beforeTh || !afterTh) return;
-
-            const startX = e.clientX;
-            const startBefore = beforeTh.offsetWidth;
-            const pairWidth = startBefore + afterTh.offsetWidth;
-            const tableWidth = table.getBoundingClientRect().width;
-            const minW = 60;
-            resizer.classList.add('dragging');
-            document.body.style.userSelect = 'none';
-
-            function onMove(ev) {
-                let newBefore = startBefore + (ev.clientX - startX);
-                newBefore = Math.max(minW, Math.min(pairWidth - minW, newBefore));
-                beforeCol.style.width = (newBefore / tableWidth * 100) + '%';
-                afterCol.style.width = ((pairWidth - newBefore) / tableWidth * 100) + '%';
-            }
-            function onUp() {
-                resizer.classList.remove('dragging');
-                document.body.style.userSelect = '';
-                document.removeEventListener('mousemove', onMove);
-                document.removeEventListener('mouseup', onUp);
-            }
-            document.addEventListener('mousemove', onMove);
-            document.addEventListener('mouseup', onUp);
-        }
-
-        function handleDeepLink() {
-            if (!location.hash || location.hash.length < 2) return;
-            const addr = decodeURIComponent(location.hash.slice(1));
-            let el = null;
-            try {
-                el = document.querySelector('.resource-change[data-address="' + (window.CSS && CSS.escape ? CSS.escape(addr) : addr) + '"]');
-            } catch (e) { return; }
-            if (!el) return;
-            el.classList.remove('collapsed');
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            el.classList.add('highlighted');
-            setTimeout(() => el.classList.remove('highlighted'), 2200);
-        }
-        
-        function applySorting() {
-            const resourceGroupsContainer = document.getElementById('resource-groups');
-            if (!resourceGroupsContainer) return; // No resources to sort
-            
-            const resourceGroups = Array.from(resourceGroupsContainer.querySelectorAll('.resource-group'));
-            
-            // Always use priority-based sorting: delete → replace → update → create
-            const actionPriority = {
-                'delete': 1,
-                'replace': 2,
-                'update': 3,
-                'create': 4
-            };
-            
-            // Collect all resources from all groups
-            const allResources = [];
-            resourceGroups.forEach(group => {
-                const resources = Array.from(group.querySelectorAll('.resource-change'));
-                resources.forEach(resource => {
-                    allResources.push({
-                        element: resource,
-                        action: resource.dataset.action,
-                        address: resource.dataset.address
-                    });
-                });
-            });
-            
-            // Sort by action priority, then by address
-            allResources.sort((a, b) => {
-                const priorityA = actionPriority[a.action] || 999;
-                const priorityB = actionPriority[b.action] || 999;
-                
-                if (priorityA !== priorityB) {
-                    return priorityA - priorityB;
-                }
-                return a.address.localeCompare(b.address);
-            });
-            
-            // Clear existing groups and create new action-based groups
-            resourceGroupsContainer.innerHTML = '';
-            
-            const actionGroups = {};
-            allResources.forEach(resource => {
-                const action = resource.action;
-                if (!actionGroups[action]) {
-                    actionGroups[action] = [];
-                }
-                actionGroups[action].push(resource.element);
-            });
-            
-            // Create HTML for action groups in priority order
-            Object.keys(actionPriority).forEach(action => {
-                if (actionGroups[action] && actionGroups[action].length > 0) {
-                    const groupDiv = document.createElement('div');
-                    groupDiv.className = 'resource-group';
-                    groupDiv.dataset.resourceType = action;
-                    
-                    const count = actionGroups[action].length;
-                    const actionTitle = action.charAt(0).toUpperCase() + action.slice(1);
-                    
-                    groupDiv.innerHTML = `
-                        <div class="group-header">
-                            <h3>${actionTitle} (${count} resources)</h3>
-                        </div>
-                        <div class="group-resources"></div>
-                    `;
-                    
-                    const resourcesContainer = groupDiv.querySelector('.group-resources');
-                    actionGroups[action].forEach(resourceElement => {
-                        resourcesContainer.appendChild(resourceElement);
-                    });
-                    
-                    resourceGroupsContainer.appendChild(groupDiv);
-                }
-            });
-            
-            // Re-apply filters after sorting
-            applyFilters();
-        }
         
         function autoLoadLogs() {
             // Try different log locations based on environment
@@ -1279,6 +990,18 @@
                 .catch(() => tryLoadLog(urls, index + 1));
         }
         
+        function toggleResource(header) {
+            const resourceChange = header.closest('.resource-change');
+            resourceChange.classList.toggle('collapsed');
+        }
+        
+        function collapseAllResources() {
+            const resources = document.querySelectorAll('.resource-change');
+            resources.forEach(resource => {
+                resource.classList.add('collapsed');
+            });
+        }
+        
         function copyToClipboard(elementId) {
             const element = document.getElementById(elementId);
             const text = element.textContent;
@@ -1300,6 +1023,6 @@
             });
         }
         
-        </script>
-    </body>
-    </html>
+    </script>
+</body>
+</html>

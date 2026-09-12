@@ -1,0 +1,15 @@
+{
+  "_description": "tofUI preset for embedding inside Maze UI. Header and footer are suppressed so the report slots cleanly into the Maze chrome. Uses maze-auto theme: follows Maze postMessage for dark/light switching with OS preference as fallback.",
+  "sections": {
+    "header": false,
+    "footer": false
+  },
+  "theme": "maze-auto",
+  "properties": {
+    "available_to_hide": ["tags", "tags_all", "timeouts"],
+    "hidden_by_default": ["tags_all"]
+  },
+  "display": {
+    "expand_all_default": false
+  }
+}

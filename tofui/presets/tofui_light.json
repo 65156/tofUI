@@ -1,0 +1,15 @@
+{
+  "_description": "tofUI preset for standalone light-mode use. All sections visible, Maze light palette (warm cream / blue accents).",
+  "sections": {
+    "header": true,
+    "footer": true
+  },
+  "theme": "maze-light",
+  "properties": {
+    "available_to_hide": ["tags", "tags_all", "timeouts"],
+    "hidden_by_default": ["tags_all"]
+  },
+  "display": {
+    "expand_all_default": false
+  }
+}

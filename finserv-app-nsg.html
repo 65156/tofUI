@@ -3,156 +3,60 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>tofUI - has-changes-example</title>
+        <title>tofUI - finserv-app-nsg</title>
         <style>
             :root {
-    --bg-page: #f8f7f5;
+    --bg-page: #f8f9fa;
     --bg-surface: #ffffff;
-    --bg-muted: #f3f2ef;
+    --bg-muted: #f8f9fa;
     --bg-header: #4b5563;
-    --text-primary: #18181b;
-    --text-secondary: #52525b;
-    --text-muted: #71717a;
-    --text-tertiary: #a1a1aa;
-    --border: #d4d1cb;
-    --border-strong: #9ca3af;
-    --accent-create: #2563eb;
-    --accent-update: #d97706;
-    --accent-delete: #dc2626;
-    --accent-replace: #6d28d9;
-    --accent-read: #9ca3af;
-    --chip-create-bg: #dbeafe;
-    --chip-create-fg: #1e40af;
-    --chip-update-bg: #fef3c7;
-    --chip-update-fg: #92400e;
-    --chip-delete-bg: #fee2e2;
-    --chip-delete-fg: #991b1b;
-    --chip-replace-bg: #ede9fb;
-    --chip-replace-fg: #4c1d95;
-    --diff-add-bg: #dbeafe;
-    --diff-add-fg: #1e40af;
-    --diff-del-bg: #fee2e2;
-    --diff-del-fg: #991b1b;
-    --diff-mod-bg: #fef3c7;
-    --diff-mod-fg: #92400e;
+    --text-primary: #212529;
+    --text-secondary: #495057;
+    --text-muted: #6c757d;
+    --text-tertiary: #adb5bd;
+    --border: #e9ecef;
+    --border-strong: #dee2e6;
+    --accent-create: #28a745;
+    --accent-update: #ffc107;
+    --accent-delete: #dc3545;
+    --accent-replace: #6f42c1;
+    --accent-read: #6c757d;
+    --chip-create-bg: #e8f6ee;
+    --chip-create-fg: #1a7f37;
+    --chip-update-bg: #fff6db;
+    --chip-update-fg: #7a5b00;
+    --chip-delete-bg: #fdeaea;
+    --chip-delete-fg: #9b2c2c;
+    --chip-replace-bg: #f2ecfa;
+    --chip-replace-fg: #4d2d8a;
+    --diff-add-bg: #d4edda;
+    --diff-add-fg: #155724;
+    --diff-del-bg: #f8d7da;
+    --diff-del-fg: #721c24;
+    --diff-mod-bg: #fff3cd;
+    --diff-mod-fg: #856404;
     --terminal-bg: #1e1e1e;
     --terminal-fg: #d4d4d4;
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
-    --radius-sm: 4px;
-    --radius-md: 6px;
-    --radius-lg: 10px;
-}
-
-/* Explicit Maze postMessage override — dark */
-:root[data-theme="dark"] {
-    --bg-page: #09090b;
-    --bg-surface: #111113;
-    --bg-muted: #18181b;
-    --bg-header: #27272a;
-    --text-primary: #fafafa;
-    --text-secondary: #a1a1aa;
-    --text-muted: #71717a;
-    --text-tertiary: #52525b;
-    --border: #2a2a2f;
-    --border-strong: #52525b;
-    --accent-create: #3b82f6;
-    --accent-update: #f59e0b;
-    --accent-delete: #ef4444;
-    --accent-replace: #7c3aed;
-    --accent-read: #52525b;
-    --chip-create-bg: #0c1a2e;
-    --chip-create-fg: #93c5fd;
-    --chip-update-bg: #1c1000;
-    --chip-update-fg: #fcd34d;
-    --chip-delete-bg: #1f0808;
-    --chip-delete-fg: #fca5a5;
-    --chip-replace-bg: #1a0a3d;
-    --chip-replace-fg: #c4b5fd;
-    --diff-add-bg: #0c1a2e;
-    --diff-add-fg: #93c5fd;
-    --diff-del-bg: #1f0808;
-    --diff-del-fg: #fca5a5;
-    --diff-mod-bg: #1c1000;
-    --diff-mod-fg: #fcd34d;
-    --terminal-bg: #010409;
-    --terminal-fg: #e6edf3;
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.6);
-    --radius-sm: 4px;
-    --radius-md: 6px;
-    --radius-lg: 10px;
-}
-
-/* OS/browser preference fallback when no explicit data-theme is set */
-@media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-        --bg-page: #09090b;
-    --bg-surface: #111113;
-    --bg-muted: #18181b;
-    --bg-header: #27272a;
-    --text-primary: #fafafa;
-    --text-secondary: #a1a1aa;
-    --text-muted: #71717a;
-    --text-tertiary: #52525b;
-    --border: #2a2a2f;
-    --border-strong: #52525b;
-    --accent-create: #3b82f6;
-    --accent-update: #f59e0b;
-    --accent-delete: #ef4444;
-    --accent-replace: #7c3aed;
-    --accent-read: #52525b;
-    --chip-create-bg: #0c1a2e;
-    --chip-create-fg: #93c5fd;
-    --chip-update-bg: #1c1000;
-    --chip-update-fg: #fcd34d;
-    --chip-delete-bg: #1f0808;
-    --chip-delete-fg: #fca5a5;
-    --chip-replace-bg: #1a0a3d;
-    --chip-replace-fg: #c4b5fd;
-    --diff-add-bg: #0c1a2e;
-    --diff-add-fg: #93c5fd;
-    --diff-del-bg: #1f0808;
-    --diff-del-fg: #fca5a5;
-    --diff-mod-bg: #1c1000;
-    --diff-mod-fg: #fcd34d;
-    --terminal-bg: #010409;
-    --terminal-fg: #e6edf3;
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
-    --shadow-md: 0 4px 16px rgba(0,0,0,0.6);
-    --radius-sm: 4px;
-    --radius-md: 6px;
-    --radius-lg: 10px;
-    }
 }
             
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
-        *, *::before, *::after {
+        * {
             box-sizing: border-box;
-            margin: 0;
-            padding: 0;
         }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            font-size: 14px;
-            line-height: 1.5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
             background-color: var(--bg-page);
             color: var(--text-primary);
-            -webkit-font-smoothing: antialiased;
         }
 
-        /* Scrollbars — Maze style */
-        ::-webkit-scrollbar              { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track        { background: transparent; }
-        ::-webkit-scrollbar-thumb        { background: var(--border); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover  { background: var(--border-strong); }
-
         .container {
-            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
             background: var(--bg-surface);
-            min-height: 100%;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
@@ -195,14 +99,10 @@
             border-bottom: 1px solid var(--border);
         }
         .state-card__icon {
-            display: flex;
-            justify-content: center;
+            font-size: 2rem;
+            line-height: 1;
             margin-bottom: 0.75rem;
             color: var(--text-muted);
-        }
-        .state-card__icon svg {
-            width: 2rem;
-            height: 2rem;
         }
         .state-card__title {
             margin: 0 0 0.5rem 0;
@@ -229,7 +129,7 @@
         .stat-item {
             text-align: center;
             padding: 0.4rem 0.6rem;
-            border-radius: var(--radius-sm);
+            border-radius: 4px;
             background: var(--bg-muted);
             min-width: 52px;
         }
@@ -256,76 +156,108 @@
             letter-spacing: 0.3px;
         }
 
-        /* ── Toolbar (single sticky row: search + chips + icon buttons) ──── */
+        .filters {
+            padding: 1.5rem 2rem;
+            background: var(--bg-muted);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .filter-section h3 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        
+        .filter-checkbox input {
+            margin: 0;
+        }
+
+        /* Search + filter toolbar */
         .toolbar {
             position: sticky;
             top: 0;
             z-index: 20;
             display: flex;
-            flex-wrap: nowrap;
+            flex-wrap: wrap;
             align-items: center;
-            gap: 0.5rem 0.6rem;
-            padding: 0.45rem 0.8rem;
+            gap: 0.75rem 1rem;
+            padding: 1rem 2rem;
             background: var(--bg-surface);
             border-bottom: 1px solid var(--border);
-            box-shadow: var(--shadow-sm);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
         .toolbar-search {
             position: relative;
-            flex: 1 1 180px;
-            min-width: 140px;
+            flex: 1 1 260px;
+            min-width: 200px;
         }
         #resource-search {
             width: 100%;
-            height: 30px;
-            padding: 0 1.8rem 0 0.7rem;
-            font-size: 0.82rem;
+            height: 38px;
+            padding: 0 2.1rem 0 0.85rem;
+            font-size: 0.95rem;
             border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
+            border-radius: 6px;
             outline: none;
             box-sizing: border-box;
-            background: var(--bg-muted);
+            background: var(--bg-surface);
             color: var(--text-primary);
         }
         #resource-search:focus {
             border-color: var(--border-strong);
-            background: var(--bg-surface);
+            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
         }
         .search-clear {
             position: absolute;
-            right: 0.4rem;
+            right: 0.5rem;
             top: 50%;
             transform: translateY(-50%);
             border: none;
             background: transparent;
             cursor: pointer;
             color: var(--text-tertiary);
-            font-size: 0.78rem;
+            font-size: 0.85rem;
             line-height: 1;
-            padding: 0.2rem;
+            padding: 0.25rem;
             display: none;
         }
         .search-clear.visible { display: block; }
-
-        .chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
+        .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
         .chip {
             display: inline-flex;
             align-items: center;
-            gap: 0.3rem;
-            height: 26px;
-            padding: 0 0.6rem;
-            border-radius: var(--radius-sm);
+            gap: 0.4rem;
+            height: 38px;
+            padding: 0 0.9rem;
+            border-radius: 4px;
             border: 1px solid var(--border);
-            border-left: 3px solid var(--border);
+            border-left: 4px solid var(--border);
             background: var(--bg-surface);
             color: var(--text-tertiary);
-            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
-            font-size: 0.75rem;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-size: 0.82rem;
             font-weight: 500;
             cursor: pointer;
             user-select: none;
             box-sizing: border-box;
-            transition: background 0.1s ease, color 0.1s ease;
+            transition: background 0.12s ease, color 0.12s ease;
         }
         .chip:not(.active):hover { background: var(--bg-muted); }
         .chip.active { color: var(--text-primary); border-color: transparent; }
@@ -336,84 +268,34 @@
         .chip-count {
             font-variant-numeric: tabular-nums;
             font-weight: 600;
-            background: rgba(0,0,0,0.06);
-            border-radius: var(--radius-sm);
-            padding: 0 0.3rem;
+            background: rgba(0, 0, 0, 0.06);
+            border-radius: 3px;
+            padding: 0 0.4rem;
         }
-        .chip.active .chip-count { background: rgba(0,0,0,0.10); }
-
-        /* Toolbar right cluster: count + icon buttons */
-        .toolbar-right {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-            flex-shrink: 0;
-        }
+        .chip.active .chip-count { background: rgba(0, 0, 0, 0.10); }
         .results-count {
-            font-size: 0.75rem;
+            margin-left: auto;
+            font-size: 0.85rem;
             color: var(--text-muted);
             white-space: nowrap;
-            padding-right: 0.35rem;
         }
-        .toolbar-icon-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 26px;
-            height: 26px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            background: var(--bg-surface);
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: 0;
-            transition: background 0.1s ease, color 0.1s ease;
-            flex-shrink: 0;
-        }
-        .toolbar-icon-btn:hover { background: var(--bg-muted); color: var(--text-primary); }
-        .toolbar-icon-btn[aria-expanded="true"] { background: var(--bg-muted); color: var(--text-primary); }
-
-        /* Properties dropdown panel */
-        .props-panel {
-            background: var(--bg-surface);
-            border-bottom: 1px solid var(--border);
-            padding: 0.55rem 0.8rem;
-        }
-        .props-panel[hidden] { display: none; }
-        .props-panel__inner {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.3rem 0.8rem;
-        }
-        .filter-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            font-size: 0.8rem;
-            cursor: pointer;
-            color: var(--text-secondary);
-        }
-        .filter-checkbox input { margin: 0; cursor: pointer; }
-
-        /* Filter active notice */
         .no-results {
             display: none;
-            padding: 2rem 1rem;
+            padding: 3rem 2rem;
             text-align: center;
             color: var(--text-muted);
-            font-size: 0.85rem;
+            font-size: 0.95rem;
         }
         .no-results.visible { display: block; }
         .filter-notice {
             display: none;
             align-items: center;
-            gap: 0.6rem;
-            padding: 0.45rem 0.8rem;
+            gap: 0.85rem;
+            padding: 1.1rem 2rem;
             background: var(--diff-mod-bg);
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--border-strong);
             color: var(--diff-mod-fg);
-            font-size: 0.78rem;
+            font-size: 1.05rem;
             font-weight: 500;
         }
         .filter-notice.visible { display: flex; }
@@ -421,94 +303,101 @@
         .filter-reset {
             margin-left: auto;
             border: 1px solid var(--border-strong);
-            background: transparent;
+            background: var(--bg-surface);
             color: var(--diff-mod-fg);
-            padding: 0.2rem 0.5rem;
-            border-radius: var(--radius-sm);
-            font-size: 0.75rem;
+            padding: 0.45rem 0.9rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
             font-weight: 500;
             cursor: pointer;
         }
-        .filter-reset:hover { opacity: 0.8; }
+        .filter-reset:hover { background: #fffdf5; }
         .resource-change.highlighted {
-            box-shadow: 0 0 0 2px var(--accent-replace);
-            border-radius: var(--radius-md);
+            box-shadow: 0 0 0 3px rgba(75, 85, 99, 0.6);
+            border-radius: 8px;
         }
 
-        /* ── Resource groups ─────────────────────────────────────────────── */
-        .resource-groups { padding: 0.6rem; }
+        .btn {
+            background: var(--bg-header);
+            color: #fff;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .btn:hover { opacity: 0.85; }
+
+        .sort-dropdown {
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-size: 0.9rem;
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+
+        .resource-groups {
+            padding: 1.2rem;
+        }
 
         .resource-group {
-            margin-bottom: 0.35rem;
+            margin-bottom: 0.4rem;
             border: 1px solid var(--border);
-            border-radius: var(--radius-md);
+            border-radius: 8px;
             overflow: hidden;
         }
 
         .group-header {
             background: var(--bg-muted);
-            padding: 0.35rem 0.65rem;
+            padding: 0.6rem;
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
+
         .group-header h3 {
             margin: 0;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            color: var(--text-muted);
+            color: var(--text-secondary);
         }
 
-        .group-resources { padding: 0.35rem; }
+        .group-resources {
+            padding: 1rem;
+        }
 
         .resource-change {
             border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            margin-bottom: 0.3rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
             overflow: hidden;
         }
 
-        .resource-change.create  { border-left: 4px solid var(--accent-create); }
-        .resource-change.update  { border-left: 4px solid var(--accent-update); }
-        .resource-change.delete  { border-left: 4px solid var(--accent-delete); }
-        .resource-change.replace { border-left: 4px solid var(--accent-replace); }
-        .resource-change.read    { border-left: 4px solid var(--accent-read); }
+        .resource-change.create  { border-left: 16px solid var(--accent-create); }
+        .resource-change.update  { border-left: 16px solid var(--accent-update); }
+        .resource-change.delete  { border-left: 16px solid var(--accent-delete); }
+        .resource-change.replace { border-left: 16px solid var(--accent-replace); }
+        .resource-change.read    { border-left: 16px solid var(--accent-read); }
 
         .resource-header {
-            padding: 0.45rem 0.7rem;
+            padding: 1rem;
             background: var(--bg-muted);
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.75rem;
             user-select: none;
-            min-height: 34px;
         }
         .resource-header:hover { background: var(--border); }
 
         .resource-address {
-            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
-            font-size: 0.8rem;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
             font-weight: 500;
             flex: 1;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
         }
 
-        .toggle-indicator {
-            display: flex;
-            align-items: center;
-            flex-shrink: 0;
-            width: 16px;
-            height: 16px;
-            color: var(--text-muted);
-            transition: transform 0.2s;
-        }
-        .toggle-indicator svg { width: 16px; height: 16px; }
+        .toggle-indicator { transition: transform 0.2s; }
 
         .resource-change.collapsed .toggle-indicator {
             transform: rotate(-90deg);
@@ -541,13 +430,13 @@
         .output-item {
             background: var(--bg-muted);
             border: 1px solid var(--border);
-            border-radius: var(--radius-md);
+            border-radius: 6px;
             overflow: hidden;
         }
         .output-name {
             background: var(--border);
             padding: 0.75rem;
-            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
             font-weight: 500;
             color: var(--text-secondary);
             border-bottom: 1px solid var(--border-strong);
@@ -555,7 +444,7 @@
         .output-details { padding: 0.75rem; }
         .output-value {
             margin: 0 0 0.5rem 0;
-            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
             font-size: 0.85rem;
             white-space: pre-wrap;
             word-break: break-all;
@@ -572,12 +461,12 @@
             font-style: italic;
             background: var(--bg-muted);
             padding: 0.25rem 0.5rem;
-            border-radius: var(--radius-sm);
+            border-radius: 3px;
         }
 
         .command-box {
             background: var(--bg-muted);
-            border-radius: var(--radius-md);
+            border-radius: 6px;
             padding: 0.2rem;
             margin: 0.2rem 0;
         }
@@ -585,8 +474,8 @@
             background: var(--terminal-bg);
             color: var(--terminal-fg);
             padding: 0.6rem 0.8rem;
-            border-radius: var(--radius-sm);
-            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            border-radius: 4px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
             margin-top: 0.75rem;
         }
 
@@ -610,23 +499,23 @@
             color: var(--bg-surface);
             border: none;
             padding: 0.4rem 0.85rem;
-            border-radius: var(--radius-sm);
+            border-radius: 4px;
             cursor: pointer;
             font-size: 0.85rem;
         }
         .copy-btn:hover { opacity: 0.8; }
         .terminal-container {
             background: var(--terminal-bg);
-            border-radius: var(--radius-lg);
+            border-radius: 8px;
             overflow: hidden;
-            box-shadow: var(--shadow-md);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         .terminal-output {
             background: var(--terminal-bg);
             color: var(--terminal-fg);
             padding: 1.5rem;
             margin: 0;
-            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
             font-size: 0.9rem;
             line-height: 1.4;
             white-space: pre-wrap;
@@ -690,7 +579,7 @@
             vertical-align: top;
         }
         .property-name {
-            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
             font-weight: 500;
             color: var(--text-secondary);
             width: 25%;
@@ -702,7 +591,7 @@
         }
         .before-value pre, .after-value pre {
             margin: 0;
-            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
             font-size: 0.85rem;
             white-space: pre-wrap;
             word-break: break-all;
@@ -711,7 +600,7 @@
             overflow: auto;
             background: var(--bg-muted);
             border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
+            border-radius: 4px;
             padding: 0.5rem;
         }
         .before-value pre.long-value, .after-value pre.long-value {
@@ -720,7 +609,7 @@
             word-break: normal;
         }
         .long-simple-value {
-            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
             font-size: 0.8rem;
             white-space: nowrap;
             overflow-x: auto;
@@ -728,12 +617,12 @@
             max-width: 100%;
             padding: 0.5rem;
             border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
+            border-radius: 4px;
             background: var(--bg-muted);
         }
         .complex-value {
             margin: 0;
-            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
             font-size: 0.75rem;
             white-space: pre-wrap;
             word-break: normal;
@@ -743,7 +632,7 @@
             overflow: auto;
             background: var(--bg-muted);
             border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
+            border-radius: 4px;
             padding: 0.5rem;
             line-height: 1.2;
         }
@@ -754,6 +643,19 @@
         .property-change.modification .before-value { background: var(--diff-mod-bg); color: var(--diff-mod-fg); }
         .property-change.modification .after-value  { background: var(--diff-add-bg); color: var(--diff-add-fg); }
         .resource-change.replace .property-change .before-value { background: var(--diff-del-bg); color: var(--diff-del-fg); }
+
+        .filter-divider {
+            width: 1px;
+            background: var(--border-strong);
+            height: 4rem;
+            margin: 0 1rem;
+            visibility: hidden;
+        }
+        .control-section {
+            display: flex;
+            align-items: flex-start;
+            padding-top: 0.25rem;
+        }
 
         /* Footer */
         .footer {
@@ -778,7 +680,7 @@
             color: #fff;
             text-decoration: none;
             padding: 0.5rem 1rem;
-            border-radius: var(--radius-sm);
+            border-radius: 4px;
             font-size: 0.9rem;
         }
         .footer-btn:hover { opacity: 0.85; }
@@ -796,44 +698,32 @@
         }
         .tofui-watermark a:hover { text-decoration: underline; }
 
+        .highlighted {
+            box-shadow: 0 0 0 3px rgba(75, 85, 99, 0.6);
+            border-radius: 8px;
+        }
         .hidden { display: none !important; }
 
-        @media (max-width: 600px) {
-            .toolbar { flex-wrap: wrap; }
-            .chips { order: 2; width: 100%; }
-            .toolbar-right { order: 3; }
-            .properties-table { font-size: 0.75rem; }
+        @media (max-width: 768px) {
+            .header { padding: 1.5rem; }
+            .summary-stats { flex-direction: column; align-items: center; }
+            .filters { flex-direction: column; gap: 1rem; }
+            .resource-groups { padding: 1rem; }
+            .properties-table { font-size: 0.8rem; }
             .property-name { width: 30%; }
             .before-value, .after-value { width: 35%; }
+            .terminal-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
+            .terminal-output { font-size: 0.8rem; padding: 1rem; }
         }
         
         </style>
-        <script>
-        // ── tofUI Maze theme bridge ──────────────────────────────────────────
-        (function () {
-            var root = document.documentElement;
-            // Restore last known theme immediately (avoids flash)
-            try {
-                var saved = localStorage.getItem('tofui-theme');
-                if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
-            } catch (e) {}
-
-            window.addEventListener('message', function (e) {
-                if (!e.data || e.data.type !== 'theme') return;
-                var t = e.data.value;
-                if (t !== 'dark' && t !== 'light') return;
-                root.dataset.theme = t;
-                try { localStorage.setItem('tofui-theme', t); } catch (e) {}
-            });
-        })();
-        </script>
     </head>
     <body>
         <div class="container">
             
         <div class="header">
-            <div class="plan-name"><strong>has-changes-example</strong></div>
-            <div class="meta-info"><strong>Version:</strong> 1.9.5 • <strong>Generated:</strong> 2026-09-11 23:32:25 UTC</div>
+            <div class="plan-name"><strong>finserv-app-nsg</strong></div>
+            <div class="meta-info"><strong>Version:</strong> 1.9.5 • <strong>Generated:</strong> 2026-09-11 20:53:12 UTC</div>
         </div>
         
             
@@ -841,21 +731,17 @@
                 
         <div class="toolbar">
             <div class="toolbar-search">
-                <input type="search" id="resource-search" placeholder="Search resources…  (/)" autocomplete="off" spellcheck="false">
-                <button type="button" id="search-clear" class="search-clear" title="Clear" aria-label="Clear search">✕</button>
+                <input type="search" id="resource-search" placeholder="Search by name, type, or module…  (press /)" autocomplete="off" spellcheck="false">
+                <button type="button" id="search-clear" class="search-clear" title="Clear search" aria-label="Clear search">✕</button>
             </div>
             <div class="chips" id="action-chips"><button type="button" class="chip active" data-action="delete">Delete <span class="chip-count">7</span></button><button type="button" class="chip active" data-action="replace">Replace <span class="chip-count">3</span></button><button type="button" class="chip active" data-action="update">Update <span class="chip-count">5</span></button><button type="button" class="chip active" data-action="create">Create <span class="chip-count">6</span></button></div>
-            <div class="toolbar-right">
-                <span class="results-count" id="results-count"></span>
-                <button type="button" id="props-btn" class="toolbar-icon-btn" title="Hide properties" aria-expanded="false" aria-controls="props-panel"><svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M1 3h14v1.5H1zm2.5 4h9v1.5h-9zm2.5 4h4v1.5h-4z"/></svg></button>
-                <button type="button" id="toggle-all" class="toolbar-icon-btn" title="Expand all" aria-label="Expand all resources">
-                    <svg id="toggle-all-icon" viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
-                        <path d="M2 5l6 6 6-6z"/>
-                    </svg>
-                </button>
-            </div>
+            <div class="results-count" id="results-count"></div>
         </div>
-        <div id="props-panel" class="props-panel" hidden><div class="props-panel__inner" id="property-filters">
+        <div class="filters">
+            <div class="filter-section">
+                <h3>Hide Properties</h3>
+                <div class="filter-group" id="property-filters">
+                    
             <label class="filter-checkbox">
                 <input type="checkbox" value="tags" > tags
             </label>
@@ -867,10 +753,17 @@
             <label class="filter-checkbox">
                 <input type="checkbox" value="timeouts" > timeouts
             </label>
-            </div></div>
+            
+                </div>
+            </div>
+            <div class="filter-divider"></div>
+            <div class="control-section">
+                <button id="toggle-all" class="btn toggle-btn">Expand All</button>
+            </div>
+        </div>
         <div class="filter-notice" id="filter-notice" role="status">
-            <svg class="filter-notice-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
-            <span id="filter-notice-text">Filters active</span>
+            <svg class="filter-notice-icon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+            <span id="filter-notice-text">Filters are active — some resources are hidden.</span>
             <button type="button" id="filter-reset" class="filter-reset">Show all</button>
         </div>
         
@@ -886,7 +779,7 @@
         <div class="resource-change update" data-action="update" data-address="module.identity.aws_cloudwatch_log_group.orders_dev" data-type="aws_cloudwatch_log_group" data-provider="aws" data-module="identity">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">module.identity.aws_cloudwatch_log_group.orders_dev</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -940,7 +833,7 @@
         <div class="resource-change replace" data-action="replace" data-address="module.web.aws_cloudwatch_log_group.profile_prod" data-type="aws_cloudwatch_log_group" data-provider="aws" data-module="web">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">module.web.aws_cloudwatch_log_group.profile_prod</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -1000,7 +893,7 @@
         <div class="resource-change delete" data-action="delete" data-address="module.web.aws_cloudwatch_log_group.recommend_staging" data-type="aws_cloudwatch_log_group" data-provider="aws" data-module="web">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">module.web.aws_cloudwatch_log_group.recommend_staging</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -1102,7 +995,7 @@
         <div class="resource-change create" data-action="create" data-address="aws_cloudwatch_log_group.fraud_prod" data-type="aws_cloudwatch_log_group" data-provider="aws" data-module="root">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">aws_cloudwatch_log_group.fraud_prod</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -1207,7 +1100,7 @@
         <div class="resource-change update" data-action="update" data-address="aws_dynamodb_table.recommend_dev" data-type="aws_dynamodb_table" data-provider="aws" data-module="root">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">aws_dynamodb_table.recommend_dev</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -1270,7 +1163,7 @@
         <div class="resource-change delete" data-action="delete" data-address="module.identity.aws_iam_role.inventory_prod" data-type="aws_iam_role" data-provider="aws" data-module="identity">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">module.identity.aws_iam_role.inventory_prod</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -1395,7 +1288,7 @@
         <div class="resource-change create" data-action="create" data-address="module.identity.aws_iam_role.notify_staging" data-type="aws_iam_role" data-provider="aws" data-module="identity">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">module.identity.aws_iam_role.notify_staging</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -1523,7 +1416,7 @@
         <div class="resource-change replace" data-action="replace" data-address="module.streaming.aws_instance.orders_prod" data-type="aws_instance" data-provider="aws" data-module="streaming">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">module.streaming.aws_instance.orders_prod</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -1583,7 +1476,7 @@
         <div class="resource-change update" data-action="update" data-address="aws_instance.media_staging" data-type="aws_instance" data-provider="aws" data-module="root">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">aws_instance.media_staging</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -1652,7 +1545,7 @@
         <div class="resource-change create" data-action="create" data-address="aws_lambda_function.webhook_staging" data-type="aws_lambda_function" data-provider="aws" data-module="root">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">aws_lambda_function.webhook_staging</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -1790,7 +1683,7 @@
         <div class="resource-change update" data-action="update" data-address="aws_lb.loyalty_dev" data-type="aws_lb" data-provider="aws" data-module="root">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">aws_lb.loyalty_dev</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -1853,7 +1746,7 @@
         <div class="resource-change create" data-action="create" data-address="module.payments.aws_rds_cluster.gateway_prod" data-type="aws_rds_cluster" data-provider="aws" data-module="payments">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">module.payments.aws_rds_cluster.gateway_prod</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -1979,7 +1872,7 @@
         <div class="resource-change delete" data-action="delete" data-address="aws_rds_cluster.media_dev" data-type="aws_rds_cluster" data-provider="aws" data-module="root">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">aws_rds_cluster.media_dev</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -2111,7 +2004,7 @@
         <div class="resource-change replace" data-action="replace" data-address="aws_rds_cluster.audit_staging" data-type="aws_rds_cluster" data-provider="aws" data-module="root">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">aws_rds_cluster.audit_staging</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -2180,7 +2073,7 @@
         <div class="resource-change delete" data-action="delete" data-address="module.search.aws_security_group.trace_staging" data-type="aws_security_group" data-provider="aws" data-module="search">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">module.search.aws_security_group.trace_staging</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -2313,7 +2206,7 @@
         <div class="resource-change create" data-action="create" data-address="aws_security_group.auth_dev" data-type="aws_security_group" data-provider="aws" data-module="root">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">aws_security_group.auth_dev</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -2440,7 +2333,7 @@
         <div class="resource-change update" data-action="update" data-address="module.streaming.aws_security_group.profile_dev" data-type="aws_security_group" data-provider="aws" data-module="streaming">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">module.streaming.aws_security_group.profile_dev</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -2494,7 +2387,7 @@
         <div class="resource-change delete" data-action="delete" data-address="module.data.aws_security_group.shipping_staging" data-type="aws_security_group" data-provider="aws" data-module="data">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">module.data.aws_security_group.shipping_staging</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -2636,7 +2529,7 @@
         <div class="resource-change delete" data-action="delete" data-address="module.identity.aws_sqs_queue.profile_dev" data-type="aws_sqs_queue" data-provider="aws" data-module="identity">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">module.identity.aws_sqs_queue.profile_dev</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -2759,7 +2652,7 @@
         <div class="resource-change delete" data-action="delete" data-address="kubernetes_deployment.analytics_prod" data-type="kubernetes_deployment" data-provider="kubernetes" data-module="root">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">kubernetes_deployment.analytics_prod</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -2845,7 +2738,7 @@
         <div class="resource-change create" data-action="create" data-address="module.identity.kubernetes_deployment.auth_prod" data-type="kubernetes_deployment" data-provider="kubernetes" data-module="identity">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">module.identity.kubernetes_deployment.auth_prod</span>
-                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                <span class="toggle-indicator">▼</span>
             </div>
             <div class="resource-details">
                 
@@ -2940,7 +2833,7 @@
             <div class="resource-change read collapsed" data-action="read" data-address="output_alb_dns_name">
                 <div class="resource-header" onclick="toggleResource(this)">
                     <span class="resource-address">alb_dns_name</span>
-                    <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                    <span class="toggle-indicator">▼</span>
                 </div>
                 <div class="resource-details">
                     
@@ -2967,7 +2860,7 @@
             <div class="resource-change read collapsed" data-action="read" data-address="output_cluster_endpoint">
                 <div class="resource-header" onclick="toggleResource(this)">
                     <span class="resource-address">cluster_endpoint</span>
-                    <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                    <span class="toggle-indicator">▼</span>
                 </div>
                 <div class="resource-details">
                     
@@ -2994,7 +2887,7 @@
             <div class="resource-change read collapsed" data-action="read" data-address="output_db_password">
                 <div class="resource-header" onclick="toggleResource(this)">
                     <span class="resource-address">db_password</span>
-                    <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
+                    <span class="toggle-indicator">▼</span>
                 </div>
                 <div class="resource-details">
                     
@@ -3023,27 +2916,29 @@
         </div>
         
             
-        <div class="terminal-section">
-            <div class="terminal-header">
-                <h3>Logs</h3>
-                <button class="copy-btn" onclick="copyToClipboard('terminal-output')">Copy</button>
-            </div>
-            <div class="terminal-container">
-                <pre id="terminal-output" class="terminal-output">Loading logs...</pre>
+            
+        <div class="footer">
+            <div class="footer-content">
+                <div class="footer-text">
+                    Generated by <strong>tofUI v2.0.0</strong> &bull;
+                    Better OpenTofu &amp; Terraform Plans
+                </div>
+                <div class="footer-buttons">
+                    
+                </div>
             </div>
         </div>
         
             
-            
         <div class="tofui-watermark">
-            Generated by <a href="https://github.com/65156/tofUI" target="_blank" rel="noopener">tofUI v2.0.0</a>
+            <a href="https://github.com/65156/tofUI" target="_blank" rel="noopener">tofUI v2.0.0</a>
         </div>
         
         </div>
         
         <script>
             // Embedded plan data
-            const planData = {"summary": {"create": 9, "update": 5, "delete": 10, "has_changes": true}, "actions": ["create", "delete", "update", "replace"], "properties": ["retention_in_days", "internal", "timeout", "max_message_size", "id", "billing_mode", "egress", "cluster_identifier", "engine", "handler", "name", "fifo_queue", "deletion_protection", "metadata", "memory_size", "tags", "range_key", "path", "monitoring", "description", "assume_role_policy", "backup_retention_period", "master_username", "storage_encrypted", "database_name", "skip_destroy", "architectures", "tags_all", "ingress", "visibility_timeout_seconds", "instance_type", "environment", "function_name", "runtime", "ami", "vpc_id", "enable_http2", "spec", "force_detach_policies", "max_session_duration", "message_retention_seconds", "engine_version"]};
+            const planData = {"summary": {"create": 9, "update": 5, "delete": 10, "has_changes": true}, "actions": ["create", "delete", "update", "replace"], "properties": ["engine", "name", "engine_version", "master_username", "range_key", "billing_mode", "storage_encrypted", "function_name", "vpc_id", "message_retention_seconds", "instance_type", "visibility_timeout_seconds", "max_message_size", "handler", "cluster_identifier", "environment", "internal", "architectures", "memory_size", "egress", "backup_retention_period", "fifo_queue", "max_session_duration", "tags", "id", "database_name", "spec", "force_detach_policies", "ami", "enable_http2", "monitoring", "assume_role_policy", "ingress", "retention_in_days", "description", "runtime", "tags_all", "skip_destroy", "deletion_protection", "metadata", "timeout", "path"]};
             const TOFUI_LOG_URL = null;
 
             
@@ -3077,36 +2972,19 @@
         }
         
         function initializeToggleButtons() {
-            // Expand/collapse all — icon button; rotate SVG chevron to show state
             const toggleBtn = document.getElementById('toggle-all');
-            const toggleIcon = document.getElementById('toggle-all-icon');
-            let allExpanded = false;
-
+            
             if (toggleBtn) {
                 toggleBtn.addEventListener('click', function() {
-                    allExpanded = !allExpanded;
-                    if (allExpanded) {
-                        expandAllResources();
-                        toggleBtn.title = 'Collapse all';
-                        toggleBtn.setAttribute('aria-label', 'Collapse all resources');
-                        if (toggleIcon) toggleIcon.style.transform = 'rotate(180deg)';
-                    } else {
+                    const isCurrentlyExpanded = toggleBtn.textContent.trim() === 'Collapse All';
+                    
+                    if (isCurrentlyExpanded) {
                         collapseAllResources();
-                        toggleBtn.title = 'Expand all';
-                        toggleBtn.setAttribute('aria-label', 'Expand all resources');
-                        if (toggleIcon) toggleIcon.style.transform = '';
+                        toggleBtn.textContent = 'Expand All';
+                    } else {
+                        expandAllResources();
+                        toggleBtn.textContent = 'Collapse All';
                     }
-                });
-            }
-
-            // Properties panel toggle
-            const propsBtn = document.getElementById('props-btn');
-            const propsPanel = document.getElementById('props-panel');
-            if (propsBtn && propsPanel) {
-                propsBtn.addEventListener('click', function() {
-                    const open = propsPanel.hidden;
-                    propsPanel.hidden = !open;
-                    propsBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
                 });
             }
         }

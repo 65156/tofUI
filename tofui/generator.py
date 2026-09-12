@@ -5,7 +5,7 @@ Generates beautiful, interactive HTML reports from analyzed terraform plan data.
 """
 
 from typing import Dict, List, Any, Optional
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import html
 
@@ -19,7 +19,7 @@ class HTMLGenerator:
     
     def __init__(self):
         self.plan_name = "tofUI Plan"
-        self.timestamp = datetime.utcnow()
+        self.timestamp = datetime.now(timezone.utc)
         # Gates the log terminal; set per-report by the generate_* methods below.
         self.log_file_available = False
     
@@ -110,6 +110,250 @@ class HTMLGenerator:
         log_url = self.config.get('log_url', '') or os.environ.get('TOFUI_LOG_URL', '')
         return f"const TOFUI_LOG_URL = {json.dumps(log_url or None)};"
 
+    # ── Named palettes ────────────────────────────────────────────────────────
+    # Each palette is a flat dict of CSS custom-property → value.
+    # Derived from the Maze UI index.css design tokens where possible so that
+    # tofUI looks native inside a Maze iframe (or standalone).
+
+    _PALETTE_MAZE_DARK = {
+        # Surfaces — zinc-950 base (Maze dark)
+        "--bg-page":         "#09090b",   # zinc-950
+        "--bg-surface":      "#111113",   # zinc-900-ish
+        "--bg-muted":        "#18181b",   # zinc-900
+        "--bg-header":       "#27272a",   # zinc-800 (overlay)
+        # Text
+        "--text-primary":    "#fafafa",   # zinc-50
+        "--text-secondary":  "#a1a1aa",   # zinc-400
+        "--text-muted":      "#71717a",   # zinc-500
+        "--text-tertiary":   "#52525b",   # zinc-600
+        # Borders
+        "--border":          "#2a2a2f",   # Maze border-default
+        "--border-strong":   "#52525b",   # zinc-600
+        # Accents (Terraform action colours)
+        "--accent-create":   "#3b82f6",   # blue-500  (Maze --success)
+        "--accent-update":   "#f59e0b",   # amber-500 (Maze --warning)
+        "--accent-delete":   "#ef4444",   # red-500   (Maze --error)
+        "--accent-replace":  "#7c3aed",   # violet-600 (Maze --brand-primary)
+        "--accent-read":     "#52525b",   # zinc-600
+        # Action chips
+        "--chip-create-bg":  "#0c1a2e",   # Maze --success-bg
+        "--chip-create-fg":  "#93c5fd",   # blue-300
+        "--chip-update-bg":  "#1c1000",   # Maze --warning-bg
+        "--chip-update-fg":  "#fcd34d",   # amber-300
+        "--chip-delete-bg":  "#1f0808",   # Maze --error-bg
+        "--chip-delete-fg":  "#fca5a5",   # red-300
+        "--chip-replace-bg": "#1a0a3d",   # Maze --info-bg
+        "--chip-replace-fg": "#c4b5fd",   # violet-300
+        # Diff table rows
+        "--diff-add-bg":     "#0c1a2e",
+        "--diff-add-fg":     "#93c5fd",
+        "--diff-del-bg":     "#1f0808",
+        "--diff-del-fg":     "#fca5a5",
+        "--diff-mod-bg":     "#1c1000",
+        "--diff-mod-fg":     "#fcd34d",
+        # Terminal
+        "--terminal-bg":     "#010409",
+        "--terminal-fg":     "#e6edf3",
+        # Shadows / radius (Maze tokens)
+        "--shadow-sm":       "0 1px 2px rgba(0,0,0,0.5)",
+        "--shadow-md":       "0 4px 16px rgba(0,0,0,0.6)",
+        "--radius-sm":       "4px",
+        "--radius-md":       "6px",
+        "--radius-lg":       "10px",
+    }
+
+    _PALETTE_MAZE_LIGHT = {
+        # Surfaces — warm cream / off-white (Maze light)
+        "--bg-page":         "#f8f7f5",   # warm off-white
+        "--bg-surface":      "#ffffff",
+        "--bg-muted":        "#f3f2ef",   # light cream
+        "--bg-header":       "#4b5563",   # grey-600
+        # Text
+        "--text-primary":    "#18181b",   # zinc-900
+        "--text-secondary":  "#52525b",   # zinc-600
+        "--text-muted":      "#71717a",   # zinc-500
+        "--text-tertiary":   "#a1a1aa",   # zinc-400
+        # Borders
+        "--border":          "#d4d1cb",   # Maze border-default light
+        "--border-strong":   "#9ca3af",   # grey-400
+        # Accents
+        "--accent-create":   "#2563eb",   # blue-600
+        "--accent-update":   "#d97706",   # amber-600
+        "--accent-delete":   "#dc2626",   # red-600
+        "--accent-replace":  "#6d28d9",   # violet-700
+        "--accent-read":     "#9ca3af",   # grey-400
+        # Action chips
+        "--chip-create-bg":  "#dbeafe",   # blue-100
+        "--chip-create-fg":  "#1e40af",   # blue-800
+        "--chip-update-bg":  "#fef3c7",   # amber-100
+        "--chip-update-fg":  "#92400e",   # amber-800
+        "--chip-delete-bg":  "#fee2e2",   # red-100
+        "--chip-delete-fg":  "#991b1b",   # red-800
+        "--chip-replace-bg": "#ede9fb",   # violet-100
+        "--chip-replace-fg": "#4c1d95",   # violet-900
+        # Diff table rows
+        "--diff-add-bg":     "#dbeafe",
+        "--diff-add-fg":     "#1e40af",
+        "--diff-del-bg":     "#fee2e2",
+        "--diff-del-fg":     "#991b1b",
+        "--diff-mod-bg":     "#fef3c7",
+        "--diff-mod-fg":     "#92400e",
+        # Terminal
+        "--terminal-bg":     "#1e1e1e",
+        "--terminal-fg":     "#d4d4d4",
+        # Shadows / radius
+        "--shadow-sm":       "0 1px 2px rgba(0,0,0,0.06)",
+        "--shadow-md":       "0 4px 16px rgba(0,0,0,0.08)",
+        "--radius-sm":       "4px",
+        "--radius-md":       "6px",
+        "--radius-lg":       "10px",
+    }
+
+    # Legacy light palette — kept for backwards compatibility with old configs
+    # that don't specify a theme name.
+    _PALETTE_LIGHT_LEGACY = {
+        "--bg-page":         "#f8f9fa",
+        "--bg-surface":      "#ffffff",
+        "--bg-muted":        "#f8f9fa",
+        "--bg-header":       "#4b5563",
+        "--text-primary":    "#212529",
+        "--text-secondary":  "#495057",
+        "--text-muted":      "#6c757d",
+        "--text-tertiary":   "#adb5bd",
+        "--border":          "#e9ecef",
+        "--border-strong":   "#dee2e6",
+        "--accent-create":   "#28a745",
+        "--accent-update":   "#ffc107",
+        "--accent-delete":   "#dc3545",
+        "--accent-replace":  "#6f42c1",
+        "--accent-read":     "#6c757d",
+        "--chip-create-bg":  "#e8f6ee",
+        "--chip-create-fg":  "#1a7f37",
+        "--chip-update-bg":  "#fff6db",
+        "--chip-update-fg":  "#7a5b00",
+        "--chip-delete-bg":  "#fdeaea",
+        "--chip-delete-fg":  "#9b2c2c",
+        "--chip-replace-bg": "#f2ecfa",
+        "--chip-replace-fg": "#4d2d8a",
+        "--diff-add-bg":     "#d4edda",
+        "--diff-add-fg":     "#155724",
+        "--diff-del-bg":     "#f8d7da",
+        "--diff-del-fg":     "#721c24",
+        "--diff-mod-bg":     "#fff3cd",
+        "--diff-mod-fg":     "#856404",
+        "--terminal-bg":     "#1e1e1e",
+        "--terminal-fg":     "#d4d4d4",
+        "--shadow-sm":       "0 1px 2px rgba(0,0,0,0.06)",
+        "--shadow-md":       "0 4px 16px rgba(0,0,0,0.08)",
+        "--radius-sm":       "4px",
+        "--radius-md":       "6px",
+        "--radius-lg":       "10px",
+    }
+
+    def _resolve_theme_name(self) -> str:
+        """Return the canonical theme name from config.
+
+        Accepts:
+          "auto" | "maze-auto"  → "maze-auto"  (default)
+          "maze-dark"           → "maze-dark"
+          "maze-light"          → "maze-light"
+          "light"               → "light"
+          <dict>                → "light" (legacy override-dict format, vars merged later)
+          <anything else>       → "maze-auto"
+        """
+        raw = self.config.get("theme", "maze-auto")
+        if isinstance(raw, dict):
+            # Old format: {"theme": {"--bg-page": "#fff", ...}}
+            # Treat as legacy light with the dict values as overrides.
+            return "light-legacy-dict"
+        aliases = {"auto": "maze-auto"}
+        return aliases.get(raw, raw) if raw in ("auto", "maze-dark", "maze-light", "maze-auto", "light") else "maze-auto"
+
+    def _get_theme_vars_css(self) -> str:
+        """Emit CSS custom-property blocks for the selected theme.
+
+        For static themes (maze-dark, maze-light, light) a single :root{} block
+        is returned.
+
+        For maze-auto: the light palette is the :root default; the dark palette
+        is applied via both:
+          1. @media (prefers-color-scheme: dark)  — OS/browser default
+          2. :root[data-theme="dark"]             — explicit override from Maze
+             postMessage (see _get_theme_script)
+        The light palette is also pinned via :root[data-theme="light"] so that
+        an explicit "light" message from Maze always wins over the OS setting.
+        """
+        theme = self._resolve_theme_name()
+
+        def _props(palette: dict, extra_overrides: dict = None) -> str:
+            merged = {**palette, **(extra_overrides or {})}
+            return "\n    ".join(f"{k}: {v};" for k, v in merged.items())
+
+        # Collect any explicit token overrides from config (theme_overrides key)
+        overrides = self.config.get("theme_overrides", {})
+        # Backwards-compat: old configs put the dict directly under "theme"
+        if isinstance(self.config.get("theme"), dict):
+            overrides = {**self.config["theme"], **overrides}
+
+        if theme == "maze-dark":
+            return f":root {{\n    {_props(self._PALETTE_MAZE_DARK, overrides)}\n}}"
+
+        if theme == "maze-light":
+            return f":root {{\n    {_props(self._PALETTE_MAZE_LIGHT, overrides)}\n}}"
+
+        if theme in ("light", "light-legacy-dict"):
+            return f":root {{\n    {_props(self._PALETTE_LIGHT_LEGACY, overrides)}\n}}"
+
+        # maze-auto: light base, dark via media query + data-theme attribute
+        light_props = _props(self._PALETTE_MAZE_LIGHT, overrides)
+        dark_props  = _props(self._PALETTE_MAZE_DARK,  overrides)
+        return f""":root {{
+    {light_props}
+}}
+
+/* Explicit Maze postMessage override — dark */
+:root[data-theme="dark"] {{
+    {dark_props}
+}}
+
+/* OS/browser preference fallback when no explicit data-theme is set */
+@media (prefers-color-scheme: dark) {{
+    :root:not([data-theme="light"]) {{
+        {dark_props}
+    }}
+}}"""
+
+    def _get_theme_script(self) -> str:
+        """Return inline JS for maze-auto theme only.
+
+        Listens for Maze's postMessage: { type: 'theme', value: 'dark'|'light' }
+        and applies it as a data-theme attribute on <html>, which the CSS then
+        picks up immediately.  Sets the initial value from localStorage so the
+        theme is stable across page loads without waiting for a message.
+        """
+        theme = self._resolve_theme_name()
+        if theme != "maze-auto":
+            return ""
+        return """
+        // ── tofUI Maze theme bridge ──────────────────────────────────────────
+        (function () {
+            var root = document.documentElement;
+            // Restore last known theme immediately (avoids flash)
+            try {
+                var saved = localStorage.getItem('tofui-theme');
+                if (saved === 'dark' || saved === 'light') root.dataset.theme = saved;
+            } catch (e) {}
+
+            window.addEventListener('message', function (e) {
+                if (!e.data || e.data.type !== 'theme') return;
+                var t = e.data.value;
+                if (t !== 'dark' && t !== 'light') return;
+                root.dataset.theme = t;
+                try { localStorage.setItem('tofui-theme', t); } catch (e) {}
+            });
+        })();
+        """
+
     def _generate_complete_html(self, analysis: PlanAnalysis) -> str:
         """Generate the complete HTML document"""
         
@@ -128,17 +372,16 @@ class HTMLGenerator:
         
         # Add outputs section if available
         outputs_section = self._generate_outputs_section(analysis)
-        
-        # Determine theme class based on plan status
-        theme_class = ""
-        if not analysis.plan.summary.has_changes:
-            theme_class = "theme-green"
-        else:
-            theme_class = "theme-yellow"
+
+        # sections.header / sections.footer booleans (default true)
+        sections = self.config.get("sections", {})
+        show_header = sections.get("header", True)
+        show_footer = sections.get("footer", True)
             
         # Add terminal section for logs (empty unless a log was produced)
         terminal_section = self._generate_terminal_section_placeholder()
             
+        theme_script = self._get_theme_script()
         return f"""<!DOCTYPE html>
     <html lang="en">
     <head>
@@ -146,17 +389,19 @@ class HTMLGenerator:
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>tofUI - {html.escape(self.plan_name)}</title>
         <style>
+            {self._get_theme_vars_css()}
             {self._get_embedded_css()}
-            {self._get_theme_css()}
         </style>
+        {f'<script>{theme_script}</script>' if theme_script else ''}
     </head>
-    <body class="{theme_class}">
+    <body>
         <div class="container">
-            {self._generate_header(analysis)}
+            {self._generate_header(analysis) if show_header else ''}
             {content_body}
             {outputs_section}
             {terminal_section}
-            {self._generate_footer()}
+            {self._generate_footer() if show_footer else ''}
+            {self._generate_watermark()}
         </div>
         
         <script>
@@ -187,18 +432,7 @@ class HTMLGenerator:
     
     def _generate_summary(self, analysis: PlanAnalysis) -> str:
         """Generate the plan summary section"""
-        summary = analysis.plan.summary
-        
-        if not summary.has_changes:
-            return """
-            <div class="summary no-changes">
-                <h2>✅ No Changes</h2>
-                <p>This plan contains no changes to your infrastructure.</p>
-            </div>
-            """
-
-        # Change counts are shown on the action filter buttons, so no
-        # separate add/change/destroy aggregation is rendered here.
+        # Change counts are shown on the action filter buttons; no separate block needed.
         return ""
     
     def _generate_filters(self, analysis: PlanAnalysis) -> str:
@@ -212,7 +446,8 @@ class HTMLGenerator:
         
         available_properties = config_properties.get("available_to_hide", sorted(analysis.all_property_names))[:5]
         hidden_by_default = config_properties.get("hidden_by_default", [])
-        
+
+        # Property checkboxes — rendered inside a dropdown panel
         properties_html = ""
         for prop in available_properties:
             checked = "checked" if prop in hidden_by_default else ""
@@ -244,30 +479,41 @@ class HTMLGenerator:
                     f'{label} <span class="chip-count">{count}</span></button>'
                 )
 
+        has_props = bool(available_properties)
+        props_btn = (
+            f'<button type="button" id="props-btn" class="toolbar-icon-btn" title="Hide properties" aria-expanded="false" aria-controls="props-panel">'
+            f'<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M1 3h14v1.5H1zm2.5 4h9v1.5h-9zm2.5 4h4v1.5h-4z"/></svg>'
+            f'</button>'
+            if has_props else ''
+        )
+        props_panel = (
+            f'<div id="props-panel" class="props-panel" hidden>'
+            f'<div class="props-panel__inner" id="property-filters">{properties_html}</div>'
+            f'</div>'
+            if has_props else ''
+        )
+
         return f"""
         <div class="toolbar">
             <div class="toolbar-search">
-                <input type="search" id="resource-search" placeholder="Search by name, type, or module…  (press /)" autocomplete="off" spellcheck="false">
-                <button type="button" id="search-clear" class="search-clear" title="Clear search" aria-label="Clear search">✕</button>
+                <input type="search" id="resource-search" placeholder="Search resources…  (/)" autocomplete="off" spellcheck="false">
+                <button type="button" id="search-clear" class="search-clear" title="Clear" aria-label="Clear search">✕</button>
             </div>
             <div class="chips" id="action-chips">{chips_html}</div>
-            <div class="results-count" id="results-count"></div>
-        </div>
-        <div class="filters">
-            <div class="filter-section">
-                <h3>Hide Properties</h3>
-                <div class="filter-group" id="property-filters">
-                    {properties_html}
-                </div>
-            </div>
-            <div class="filter-divider"></div>
-            <div class="control-section">
-                <button id="toggle-all" class="btn toggle-btn">Expand All</button>
+            <div class="toolbar-right">
+                <span class="results-count" id="results-count"></span>
+                {props_btn}
+                <button type="button" id="toggle-all" class="toolbar-icon-btn" title="Expand all" aria-label="Expand all resources">
+                    <svg id="toggle-all-icon" viewBox="0 0 16 16" width="14" height="14" fill="currentColor">
+                        <path d="M2 5l6 6 6-6z"/>
+                    </svg>
+                </button>
             </div>
         </div>
+        {props_panel}
         <div class="filter-notice" id="filter-notice" role="status">
-            <svg class="filter-notice-icon" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
-            <span id="filter-notice-text">Filters are active — some resources are hidden.</span>
+            <svg class="filter-notice-icon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+            <span id="filter-notice-text">Filters active</span>
             <button type="button" id="filter-reset" class="filter-reset">Show all</button>
         </div>
         """
@@ -339,7 +585,7 @@ class HTMLGenerator:
         <div class="resource-change {action_class}" data-action="{action_class}" data-address="{html.escape(address)}" data-type="{html.escape(rtype)}" data-provider="{html.escape(provider)}" data-module="{html.escape(module)}">
             <div class="resource-header" onclick="toggleResource(this)">
                 <span class="resource-address">{html.escape(change.address)}</span>
-                <span class="toggle-indicator">▼</span>
+                <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
             </div>
             <div class="resource-details">
                 {properties_html}
@@ -447,15 +693,14 @@ class HTMLGenerator:
         """
     
     def _generate_no_changes_content(self, analysis: PlanAnalysis) -> str:
-        """Generate content for a plan with no changes"""
-        summary = analysis.plan.summary
-        resource_count = summary.resources_total or 0
-        
-        return f"""
-        <div class="no-changes-summary no-changes">
-            <div class="no-changes-icon">✅</div>
-            <h2>No Changes Detected</h2>
-            <p>Your infrastructure matches the configuration.</p>
+        """Generate content for a plan with no changes — clean minimal layout."""
+        return """
+        <div class="state-card state-card--nochange">
+            <div class="state-card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <h2 class="state-card__title">No changes</h2>
+            <p class="state-card__body">Your infrastructure matches the configuration.</p>
         </div>
         """
 
@@ -531,7 +776,7 @@ class HTMLGenerator:
             <div class="resource-change read collapsed" data-action="read" data-address="output_{name}">
                 <div class="resource-header" onclick="toggleResource(this)">
                     <span class="resource-address">{html.escape(name)}</span>
-                    <span class="toggle-indicator">▼</span>
+                    <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
                 </div>
                 <div class="resource-details">
                     {details_html}
@@ -860,8 +1105,12 @@ class HTMLGenerator:
     
     def _generate_error_html(self, processed_errors: Dict[str, Any]) -> str:
         """Generate complete HTML for error report"""
+
+        sections = self.config.get("sections", {})
+        show_header = sections.get("header", True)
+        show_footer = sections.get("footer", True)
         
-        # Generate the complete HTML content
+        theme_script = self._get_theme_script()
         html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -869,15 +1118,18 @@ class HTMLGenerator:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>tofUI Error Report - {html.escape(self.plan_name)}</title>
     <style>
+        {self._get_theme_vars_css()}
         {self._get_embedded_css()}
         {self._get_error_specific_css()}
     </style>
+    {f'<script>{theme_script}</script>' if theme_script else ''}
 </head>
 <body>
     <div class="container">
-        {self._generate_error_header()}
+        {self._generate_error_header() if show_header else ''}
         {self._generate_error_content(processed_errors)}
-        {self._generate_footer()}
+        {self._generate_footer() if show_footer else ''}
+        {self._generate_watermark()}
     </div>
     
     <script>
@@ -890,11 +1142,11 @@ class HTMLGenerator:
         return html_content
     
     def _generate_error_header(self) -> str:
-        """Generate the error report header"""
+        """Generate the error report header — neutral, no red gradient."""
         formatted_time = self.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC")
         
         return f"""
-        <div class="header error-header">
+        <div class="header">
             <div class="plan-name"><strong>{html.escape(self.plan_name)}</strong></div>
             <div class="meta-info"><strong>Generated:</strong> {formatted_time}</div>
         </div>
@@ -902,12 +1154,14 @@ class HTMLGenerator:
     
     def _generate_error_content(self, processed_errors: Dict[str, Any]) -> str:
         """Generate the main error content section"""
-        
+
         content = """
-        <div class="error-summary">
-            <div class="error-icon">❌</div>
-            <h2>Issues Detected</h2>
-            <p>There were fatal errors during your infrastructure plan.</p>
+        <div class="state-card state-card--error">
+            <div class="state-card__icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </div>
+            <h2 class="state-card__title">Plan failed</h2>
+            <p class="state-card__body">There were errors during the infrastructure plan.</p>
         </div>
         """
         
@@ -915,55 +1169,40 @@ class HTMLGenerator:
         if processed_errors['has_errors']:
             content += self._generate_errors_section(processed_errors['errors'])
         
-        # Note: Warnings are not displayed in error reports as requested
-        # if processed_errors['has_warnings']:
-        #     content += self._generate_warnings_section(processed_errors['warnings'])
-        
-        # Add raw output section
+        # Terminal block for stack trace — always shown when raw_output is present
         if processed_errors['raw_output']:
-            content += self._generate_terminal_output_section(processed_errors['raw_output'])
+            content += self._generate_error_terminal_section(processed_errors['raw_output'])
         
         return content
     
     def _generate_errors_section(self, errors: List[Dict[str, str]]) -> str:
-        """Generate the errors section with expandable format"""
+        """Generate the errors section — clean error cards, no emoji."""
         errors_html = ""
         
         for i, error in enumerate(errors):
             error_detail = html.escape(error['detail']) if error['detail'] else ""
             error_message = html.escape(error['message'])
-            
-            # Create expandable error items like resource deletions (no emoji)
-            details_html = ""
+            file_info = html.escape(error.get('file', ''))
+            resource_info = html.escape(error.get('resource', ''))
+
+            meta_html = ""
+            if file_info:
+                meta_html += f'<span class="error-card__meta">{file_info}</span>'
+            if resource_info:
+                meta_html += f'<span class="error-card__meta">{resource_info}</span>'
+
+            detail_html = ""
             if error_detail:
-                details_html = f"""
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Error Details</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="error-detail-content">{error_detail}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                """
-            else:
-                details_html = "<p>No additional details available.</p>"
+                detail_html = f'<pre class="error-card__trace">{error_detail}</pre>'
             
             errors_html += f"""
-            <div class="resource-change delete collapsed" data-action="delete" data-address="error_{i+1}">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">Error {i+1}: {error_message}</span>
-                    <span class="toggle-indicator">▼</span>
+            <div class="error-card">
+                <div class="error-card__header">
+                    <span class="error-card__index">E{i+1}</span>
+                    <span class="error-card__message">{error_message}</span>
                 </div>
-                <div class="resource-details">
-                    {details_html}
-                </div>
+                {f'<div class="error-card__meta-row">{meta_html}</div>' if meta_html else ''}
+                {detail_html}
             </div>
             """
         
@@ -971,7 +1210,7 @@ class HTMLGenerator:
         <div class="resource-groups">
             <div class="resource-group" data-resource-type="errors">
                 <div class="group-header">
-                    <h3>Errors ({len(errors)} items)</h3>
+                    <h3>Errors ({len(errors)})</h3>
                 </div>
                 <div class="group-resources">
                     {errors_html}
@@ -995,7 +1234,7 @@ class HTMLGenerator:
         
         return f"""
         <div class="warnings-section">
-            <h3>⚠️ Warnings ({len(warnings)})</h3>
+            <h3>Warnings ({len(warnings)})</h3>
             <div class="warnings-container">
                 {warnings_html}
             </div>
@@ -1012,135 +1251,41 @@ class HTMLGenerator:
         """
         if not self.log_file_available:
             return ""
-        return f"""
-        <div class="terminal-section">
-            <div class="terminal-header">
-                <h3>Logs</h3>
-                <button class="copy-btn" onclick="copyToClipboard('terminal-output')">Copy to Clipboard</button>
-            </div>
-            <div class="terminal-container">
-                <pre id="terminal-output" class="terminal-output">Loading logs...</pre>
-            </div>
-        </div>
-        """
-
-    def _generate_terminal_output_section(self, raw_output: str) -> str:
-        """Generate the terminal-style output section with auto-loading.
-
-        Same gate as the placeholder above: this pane also fills itself by
-        fetching the log, so it is useless without one.
-        """
-        if not self.log_file_available:
-            return ""
-        return f"""
-        <div class="terminal-section">
-            <div class="terminal-header">
-                <h3>Logs</h3>
-                <button class="copy-btn" onclick="copyToClipboard('terminal-output')">Copy to Clipboard</button>
-            </div>
-            <div class="terminal-container">
-                <pre id="terminal-output" class="terminal-output">Loading logs...</pre>
-            </div>
-        </div>
-        """
-    
-    def _get_theme_css(self) -> str:
-        """Get theme-specific CSS for different report types"""
         return """
-        /* Yellow Theme (Changes) */
-        .theme-yellow .header {
-            background: linear-gradient(135deg, #ffda18 0%, #f4c430 100%);
-            color: #333;
-        }
-        
-        .theme-yellow .filters {
-            background: #fffbf0;
-            border-bottom: 1px solid #ffda18;
-        }
-        
-        .theme-yellow .btn {
-            background: #ffda18;
-            color: #333;
-        }
-        
-        .theme-yellow .btn:hover {
-            background: #f4c430;
-        }
-        
-        .theme-yellow .footer-btn {
-            background: #ffda18;
-            color: #333;
-        }
-        
-        .theme-yellow .footer-btn:hover {
-            background: #f4c430;
-        }
-        
-        /* Green Theme (No Changes) */
-        .theme-green .header {
-            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
-        }
-        
-        .theme-green .command-box {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-        }
-        
-        .theme-green .output-item {
-            border: 1px solid #c3e6cb;
-        }
-        
-        .theme-green .output-name {
-            background: #d4edda;
-            border-bottom: 1px solid #c3e6cb;
-        }
-        
-        .theme-green .footer-btn {
-            background: #28a745;
-        }
-        
-        .theme-green .footer-btn:hover {
-            background: #218838;
-        }
-        
-        .load-logs-btn {
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            margin-right: 0.5rem;
-        }
-        
-        .theme-yellow .load-logs-btn {
-            background: #ffda18;
-            color: #333;
-        }
-        
-        .theme-green .load-logs-btn {
-            background: #28a745;
-            color: white;
-        }
+        <div class="terminal-section">
+            <div class="terminal-header">
+                <h3>Logs</h3>
+                <button class="copy-btn" onclick="copyToClipboard('terminal-output')">Copy</button>
+            </div>
+            <div class="terminal-container">
+                <pre id="terminal-output" class="terminal-output">Loading logs...</pre>
+            </div>
+        </div>
+        """
+
+    def _generate_error_terminal_section(self, raw_output: str) -> str:
+        """Terminal block for error reports — always rendered when there is output."""
+        escaped = html.escape(raw_output)
+        return f"""
+        <div class="terminal-section">
+            <div class="terminal-header">
+                <h3>Stack trace</h3>
+                <button class="copy-btn" onclick="copyToClipboard('terminal-output')">Copy</button>
+            </div>
+            <div class="terminal-container">
+                <pre id="terminal-output" class="terminal-output">{escaped}</pre>
+            </div>
+        </div>
         """
     
     def _generate_apply_html(self, apply_result) -> str:
         """Generate complete HTML for apply report"""
-        from .apply_parser import ApplyResult
+
+        sections = self.config.get("sections", {})
+        show_header = sections.get("header", True)
+        show_footer = sections.get("footer", True)
         
-        # Determine theme based on apply result
-        theme_class = ""
-        if apply_result.result == ApplyResult.SUCCESS_WITH_CHANGES:
-            theme_class = "theme-green"
-        elif apply_result.result == ApplyResult.SUCCESS_NO_CHANGES:
-            theme_class = "theme-green"
-        elif apply_result.result == ApplyResult.FAILED:
-            theme_class = "theme-red"
-        else:
-            theme_class = "theme-yellow"
-        
-        # Generate the complete HTML content
+        theme_script = self._get_theme_script()
         html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1148,16 +1293,19 @@ class HTMLGenerator:
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>tofUI Apply Report - {html.escape(self.plan_name)}</title>
     <style>
+        {self._get_theme_vars_css()}
         {self._get_embedded_css()}
         {self._get_apply_specific_css()}
     </style>
+    {f'<script>{theme_script}</script>' if theme_script else ''}
 </head>
-<body class="{theme_class}">
+<body>
     <div class="container">
-        {self._generate_apply_header(apply_result)}
+        {self._generate_apply_header(apply_result) if show_header else ''}
         {self._generate_apply_content(apply_result)}
         {self._generate_terminal_section_placeholder()}
-        {self._generate_footer()}
+        {self._generate_footer() if show_footer else ''}
+        {self._generate_watermark()}
     </div>
     
     <script>
@@ -1170,12 +1318,11 @@ class HTMLGenerator:
         return html_content
     
     def _generate_apply_header(self, apply_result) -> str:
-        """Generate the apply report header"""
-        from .apply_parser import ApplyResult
+        """Generate the apply report header — neutral, no coloured gradient."""
         formatted_time = self.timestamp.strftime("%Y-%m-%d %H:%M:%S UTC")
         
         return f"""
-        <div class="header apply-header">
+        <div class="header">
             <div class="plan-name"><strong>{html.escape(self.plan_name)}</strong></div>
             <div class="meta-info"><strong>Generated:</strong> {formatted_time}</div>
         </div>
@@ -1205,29 +1352,33 @@ class HTMLGenerator:
         return content
     
     def _generate_apply_summary_section(self, apply_result) -> str:
-        """Generate the apply summary section"""
+        """Generate the apply summary section — muted/neutral stat pills, no emoji."""
         from .apply_parser import ApplyResult
         
+        SVG_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>'
+        SVG_CROSS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+        SVG_DASH  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+
         if apply_result.result == ApplyResult.SUCCESS_WITH_CHANGES:
-            icon = "🎉"
-            title = "Apply Success"
-            subtitle = "Infrastructure changes have been applied successfully."
-            css_class = "success-summary"
+            icon = SVG_CHECK
+            title = "Apply complete"
+            subtitle = "Infrastructure changes applied successfully."
+            css_class = "state-card--nochange"
         elif apply_result.result == ApplyResult.SUCCESS_NO_CHANGES:
-            icon = "✅"
-            title = "No Changes"
+            icon = SVG_DASH
+            title = "Nothing to do"
             subtitle = "No changes were required. Infrastructure is up to date."
-            css_class = "no-changes-summary"
+            css_class = "state-card--nochange"
         elif apply_result.result == ApplyResult.FAILED:
-            icon = "❌"
-            title = "Apply Failed"
+            icon = SVG_CROSS
+            title = "Apply failed"
             subtitle = "There were errors during the apply operation."
-            css_class = "error-summary"
+            css_class = "state-card--error"
         else:
-            icon = "❓"
-            title = "Apply Status Unknown"
+            icon = SVG_DASH
+            title = "Apply status unknown"
             subtitle = "The apply operation completed with unknown status."
-            css_class = "unknown-summary"
+            css_class = "state-card--nochange"
         
         stats_html = ""
         if apply_result.statistics:
@@ -1251,9 +1402,10 @@ class HTMLGenerator:
                 """
         
         return f"""
-        <div class="apply-summary {css_class}">
-            <h2>{icon} {title}</h2>
-            <p>{subtitle}</p>
+        <div class="state-card {css_class}">
+            <div class="state-card__icon">{icon}</div>
+            <h2 class="state-card__title">{title}</h2>
+            <p class="state-card__body">{subtitle}</p>
             {stats_html}
         </div>
         """
@@ -1265,21 +1417,15 @@ class HTMLGenerator:
         
         operations_html = ""
         for op in resource_operations:
-            # Determine status styling
-            if op.status == "completed":
-                status_class = "completed"
-                status_icon = "✅"
-            elif op.status == "in_progress":
-                status_class = "in_progress"
-                status_icon = "⏳"
-            elif op.status == "failed":
-                status_class = "failed"
-                status_icon = "❌"
-            else:
-                status_class = "unknown"
-                status_icon = "❓"
+            # Determine status label (text only, no emoji)
+            status_labels = {
+                "completed":   "done",
+                "in_progress": "running",
+                "failed":      "failed",
+            }
+            status_label = status_labels.get(op.status, op.status)
+            status_class = op.status if op.status in status_labels else "unknown"
             
-            # Format duration
             duration_html = ""
             if op.duration:
                 duration_html = f"<span class='operation-duration'>({op.duration})</span>"
@@ -1287,11 +1433,11 @@ class HTMLGenerator:
             operations_html += f"""
             <div class="resource-change {op.action.value} collapsed" data-action="{op.action.value}" data-address="{html.escape(op.resource_address)}">
                 <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="status-icon {status_class}">{status_icon}</span>
                     <span class="resource-address">{html.escape(op.resource_address)}</span>
                     <span class="action-label">{op.action.value}</span>
+                    <span class="status-badge status-badge--{status_class}">{status_label}</span>
                     {duration_html}
-                    <span class="toggle-indicator">▼</span>
+                    <span class="toggle-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg></span>
                 </div>
                 <div class="resource-details">
                     <div class="operation-details">
@@ -1307,7 +1453,7 @@ class HTMLGenerator:
         <div class="resource-groups">
             <div class="resource-group" data-resource-type="operations">
                 <div class="group-header">
-                    <h3>Resource Operations ({len(resource_operations)} items)</h3>
+                    <h3>Resource operations ({len(resource_operations)})</h3>
                 </div>
                 <div class="group-resources">
                     {operations_html}
@@ -1317,7 +1463,7 @@ class HTMLGenerator:
         """
     
     def _generate_apply_errors_section(self, errors) -> str:
-        """Generate the errors section for apply reports"""
+        """Generate the errors section for apply reports — matches error-card style."""
         if not errors:
             return ""
         
@@ -1326,36 +1472,17 @@ class HTMLGenerator:
             error_message = html.escape(error.message) if hasattr(error, 'message') else html.escape(str(error))
             error_details = html.escape(error.details) if hasattr(error, 'details') and error.details else ""
             
-            details_html = ""
+            detail_html = ""
             if error_details:
-                details_html = f"""
-                <div class="property-changes">
-                    <table class="properties-table">
-                        <thead>
-                            <tr>
-                                <th>Error Details</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr class="property-change">
-                                <td class="error-detail-content">{error_details}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                """
-            else:
-                details_html = "<p>No additional details available.</p>"
+                detail_html = f'<pre class="error-card__trace">{error_details}</pre>'
             
             errors_html += f"""
-            <div class="resource-change delete collapsed" data-action="delete" data-address="error_{i+1}">
-                <div class="resource-header" onclick="toggleResource(this)">
-                    <span class="resource-address">Error {i+1}: {error_message}</span>
-                    <span class="toggle-indicator">▼</span>
+            <div class="error-card">
+                <div class="error-card__header">
+                    <span class="error-card__index">E{i+1}</span>
+                    <span class="error-card__message">{error_message}</span>
                 </div>
-                <div class="resource-details">
-                    {details_html}
-                </div>
+                {detail_html}
             </div>
             """
         
@@ -1363,7 +1490,7 @@ class HTMLGenerator:
         <div class="resource-groups">
             <div class="resource-group" data-resource-type="errors">
                 <div class="group-header">
-                    <h3>Errors ({len(errors)} items)</h3>
+                    <h3>Errors ({len(errors)})</h3>
                 </div>
                 <div class="group-resources">
                     {errors_html}
@@ -1379,7 +1506,7 @@ class HTMLGenerator:
         
         timing_html = ""
         if timing.total_duration:
-            timing_html += f"<p><strong>Total Duration:</strong> {timing.total_duration}</p>"
+            timing_html += f"<p><strong>Total duration:</strong> {timing.total_duration}</p>"
         if hasattr(timing, 'start_time') and timing.start_time:
             timing_html += f"<p><strong>Started:</strong> {timing.start_time}</p>"
         if hasattr(timing, 'end_time') and timing.end_time:
@@ -1390,7 +1517,7 @@ class HTMLGenerator:
         
         return f"""
         <div class="timing-section">
-            <h3>⏱️ Timing Information</h3>
+            <h3>Timing</h3>
             <div class="timing-details">
                 {timing_html}
             </div>
@@ -1400,117 +1527,53 @@ class HTMLGenerator:
     def _get_apply_specific_css(self) -> str:
         """Get CSS specific to apply reports"""
         return """
-        /* Apply Report Specific Styles */
-        .header.apply-header {
-            background: linear-gradient(135deg, #7b28a7 0%, #542188 100%) !important;
-        }
-        
-        .apply-summary {
-            padding: 2rem;
-            text-align: center;
-            border-bottom: 1px solid #e9ecef;
-        }
-        
-        .apply-summary.success-summary {
-        }
-        
-        .apply-summary.no-changes-summary {
-        }
-        
-        .apply-summary.error-summary {
-        }
-        
-        .apply-summary.unknown-summary {
-        }
-        
-        .apply-summary h2 {
-            margin: 0 0 1rem 0;
-        }
-        
-        .apply-icon {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-        }
-        
-        .status-info {
-            font-size: 1.1rem;
-            margin-bottom: 0.5rem;
-            opacity: 0.95;
-        }
-        
-        .status-icon {
-            margin-right: 0.5rem;
-        }
-        
-        .status-icon.completed {
-            color: #28a745;
-        }
-        
-        .status-icon.in_progress {
-            color: #ffc107;
-        }
-        
-        .status-icon.failed {
-            color: #dc3545;
-        }
-        
-        .status-icon.unknown {
-            color: #6c757d;
-        }
-        
         .action-label {
             font-size: 0.8rem;
-            background: #f8f9fa;
+            background: var(--bg-muted);
             padding: 0.2rem 0.5rem;
-            border-radius: 3px;
-            color: #495057;
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
             margin-left: auto;
             margin-right: 0.5rem;
         }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+        }
+        .status-badge--completed  { background: var(--diff-add-bg); color: var(--diff-add-fg); }
+        .status-badge--failed     { background: var(--diff-del-bg); color: var(--diff-del-fg); }
+        .status-badge--in_progress{ background: var(--diff-mod-bg); color: var(--diff-mod-fg); }
+        .status-badge--unknown    { background: var(--bg-muted);    color: var(--text-muted); }
         
         .operation-duration {
             font-size: 0.8rem;
-            color: #6c757d;
+            color: var(--text-muted);
             margin-left: 0.5rem;
         }
         
         .operation-details {
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
             font-size: 0.9rem;
+            padding: 1rem;
         }
         
         .timing-section {
             padding: 1.5rem 2rem;
-            border-bottom: 1px solid #e9ecef;
+            border-bottom: 1px solid var(--border);
         }
         
         .timing-section h3 {
             margin: 0 0 1rem 0;
-            color: #495057;
+            color: var(--text-secondary);
         }
         
         .timing-details {
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
             font-size: 0.9rem;
-            color: #6c757d;
-        }
-        
-        /* Red Theme for Failed Apply */
-        .theme-red .header.apply-header {
-            background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%) !important;
-        }
-        
-        .theme-red .footer-btn {
-            background: #dc3545;
-        }
-        
-        .theme-red .footer-btn:hover {
-            background: #b02a37;
-        }
-        
-        .theme-red .load-logs-btn {
-            background: #dc3545;
-            color: white;
+            color: var(--text-muted);
         }
         """
     
@@ -1626,201 +1689,73 @@ class HTMLGenerator:
         """
 
     def _get_error_specific_css(self) -> str:
-        """Get CSS specific to error reports"""
+        """Get CSS specific to error reports — clean card layout, no red gradient."""
         return """
-        .header.error-header {
-            background: linear-gradient(135deg, #dc3545 0%, #b02a37 100%) !important;
-        }
-        
-        .error-summary {
-            padding: 2rem;
-            text-align: center;
-            background: #f8d7da;
-            color: #721c24;
-            border-bottom: 1px solid #f5c6cb;
+        /* Error card layout */
+        .error-card {
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--accent-delete);
+            border-radius: var(--radius-md);
+            margin-bottom: 1rem;
+            overflow: hidden;
+            background: var(--bg-surface);
         }
 
-        .error-summary h2 {
-            margin: 0 0 1rem 0;
-            color: #721c24;
-        }   
-        
-        .errors-section, .warnings-section {
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid #e9ecef;
-        }
-        
-        .errors-section h3 {
-            color: #dc3545;
-            margin: 0 0 1rem 0;
-        }
-        
-        .warnings-section h3 {
-            color: #ffc107;
-            margin: 0 0 1rem 0;
-        }
-        
-        .error-item, .warning-item {
-            background: #f8f9fa;
-            border-left: 4px solid #dc3545;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-radius: 0 4px 4px 0;
-        }
-        
-        .warning-item {
-            border-left-color: #ffc107;
-        }
-        
-        .error-message, .warning-message {
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
-        }
-        
-        .error-detail, .warning-detail {
-            font-size: 0.9rem;
-            color: #6c757d;
-            white-space: pre-wrap;
-        }
-        
-        /* Collapsible Error Styling */
-        .error-change {
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            margin-bottom: 1rem;
-            overflow: hidden;
-            border-left: 4px solid #dc3545;
-        }
-        
-        .error-header {
-            padding: 1rem;
-            background: #f8f9fa;
-        }
-        
-        .error-header:hover {
-            background: #e9ecef;
-        }
-        
-        .error-header-nonclick {
-            padding: 1rem;
-            background: #f8f9fa;
+        .error-card__header {
             display: flex;
-            align-items: center;
+            align-items: baseline;
             gap: 0.75rem;
-            user-select: none;
-            cursor: default;
+            padding: 0.85rem 1rem;
+            background: var(--bg-muted);
+            border-bottom: 1px solid var(--border);
         }
-        
-        .error-header-nonclick:hover {
-            background: #f8f9fa;
+
+        .error-card__index {
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--accent-delete);
+            flex-shrink: 0;
         }
-        
-        .error-icon {
-            font-size: 2.5rem;
-        }
-        
-        .error-address {
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
-            font-weight: 500;
-            flex: 1;
-        }
-        
-        .error-change .toggle-indicator {
-            transition: transform 0.2s;
-        }
-        
-        .error-change.collapsed .toggle-indicator {
-            transform: rotate(-90deg);
-        }
-        
-        .error-details {
-            padding: 1rem;
-            border-top: 1px solid #e9ecef;
-            background: #fff;
-        }
-        
-        .error-change.collapsed .error-details {
-            display: none;
-        }
-        
-        .error-detail-content {
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+
+        .error-card__message {
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
             font-size: 0.9rem;
-            color: #6c757d;
-            white-space: pre-wrap;
-            line-height: 1.4;
+            color: var(--text-primary);
+            word-break: break-word;
         }
-        
-        .terminal-section {
-            padding: 1.5rem 2rem;
-        }
-        
-        .terminal-header {
+
+        .error-card__meta-row {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        
-        .terminal-header h3 {
-            margin: 0;
-            color: #495057;
-        }
-        
-        .copy-btn {
-            background: #6c757d;
-            color: white;
-            border: none;
+            flex-wrap: wrap;
+            gap: 0.5rem;
             padding: 0.5rem 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-surface);
         }
-        
-        .copy-btn:hover {
-            background: #5a6268;
+
+        .error-card__meta {
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            background: var(--bg-muted);
+            padding: 0.1rem 0.4rem;
+            border-radius: var(--radius-sm);
         }
-        
-        .terminal-container {
-            background: #1e1e1e;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        
-        .terminal-output {
-            background: #1e1e1e;
-            color: #d4d4d4;
-            padding: 1.5rem;
+
+        .error-card__trace {
             margin: 0;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
-            font-size: 0.9rem;
-            line-height: 1.4;
+            padding: 1rem;
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-size: 0.85rem;
+            color: var(--terminal-fg);
+            background: var(--terminal-bg);
             white-space: pre-wrap;
             word-break: break-word;
             overflow-x: auto;
-            max-height: 400px;
+            max-height: 300px;
             overflow-y: auto;
-        }
-        
-        /* Syntax highlighting for terraform output */
-        .terminal-output {
-            /* Error text in white */
-            color: #d4d4d4;
-        }
-        
-        @media (max-width: 768px) {
-            .terminal-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 1rem;
-            }
-            
-            .terminal-output {
-                font-size: 0.8rem;
-                padding: 1rem;
-            }
+            line-height: 1.45;
         }
         """
     
@@ -1926,59 +1861,42 @@ class HTMLGenerator:
         """
 
     def _generate_footer(self) -> str:
-        """Generate the report footer"""
-        # Get BUILD_URL from environment or config
+        """Generate the footer — only rendered when there are action buttons to show."""
         import os
         build_url = os.environ.get('BUILD_URL', self.config.get('build_url', ''))
-        
-        # Check if debug_json is enabled before showing JSON button
         debug_json = self.config.get('debug_json', False)
-        
+
         buttons_html = ""
         if build_url:
-            buttons_html += f'<a href="{build_url}" class="footer-btn" target="_blank">🔗 View Build</a>'
-        
-        # Only show JSON button if debug_json flag is enabled
+            buttons_html += f'<a href="{html.escape(build_url)}" class="footer-btn" target="_blank">View Build</a>'
+
         if debug_json:
-            # Get JSON URL from config (passed from CLI) or environment variable as fallback
             json_url = self.config.get('json_url', '') or os.environ.get('TOFUI_JSON_URL', '')
-            
             if not json_url:
-                # Fallback to relative filename if no URL provided
                 json_url = self.plan_name.replace('.html', '') + '.json'
-            
-            buttons_html += f'<a href="{json_url}" class="footer-btn" target="_blank">📄 View JSON</a>'
-        
-        # Generate version text - hide if version is 99.99 (default/no version)
-        version_text = ""
-        if __version__ and __version__ != "99.99":
-            version_text = f" v{__version__}"
-        
+            buttons_html += f'<a href="{html.escape(json_url)}" class="footer-btn" target="_blank">View JSON</a>'
+
+        if not buttons_html:
+            return ""
+
         return f"""
         <div class="footer">
-            <div class="footer-content">
-                <div class="footer-text">
-                    Generated by <strong>tofUI{version_text}</strong> • 
-                    Better OpenTofu & Terraform Plans
-                </div>
-                <div class="footer-buttons">
-                    {buttons_html}
-                </div>
-            </div>
+            <div class="footer-buttons">{buttons_html}</div>
+        </div>
+        """
+
+    def _generate_watermark(self) -> str:
+        """Always-rendered credit line — links to GitHub, shows version."""
+        version_text = f" v{__version__}" if __version__ and __version__ != "99.99" else ""
+        return f"""
+        <div class="tofui-watermark">
+            <a href="https://github.com/65156/tofUI" target="_blank" rel="noopener">Generated by tofUI{version_text}</a>
         </div>
         """
     
     def _get_action_icon(self, action: ActionType) -> str:
-        """Get icon for action type"""
-        icons = {
-            ActionType.CREATE: "",
-            ActionType.UPDATE: "", 
-            ActionType.DELETE: "⚠️",
-            ActionType.RECREATE: "⚠️",
-            ActionType.READ: "",
-            ActionType.NO_OP: "⭕"
-        }
-        return icons.get(action, "❓")
+        """Get icon for action type — returns empty string; action shown via CSS stripe colour."""
+        return ""
     
     def _generate_javascript_data(self, analysis: PlanAnalysis) -> str:
         """Generate JavaScript data object"""
@@ -1995,46 +1913,55 @@ class HTMLGenerator:
         return json.dumps(data)
     
     def _get_embedded_css(self) -> str:
-        """Get the embedded CSS styles"""
+        """Get the embedded CSS styles — all colours via CSS custom properties."""
         return """
-        * {
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        *, *::before, *::after {
             box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
             margin: 0;
             padding: 0;
-            background-color: #f8f9fa;
-            color: #333;
         }
-        
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            background-color: var(--bg-page);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Scrollbars — Maze style */
+        ::-webkit-scrollbar              { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track        { background: transparent; }
+        ::-webkit-scrollbar-thumb        { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover  { background: var(--border-strong); }
+
         .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            min-height: 100vh;
+            width: 100%;
+            background: var(--bg-surface);
+            min-height: 100%;
             display: flex;
             flex-direction: column;
         }
-        
+
         .header {
-            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-            color: white;
+            background: var(--bg-header);
+            color: #fff;
             padding: 1rem;
             text-align: center;
         }
-        
+
         .known-after-apply {
-            color: #a3c5a8;
+            color: var(--accent-create);
             font-style: italic;
             opacity: 0.8;
         }
 
         .known-after-apply-cell {
-            background: #d4edda !important;
-            color: #155724;
+            background: var(--diff-add-bg) !important;
+            color: var(--diff-add-fg);
         }
 
         .plan-name {
@@ -2043,349 +1970,354 @@ class HTMLGenerator:
             font-weight: 300;
             margin-bottom: 0.3rem;
         }
-        
+
         .meta-info {
             opacity: 0.9;
             font-size: 0.85rem;
             font-weight: 300;
         }
-        
-        .summary {
-            padding: 0.8rem;
-            border-bottom: 1px solid #e9ecef;
+
+        /* State card — shared by no-changes, error, apply summary */
+        .state-card {
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
         }
-        
-        .summary h2 {
-            margin: 0 0 0.4rem 0;
-            color: #495057;
+        .state-card__icon {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 0.75rem;
+            color: var(--text-muted);
         }
-        
+        .state-card__icon svg {
+            width: 2rem;
+            height: 2rem;
+        }
+        .state-card__title {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .state-card__body {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+        .state-card--nochange .state-card__icon { color: var(--accent-create); }
+        .state-card--error   .state-card__icon { color: var(--accent-delete); }
+        .state-card--error .state-card__title  { color: var(--accent-delete); }
+
         .summary-stats {
             display: flex;
             gap: 0.8rem;
             justify-content: center;
+            margin-top: 1rem;
         }
-        
+
         .stat-item {
             text-align: center;
-            padding: 0.4rem;
-            border-radius: 4px;
-            background: #f8f9fa;
-            min-width: 48px;
+            padding: 0.4rem 0.6rem;
+            border-radius: var(--radius-sm);
+            background: var(--bg-muted);
+            min-width: 52px;
         }
-        
         .stat-item.create {
-            background: #d4edda;
-            color: #155724;
+            background: var(--diff-add-bg);
+            color: var(--diff-add-fg);
         }
-        
         .stat-item.update {
-            background: #fff3cd;
-            color: #856404;
+            background: var(--diff-mod-bg);
+            color: var(--diff-mod-fg);
         }
-        
         .stat-item.delete {
-            background: #f8d7da;
-            color: #721c24;
+            background: var(--diff-del-bg);
+            color: var(--diff-del-fg);
         }
-        
         .stat-number {
             display: block;
             font-size: 1.2rem;
             font-weight: bold;
         }
-        
         .stat-label {
             font-size: 0.54rem;
             text-transform: uppercase;
             letter-spacing: 0.3px;
         }
-        
-        .filters {
-            padding: 1.5rem 2rem;
-            background: #f8f9fa;
-            border-bottom: 1px solid #e9ecef;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-        
-        .filter-section h3 {
-            margin: 0 0 0.5rem 0;
-            font-size: 1rem;
-            color: #495057;
-        }
-        
-        .filter-group {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-        }
-        
-        .filter-checkbox {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.9rem;
-            cursor: pointer;
-        }
-        
-        .filter-checkbox input {
-            margin: 0;
-        }
 
-        /* Search + filter toolbar */
+        /* ── Toolbar (single sticky row: search + chips + icon buttons) ──── */
         .toolbar {
             position: sticky;
             top: 0;
             z-index: 20;
             display: flex;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             align-items: center;
-            gap: 0.75rem 1rem;
-            padding: 1rem 2rem;
-            background: #ffffff;
-            border-bottom: 1px solid #e9ecef;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            gap: 0.5rem 0.6rem;
+            padding: 0.45rem 0.8rem;
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
         }
         .toolbar-search {
             position: relative;
-            flex: 1 1 260px;
-            min-width: 200px;
+            flex: 1 1 180px;
+            min-width: 140px;
         }
         #resource-search {
             width: 100%;
-            height: 38px;
-            padding: 0 2.1rem 0 0.85rem;
-            font-size: 0.95rem;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
+            height: 30px;
+            padding: 0 1.8rem 0 0.7rem;
+            font-size: 0.82rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             outline: none;
             box-sizing: border-box;
+            background: var(--bg-muted);
+            color: var(--text-primary);
         }
         #resource-search:focus {
-            border-color: #dee2e6;
-            box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+            border-color: var(--border-strong);
+            background: var(--bg-surface);
         }
         .search-clear {
             position: absolute;
-            right: 0.5rem;
+            right: 0.4rem;
             top: 50%;
             transform: translateY(-50%);
             border: none;
             background: transparent;
             cursor: pointer;
-            color: #adb5bd;
-            font-size: 0.85rem;
+            color: var(--text-tertiary);
+            font-size: 0.78rem;
             line-height: 1;
-            padding: 0.25rem;
+            padding: 0.2rem;
             display: none;
         }
         .search-clear.visible { display: block; }
-        .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+        .chips { display: flex; flex-wrap: wrap; gap: 0.3rem; }
         .chip {
             display: inline-flex;
             align-items: center;
-            gap: 0.4rem;
-            height: 38px;
-            padding: 0 0.9rem;
-            border-radius: 4px;
-            border: 1px solid #e9ecef;
-            border-left: 4px solid #e9ecef;
-            background: #ffffff;
-            color: #adb5bd;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
-            font-size: 0.82rem;
+            gap: 0.3rem;
+            height: 26px;
+            padding: 0 0.6rem;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--border);
+            background: var(--bg-surface);
+            color: var(--text-tertiary);
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-size: 0.75rem;
             font-weight: 500;
             cursor: pointer;
             user-select: none;
             box-sizing: border-box;
-            transition: background 0.12s ease, color 0.12s ease;
+            transition: background 0.1s ease, color 0.1s ease;
         }
-        .chip:not(.active):hover { background: #f8f9fa; }
-        .chip.active { color: #212529; border-color: transparent; }
-        /* active chips take a light tint of their action colour + a coloured left bar */
-        .chip.active[data-action="delete"]  { background: #fdeaea; border-left-color: #dc3545; color: #9b2c2c; }
-        .chip.active[data-action="replace"] { background: #f2ecfa; border-left-color: #6f42c1; color: #4d2d8a; }
-        .chip.active[data-action="update"]  { background: #fff6db; border-left-color: #ffc107; color: #7a5b00; }
-        .chip.active[data-action="create"]  { background: #e8f6ee; border-left-color: #28a745; color: #1a7f37; }
+        .chip:not(.active):hover { background: var(--bg-muted); }
+        .chip.active { color: var(--text-primary); border-color: transparent; }
+        .chip.active[data-action="delete"]  { background: var(--chip-delete-bg);  border-left-color: var(--accent-delete);  color: var(--chip-delete-fg); }
+        .chip.active[data-action="replace"] { background: var(--chip-replace-bg); border-left-color: var(--accent-replace); color: var(--chip-replace-fg); }
+        .chip.active[data-action="update"]  { background: var(--chip-update-bg);  border-left-color: var(--accent-update);  color: var(--chip-update-fg); }
+        .chip.active[data-action="create"]  { background: var(--chip-create-bg);  border-left-color: var(--accent-create);  color: var(--chip-create-fg); }
         .chip-count {
             font-variant-numeric: tabular-nums;
             font-weight: 600;
-            background: rgba(0, 0, 0, 0.06);
-            border-radius: 3px;
-            padding: 0 0.4rem;
+            background: rgba(0,0,0,0.06);
+            border-radius: var(--radius-sm);
+            padding: 0 0.3rem;
         }
-        .chip.active .chip-count { background: rgba(0, 0, 0, 0.10); }
-        .results-count {
+        .chip.active .chip-count { background: rgba(0,0,0,0.10); }
+
+        /* Toolbar right cluster: count + icon buttons */
+        .toolbar-right {
             margin-left: auto;
-            font-size: 0.85rem;
-            color: #868e96;
-            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            flex-shrink: 0;
         }
+        .results-count {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            padding-right: 0.35rem;
+        }
+        .toolbar-icon-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 0;
+            transition: background 0.1s ease, color 0.1s ease;
+            flex-shrink: 0;
+        }
+        .toolbar-icon-btn:hover { background: var(--bg-muted); color: var(--text-primary); }
+        .toolbar-icon-btn[aria-expanded="true"] { background: var(--bg-muted); color: var(--text-primary); }
+
+        /* Properties dropdown panel */
+        .props-panel {
+            background: var(--bg-surface);
+            border-bottom: 1px solid var(--border);
+            padding: 0.55rem 0.8rem;
+        }
+        .props-panel[hidden] { display: none; }
+        .props-panel__inner {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem 0.8rem;
+        }
+        .filter-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+        .filter-checkbox input { margin: 0; cursor: pointer; }
+
+        /* Filter active notice */
         .no-results {
             display: none;
-            padding: 3rem 2rem;
+            padding: 2rem 1rem;
             text-align: center;
-            color: #868e96;
-            font-size: 0.95rem;
+            color: var(--text-muted);
+            font-size: 0.85rem;
         }
         .no-results.visible { display: block; }
         .filter-notice {
             display: none;
             align-items: center;
-            gap: 0.85rem;
-            padding: 1.1rem 2rem;
-            background: #fff8e1;
-            border-bottom: 1px solid #ffe8a3;
-            color: #6b5900;
-            font-size: 1.05rem;
+            gap: 0.6rem;
+            padding: 0.45rem 0.8rem;
+            background: var(--diff-mod-bg);
+            border-bottom: 1px solid var(--border);
+            color: var(--diff-mod-fg);
+            font-size: 0.78rem;
             font-weight: 500;
         }
         .filter-notice.visible { display: flex; }
         .filter-notice-icon { flex-shrink: 0; }
         .filter-reset {
             margin-left: auto;
-            border: 1px solid #e9c46a;
-            background: #ffffff;
-            color: #6b5900;
-            padding: 0.45rem 0.9rem;
-            border-radius: 4px;
-            font-size: 0.9rem;
+            border: 1px solid var(--border-strong);
+            background: transparent;
+            color: var(--diff-mod-fg);
+            padding: 0.2rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
             font-weight: 500;
             cursor: pointer;
         }
-        .filter-reset:hover { background: #fffdf5; }
+        .filter-reset:hover { opacity: 0.8; }
         .resource-change.highlighted {
-            box-shadow: 0 0 0 3px rgba(75, 85, 99, 0.6);
-            border-radius: 8px;
+            box-shadow: 0 0 0 2px var(--accent-replace);
+            border-radius: var(--radius-md);
         }
 
-        .btn {
-            background: #6b7280;
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-        
-        .btn:hover {
-            background: #4b5563;
-        }
-        
-        .sort-dropdown {
-            padding: 0.5rem;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            font-size: 0.9rem;
-            background: white;
-            cursor: pointer;
-        }
-        
-        .resource-groups {
-            padding: 1.2rem;
-        }
-        
+        /* ── Resource groups ─────────────────────────────────────────────── */
+        .resource-groups { padding: 0.6rem; }
+
         .resource-group {
-            margin-bottom: 0.4rem;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
+            margin-bottom: 0.35rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
             overflow: hidden;
         }
-        
+
         .group-header {
-            background: #f8f9fa;
-            padding: 0.6rem;
-            border-bottom: 1px solid #e9ecef;
+            background: var(--bg-muted);
+            padding: 0.35rem 0.65rem;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
-        
         .group-header h3 {
             margin: 0;
-            color: #495057;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-muted);
         }
-        
-        .group-resources {
-            padding: 1rem;
-        }
-        
+
+        .group-resources { padding: 0.35rem; }
+
         .resource-change {
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            margin-bottom: 0.3rem;
             overflow: hidden;
         }
-        
-        .resource-change.create {
-            border-left: 16px solid #28a745;
-        }
-        
-        .resource-change.update {
-            border-left: 16px solid #ffc107;
-        }
-        
-        .resource-change.delete {
-            border-left: 16px solid #dc3545;
-        }
-        
-        .resource-change.replace {
-            border-left: 16px solid #6f42c1;
-        }
-        
-        .resource-change.read {
-            border-left: 16px solid #6c757d;
-        }
-        
+
+        .resource-change.create  { border-left: 4px solid var(--accent-create); }
+        .resource-change.update  { border-left: 4px solid var(--accent-update); }
+        .resource-change.delete  { border-left: 4px solid var(--accent-delete); }
+        .resource-change.replace { border-left: 4px solid var(--accent-replace); }
+        .resource-change.read    { border-left: 4px solid var(--accent-read); }
+
         .resource-header {
-            padding: 1rem;
-            background: #f8f9fa;
+            padding: 0.45rem 0.7rem;
+            background: var(--bg-muted);
             cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 0.5rem;
             user-select: none;
+            min-height: 34px;
         }
-        
-        .resource-header:hover {
-            background: #e9ecef;
-        }
-        
+        .resource-header:hover { background: var(--border); }
+
         .resource-address {
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-size: 0.8rem;
             font-weight: 500;
             flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
-        
+
         .toggle-indicator {
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            width: 16px;
+            height: 16px;
+            color: var(--text-muted);
             transition: transform 0.2s;
         }
-        
+        .toggle-indicator svg { width: 16px; height: 16px; }
+
         .resource-change.collapsed .toggle-indicator {
             transform: rotate(-90deg);
         }
-        
+
         .resource-details {
             padding: 0;
-            border-top: 1px solid #e9ecef;
-        }
-        
-        .resource-change.collapsed .resource-details {
-            display: none;
-        }
-        
-        /* Outputs Section Styling */
-        .outputs-section {
-            padding: 1.5rem 2rem;
-            border-top: 1px solid #e9ecef;
+            border-top: 1px solid var(--border);
         }
 
+        .resource-change.collapsed .resource-details { display: none; }
+
+        /* Outputs Section */
+        .outputs-section {
+            padding: 1.5rem 2rem;
+            border-top: 1px solid var(--border);
+        }
         .outputs-section h2 {
             margin: 0 0 1rem 0;
-            color: #495057;
+            color: var(--text-secondary);
             font-size: 1.4rem;
         }
 
@@ -2396,143 +2328,94 @@ class HTMLGenerator:
         }
 
         .output-item {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
+            background: var(--bg-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
             overflow: hidden;
         }
-
         .output-name {
-            background: #e9ecef;
+            background: var(--border);
             padding: 0.75rem;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
             font-weight: 500;
-            color: #495057;
-            border-bottom: 1px solid #dee2e6;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-strong);
         }
-
-        .output-details {
-            padding: 0.75rem;
-        }
-
+        .output-details { padding: 0.75rem; }
         .output-value {
             margin: 0 0 0.5rem 0;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
             font-size: 0.85rem;
             white-space: pre-wrap;
             word-break: break-all;
             overflow-x: auto;
         }
-
         .output-type {
             font-size: 0.8rem;
-            color: #6c757d;
+            color: var(--text-muted);
             display: block;
             margin-top: 0.5rem;
         }
-
         .sensitive-value {
-            color: #6c757d;
+            color: var(--text-muted);
             font-style: italic;
-            background: #f1f3f5;
+            background: var(--bg-muted);
             padding: 0.25rem 0.5rem;
-            border-radius: 3px;
-        }
-
-        .no-changes-summary {
-            padding: 2rem;
-            text-align: center;
-            background: #d4edda;
-            color: #155724;
-            border-bottom: 1px solid #d4edda;
-        }
-
-        .no-changes-summary h2 {
-            margin: 0 0 1rem 0;
-            color: #155724;
-        }
-
-        .no-changes-icon {
-            font-size: 2.5rem;
-            color: #28a745;
+            border-radius: var(--radius-sm);
         }
 
         .command-box {
-            background: #f1f3f5;
-            border-radius: 6px;
+            background: var(--bg-muted);
+            border-radius: var(--radius-md);
             padding: 0.2rem;
             margin: 0.2rem 0;
         }
-
         .command {
-            background: #212529;
-            color: #f8f9fa;
+            background: var(--terminal-bg);
+            color: var(--terminal-fg);
             padding: 0.6rem 0.8rem;
-            border-radius: 4px;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            border-radius: var(--radius-sm);
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
             margin-top: 0.75rem;
         }
-        
-        /* Terminal Section Styling */
+
+        /* Terminal Section */
         .terminal-section {
             padding: 1.5rem 2rem;
-            border-top: 1px solid #e9ecef;
+            border-top: 1px solid var(--border);
         }
-        
         .terminal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 1rem;
         }
-        
         .terminal-header h3 {
             margin: 0;
-            color: #495057;
+            color: var(--text-secondary);
         }
-        
-        .load-logs-btn {
-            background: #6c757d;
-            color: white;
-            border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            margin-right: 0.5rem;
-        }
-        
-        .load-logs-btn:hover {
-            background: #5a6268;
-        }
-        
         .copy-btn {
-            background: #6c757d;
-            color: white;
+            background: var(--text-muted);
+            color: var(--bg-surface);
             border: none;
-            padding: 0.5rem 1rem;
-            border-radius: 4px;
+            padding: 0.4rem 0.85rem;
+            border-radius: var(--radius-sm);
             cursor: pointer;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
         }
-        
-        .copy-btn:hover {
-            background: #5a6268;
-        }
-        
+        .copy-btn:hover { opacity: 0.8; }
         .terminal-container {
-            background: #1e1e1e;
-            border-radius: 8px;
+            background: var(--terminal-bg);
+            border-radius: var(--radius-lg);
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-md);
         }
-        
         .terminal-output {
-            background: #1e1e1e;
-            color: #d4d4d4;
+            background: var(--terminal-bg);
+            color: var(--terminal-fg);
             padding: 1.5rem;
             margin: 0;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
             font-size: 0.9rem;
             line-height: 1.4;
             white-space: pre-wrap;
@@ -2541,30 +2424,31 @@ class HTMLGenerator:
             max-height: 400px;
             overflow-y: auto;
         }
-        
+
+        /* Properties diff table */
         .properties-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.9rem;
-            table-layout: fixed; /* Use fixed layout for better column control */
+            table-layout: fixed;
         }
-        
         .properties-table th {
-            background: #f8f9fa;
-            padding: 0.75rem;
+            background: var(--bg-muted);
+            padding: 0.5rem 0.75rem;
             text-align: left;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-size: 0.75rem;
             font-weight: 600;
-            color: #495057;
-            border-bottom: 2px solid #dee2e6;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
             position: relative;
         }
 
-        /* Resizable Before/After columns (property-changes table) */
+        /* Resizable Before/After columns */
         .resizable-table { --before-w: 37.5%; --after-w: 37.5%; }
         .resizable-table .col-prop { width: 25%; }
         .resizable-table .col-before { width: var(--before-w); }
         .resizable-table .col-after { width: var(--after-w); }
-        /* action-aware defaults: deletes emphasise Before, creates emphasise After */
         .resource-change.delete .resizable-table { --before-w: 52%; --after-w: 23%; }
         .resource-change.create .resizable-table { --before-w: 23%; --after-w: 52%; }
         .resizable-table .before-value,
@@ -2572,6 +2456,7 @@ class HTMLGenerator:
         .col-resizer {
             position: absolute;
             top: 0;
+            bottom: 0;
             right: -5px;
             width: 10px;
             height: 100%;
@@ -2582,196 +2467,102 @@ class HTMLGenerator:
             content: "";
             position: absolute;
             left: 50%;
-            top: 20%;
-            height: 60%;
-            width: 2px;
+            top: 0;
+            bottom: 0;
+            height: 100%;
+            width: 1px;
             transform: translateX(-50%);
-            background: #dee2e6;
+            background: var(--border);
         }
         .col-resizer:hover::after,
-        .col-resizer.dragging::after { background: #adb5bd; }
-        
+        .col-resizer.dragging::after { background: var(--text-tertiary); }
+
         .properties-table td {
-            padding: 0.5rem; #decrease this to decrease padding between properties
-            border-bottom: 1px solid #dee2e6;
+            padding: 0.5rem;
+            border: none;
             vertical-align: top;
         }
-        
+        .properties-table tbody tr + tr td {
+            border-top: 1px solid var(--border);
+        }
         .property-name {
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-size: 0.8rem;
             font-weight: 500;
-            color: #495057;
+            color: var(--text-secondary);
             width: 25%;
         }
-        
         .before-value, .after-value {
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-size: 0.8rem;
             width: 37.5%;
             max-width: 37.5%;
-            min-width: 0; /* Allow shrinking */
+            min-width: 0;
         }
-        
         .before-value pre, .after-value pre {
             margin: 0;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
-            font-size: 0.85rem;
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-size: 0.8rem;
             white-space: pre-wrap;
             word-break: break-all;
-            /* Apply consistent constraints to ALL pre elements */
             max-height: 200px;
             max-width: 100%;
             overflow: auto;
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 4px;
+            background: var(--bg-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             padding: 0.5rem;
         }
-        
-        /* Styling for long values - additional styling for complex content */
         .before-value pre.long-value, .after-value pre.long-value {
-            font-size: 0.68rem; /* 20% smaller than 0.85rem */
+            font-size: 0.68rem;
             white-space: pre;
             word-break: normal;
         }
-        
-        /* Custom scrollbar styling for long values */
-        .before-value pre.long-value::-webkit-scrollbar, .after-value pre.long-value::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        
-        .before-value pre.long-value::-webkit-scrollbar-track, .after-value pre.long-value::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-        
-        .before-value pre.long-value::-webkit-scrollbar-thumb, .after-value pre.long-value::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 4px;
-        }
-        
-        .before-value pre.long-value::-webkit-scrollbar-thumb:hover, .after-value pre.long-value::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
-        }
-        
-        /* Long simple values - horizontal scroll only for ARNs, URLs, etc */
         .long-simple-value {
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
             font-size: 0.8rem;
             white-space: nowrap;
             overflow-x: auto;
             overflow-y: hidden;
             max-width: 100%;
             padding: 0.5rem;
-            border: 1px solid #e9ecef;
-            border-radius: 4px;
-            background: #f8f9fa;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-muted);
         }
-        
-        /* Custom scrollbar for long simple values */
-        .long-simple-value::-webkit-scrollbar {
-            height: 6px;
-        }
-        
-        .long-simple-value::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 3px;
-        }
-        
-        .long-simple-value::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 3px;
-        }
-        
-        .long-simple-value::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
-        }
-        
-        /* Complex content - 5-line container with both scrolls for JSON, multiline */
         .complex-value {
             margin: 0;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
-            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', 'SF Mono', Monaco, Consolas, monospace;
+            font-size: 0.8rem;
             white-space: pre-wrap;
             word-break: normal;
-            max-height: 100px; /* Exactly 5 lines with line-height 1.2 */
-            min-height: 60px;  /* Ensure it shows as a container even for short content */
+            max-height: 100px;
+            min-height: 60px;
             max-width: 100%;
             overflow: auto;
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 4px;
+            background: var(--bg-muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             padding: 0.5rem;
             line-height: 1.2;
         }
-        
-        /* Custom scrollbar styling for complex values */
-        .complex-value::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        
-        .complex-value::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-        
-        .complex-value::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 4px;
-        }
-        
-        .complex-value::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
-        }
-        
-        .property-change.addition .after-value {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .property-change.removal .before-value {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        .property-change.modification .before-value {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .property-change.modification .after-value {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .filter-divider {
-            width: 1px;
-            background: #dee2e6;
-            height: 4rem;
-            margin: 0 1rem;
-            visibility: hidden;
-        }
-        
-        .control-section {
-            display: flex;
-            align-items: flex-start;
-            padding-top: 0.25rem;
-        }
-        
-        .resource-change.replace .property-change .before-value {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
+
+        /* Diff row colouring */
+        .property-change.addition .after-value    { background: var(--diff-add-bg); color: var(--diff-add-fg); }
+        .property-change.removal .before-value    { background: var(--diff-del-bg); color: var(--diff-del-fg); }
+        .property-change.modification .before-value { background: var(--diff-mod-bg); color: var(--diff-mod-fg); }
+        .property-change.modification .after-value  { background: var(--diff-add-bg); color: var(--diff-add-fg); }
+        .resource-change.replace .property-change .before-value { background: var(--diff-del-bg); color: var(--diff-del-fg); }
+
+        /* Footer */
         .footer {
-            background: #f8f9fa;
+            background: var(--bg-muted);
             padding: 1.5rem 2rem;
-            color: #6c757d;
+            color: var(--text-muted);
             font-size: 0.9rem;
-            border-top: 1px solid #e9ecef;
+            border-top: 1px solid var(--border);
             margin-top: auto;
         }
-        
         .footer-content {
             display: flex;
             justify-content: space-between;
@@ -2779,68 +2570,40 @@ class HTMLGenerator:
             max-width: 1200px;
             margin: 0 auto;
         }
-        
-        .footer-text {
-            text-align: left;
-        }
-        
-        .footer-buttons {
-            display: flex;
-            gap: 1rem;
-        }
-        
+        .footer-text { text-align: left; }
+        .footer-buttons { display: flex; gap: 1rem; }
         .footer-btn {
-            background: #dc3545;
-            color: white;
+            background: var(--bg-header);
+            color: #fff;
             text-decoration: none;
             padding: 0.5rem 1rem;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             font-size: 0.9rem;
-            transition: background-color 0.2s;
         }
-        
-        .footer-btn:hover {
-            background: #721c24;
+        .footer-btn:hover { opacity: 0.85; }
+
+        /* Watermark */
+        .tofui-watermark {
+            text-align: right;
+            padding: 0.4rem 1.2rem 0.6rem;
+            font-size: 0.75rem;
+            font-style: italic;
         }
-        
-        .hidden {
-            display: none !important;
+        .tofui-watermark a {
+            color: var(--text-tertiary);
+            text-decoration: none;
         }
-        
-        @media (max-width: 768px) {
-            .header {
-                padding: 1.5rem;
-            }
-            
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .summary-stats {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .filters {
-                flex-direction: column;
-                gap: 1rem;
-            }
-            
-            .resource-groups {
-                padding: 1rem;
-            }
-            
-            .properties-table {
-                font-size: 0.8rem;
-            }
-            
-            .property-name {
-                width: 30%;
-            }
-            
-            .before-value, .after-value {
-                width: 35%;
-            }
+        .tofui-watermark a:hover { text-decoration: underline; }
+
+        .hidden { display: none !important; }
+
+        @media (max-width: 600px) {
+            .toolbar { flex-wrap: wrap; }
+            .chips { order: 2; width: 100%; }
+            .toolbar-right { order: 3; }
+            .properties-table { font-size: 0.75rem; }
+            .property-name { width: 30%; }
+            .before-value, .after-value { width: 35%; }
         }
         """
     
@@ -2877,19 +2640,36 @@ class HTMLGenerator:
         }
         
         function initializeToggleButtons() {
+            // Expand/collapse all — icon button; rotate SVG chevron to show state
             const toggleBtn = document.getElementById('toggle-all');
-            
+            const toggleIcon = document.getElementById('toggle-all-icon');
+            let allExpanded = false;
+
             if (toggleBtn) {
                 toggleBtn.addEventListener('click', function() {
-                    const isCurrentlyExpanded = toggleBtn.textContent.trim() === 'Collapse All';
-                    
-                    if (isCurrentlyExpanded) {
-                        collapseAllResources();
-                        toggleBtn.textContent = 'Expand All';
-                    } else {
+                    allExpanded = !allExpanded;
+                    if (allExpanded) {
                         expandAllResources();
-                        toggleBtn.textContent = 'Collapse All';
+                        toggleBtn.title = 'Collapse all';
+                        toggleBtn.setAttribute('aria-label', 'Collapse all resources');
+                        if (toggleIcon) toggleIcon.style.transform = 'rotate(180deg)';
+                    } else {
+                        collapseAllResources();
+                        toggleBtn.title = 'Expand all';
+                        toggleBtn.setAttribute('aria-label', 'Expand all resources');
+                        if (toggleIcon) toggleIcon.style.transform = '';
                     }
+                });
+            }
+
+            // Properties panel toggle
+            const propsBtn = document.getElementById('props-btn');
+            const propsPanel = document.getElementById('props-panel');
+            if (propsBtn && propsPanel) {
+                propsBtn.addEventListener('click', function() {
+                    const open = propsPanel.hidden;
+                    propsPanel.hidden = !open;
+                    propsBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
                 });
             }
         }

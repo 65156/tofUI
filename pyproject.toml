@@ -16,7 +16,7 @@ maintainers = [
 ]
 keywords = ["terraform", "plan", "html", "report", "visualization", "infrastructure", "tofui"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Intended Audience :: System Administrators",
     "License :: OSI Approved :: MIT License",
@@ -70,13 +70,14 @@ Repository = "https://github.com/65156/tofUI"
 "Bug Reports" = "https://github.com/65156/tofUI/issues"
 
 [tool.setuptools]
-packages = ["tofui"]
+packages = ["tofui", "tofui.presets"]
 
 [tool.setuptools.dynamic]
 version = {attr = "tofui.__version__"}
 
 [tool.setuptools.package-data]
 tofui = ["*.py", "py.typed"]
+"tofui.presets" = ["*.json"]
 
 [tool.black]
 line-length = 88

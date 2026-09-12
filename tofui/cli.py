@@ -193,7 +193,10 @@ def handle_no_changes_scenario(args):
     # Add build_url from CLI if provided
     if args.build_url:
         config['build_url'] = args.build_url
-    
+    # --theme CLI flag overrides config file
+    if getattr(args, 'theme', None):
+        config['theme'] = args.theme
+
     display_name = args.display_name or original_build_name
     file_name = sanitized_build_name
     output_file = f"{file_name}.html"
@@ -352,7 +355,10 @@ def handle_terraform_apply_mode(args):
     # Add build_url from CLI if provided
     if args.build_url:
         config['build_url'] = args.build_url
-    
+    # --theme CLI flag overrides config file
+    if getattr(args, 'theme', None):
+        config['theme'] = args.theme
+
     display_name = args.display_name or original_build_name
     file_name = sanitized_build_name
     output_file = f"{file_name}.html"
@@ -454,7 +460,10 @@ def handle_terraform_error(args):
     # Add build_url from CLI if provided
     if args.build_url:
         config['build_url'] = args.build_url
-    
+    # --theme CLI flag overrides config file
+    if getattr(args, 'theme', None):
+        config['theme'] = args.theme
+
     display_name = args.display_name or original_build_name
     file_name = sanitized_build_name
     output_file = f"{file_name}.html"
@@ -666,7 +675,10 @@ def main():
         # Add build_url from CLI if provided
         if args.build_url:
             config['build_url'] = args.build_url
-        
+        # --theme CLI flag overrides config file
+        if getattr(args, 'theme', None):
+            config['theme'] = args.theme
+
         # Add debug_json flag to config
         config['debug_json'] = getattr(args, 'debug_json', False)
         
@@ -880,6 +892,18 @@ Examples:
     parser.add_argument(
         "--config", "-c",
         help="Path to configuration JSON file"
+    )
+
+    parser.add_argument(
+        "--theme",
+        choices=["maze-auto", "auto", "maze-dark", "maze-light", "light"],
+        help=(
+            "Report colour theme. "
+            "'maze-auto' (default) follows the Maze UI postMessage + OS preference; "
+            "'maze-dark' / 'maze-light' are static Maze-native palettes; "
+            "'light' is the legacy tofUI light palette. "
+            "Overrides the 'theme' key in the config file."
+        )
     )
     
     parser.add_argument(
