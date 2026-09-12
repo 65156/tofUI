@@ -129,86 +129,21 @@ empty when that artefact was not published, so sourcing the file is safe under
 `set -u`. It is written for every backend — GCS, S3, GitHub Pages — and when no
 backend ran at all, in which case `TOFUI_HTML_FILE` is the only value set.
 
-## Theme configuration
+## Theming & Presets
 
-All colours in tofUI reports are CSS custom properties. You can override any of them from the `theme` block in your config JSON:
+tofUI supports dynamic theming (`maze-auto`, `maze-dark`, `maze-light`, `light`) and custom CSS token overrides.
 
-```json
-{
-  "theme": {
-    "--bg-page":    "#0d1117",
-    "--bg-surface": "#161b22",
-    "--text-primary": "#e6edf3"
-  }
-}
-```
+- **CLI Theme Selection**:
+  ```bash
+  tofui plan.json --build-name my-plan --theme maze-dark
+  ```
+- **Embedding in Maze UI / iframes** using the bundled preset:
+  ```bash
+  PRESET=$(python -c "import tofui.presets, os; print(os.path.join(os.path.dirname(tofui.presets.__file__), 'tofui_maze_embed.json'))")
+  tofui plan.json --build-name my-plan --config "$PRESET"
+  ```
 
-### All theme keys and their defaults
-
-| Key | Default | Purpose |
-|---|---|---|
-| `--bg-page` | `#f8f9fa` | Page background |
-| `--bg-surface` | `#ffffff` | Card / panel background |
-| `--bg-muted` | `#f8f9fa` | Muted areas (group headers, filter bar) |
-| `--bg-header` | `#4b5563` | Report header bar background |
-| `--text-primary` | `#212529` | Body text |
-| `--text-secondary` | `#495057` | Label text |
-| `--text-muted` | `#6c757d` | De-emphasised text |
-| `--text-tertiary` | `#adb5bd` | Watermark and decorative text |
-| `--border` | `#e9ecef` | Default border |
-| `--border-strong` | `#dee2e6` | Stronger border (table rows) |
-| `--accent-create` | `#28a745` | Create action stripe |
-| `--accent-update` | `#ffc107` | Update action stripe |
-| `--accent-delete` | `#dc3545` | Delete action stripe |
-| `--accent-replace` | `#6f42c1` | Replace action stripe |
-| `--accent-read` | `#6c757d` | Read action stripe |
-| `--chip-create-bg` / `--chip-create-fg` | light green | Create filter chip |
-| `--chip-update-bg` / `--chip-update-fg` | light yellow | Update filter chip |
-| `--chip-delete-bg` / `--chip-delete-fg` | light red | Delete filter chip |
-| `--chip-replace-bg` / `--chip-replace-fg` | light purple | Replace filter chip |
-| `--diff-add-bg` / `--diff-add-fg` | green | Addition diff cell |
-| `--diff-del-bg` / `--diff-del-fg` | red | Deletion diff cell |
-| `--diff-mod-bg` / `--diff-mod-fg` | yellow | Modification diff cell |
-| `--terminal-bg` | `#1e1e1e` | Terminal block background |
-| `--terminal-fg` | `#d4d4d4` | Terminal block text |
-
-### Sections visibility
-
-Hide the header or footer (useful for embedding):
-
-```json
-{
-  "sections": {
-    "header": false,
-    "footer": false
-  }
-}
-```
-
-The watermark (`tofui-watermark`) is always rendered regardless.
-
-## Maze UI embed
-
-tofUI ships two preset config files inside the package.
-
-**Dark embed preset** (header/footer hidden, GitHub dark palette):
-
-```bash
-# Get the preset path
-PRESET=$(python -c "import tofui.presets, os; print(os.path.join(os.path.dirname(tofui.presets.__file__), 'tofui_maze_embed.json'))")
-
-tofui plan.json --build-name my-plan --config "$PRESET"
-```
-
-**Light standalone preset** (all sections visible, light palette — the default behaviour):
-
-```bash
-PRESET=$(python -c "import tofui.presets, os; print(os.path.join(os.path.dirname(tofui.presets.__file__), 'tofui_light.json'))")
-
-tofui plan.json --build-name my-plan --config "$PRESET"
-```
-
-Both files are in [`tofui/presets/`](tofui/presets/).
+For the complete guide on configuration options, presets, section visibility, and all CSS token keys, see **[CONFIGURATION.md](CONFIGURATION.md)**.
 
 ## Contributing
 
